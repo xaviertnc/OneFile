@@ -66,6 +66,12 @@ class QueryBuilder
 	 * @var array
 	 */
 	protected $params;
+
+	/**
+	 *
+	 * @var string
+	 */
+	protected $target;
 	
 	 // Choose output type: PREPARED(true) or DIRECT(false)
 	 // DIRECT == Plain query. No "?"s with bindings and No automatically escaped values!
@@ -78,6 +84,24 @@ class QueryBuilder
 	public static function create($as_prepared_statement = true)
 	{
 		return new static($as_prepared_statement);
+	}
+
+	public static function with($tableName, $as_prepared_statement = true)
+	{
+		$query = new static($as_prepared_statement);
+		return $query->using($tableName);
+	}
+
+	public static function insertInto($tableName, array $dataset, $ignore_duplicates = false, $as_prepared_statement = true)
+	{
+		$query = new static($as_prepared_statement);
+		return $query->using($tableName)->insert($dataset, $ignore_duplicates);
+	}
+
+	public static function deleteFrom($tableName, $as_prepared_statement = true)
+	{
+		$query = new static($as_prepared_statement);
+		return $query->delete()->from($tableName);
 	}
 	
 	// Only for non-prepared queries
@@ -146,12 +170,19 @@ class QueryBuilder
 		return $this;
 	}
 	
-	public function using($source, $alias = null)
+	public function using($tableName, $alias = null)
 	{
-		return $this->from($source, $alias);
+		$this->target = $tableName;
+		return $this->from($tableName, $alias);
+	}
+
+	public function delete()
+	{
+		$this->commands[] = "DELETE";
+		return $this;
 	}
 	
-	public function insertInto($table, array $dataset, $ignore_duplicates = false)
+	public function insert(array $dataset, $ignore_duplicates = false)
 	{
 		foreach($dataset as $column => $value)
 		{
@@ -171,7 +202,7 @@ class QueryBuilder
 		
 		$ignore = $ignore_duplicates?' IGNORE':'';
 		
-		$this->commands[] = "INSERT$ignore INTO $table ($columns) VALUES ($values)";
+		$this->commands[] = "INSERT$ignore INTO $this->target ($columns) VALUES ($values)";
 		return $this;
 	}
 

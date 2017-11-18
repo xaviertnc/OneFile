@@ -1,7 +1,7 @@
 <?php namespace OneFile\MySql;
 
 use PDO;
-use PDOException;
+use Exception;
 
 /**
  * @author C. Moller 24 May 2014 <xavier.tnc@gmail.com>
@@ -20,35 +20,29 @@ class Database extends PDO
 	 */
 	function __construct($config = null)
     {
-		if(!$config)
-			$this->handle_error('Database Config Required');
-		
-		if(is_array($config))
-		{
-			$this->config = $config;
-		}
-		elseif(file_exists($config))
-		{
-			/**
-			 * Config File Content
-			 * -------------------
-			 * return array(
-			 *	'DBHOST'=>'...',
-			 *	'DBNAME'=>'...',
-			 * 	'DBUSER'=>'...',
-			 * 	'DBPASS'=>'...'
-			 * );
-			 */
-			$this->config = include($config);
+		try {
 			
-			if(!$this->config)
-				$this->handle_error('Config File Invalid');
-		}
-		else
-			$this->handle_error('Config Invalid');
+			if (is_string($config) and file_exists($config))
+			{ 
+				/**
+				 * Config File Content
+				 * -------------------
+				 * return array(
+				 *	'DBHOST'=>'...',
+				 *	'DBNAME'=>'...',
+				 * 	'DBUSER'=>'...',
+				 * 	'DBPASS'=>'...'
+				 * );
+				 */
+				$this->config = include($config);				
+			}
+			else
+			{
+				$this->config = $config;
+			}
 
-		try
-		{
+			if ( ! is_array($config) or count($config) != 4) trigger_error("Database Configuration Invalid!", E_USER_WARNING);
+			
 			parent::__construct(
 				'mysql:host=' . $this->config['DBHOST'] . ';dbname=' . $this->config['DBNAME'],
 				$this->config['DBUSER'],
@@ -58,21 +52,13 @@ class Database extends PDO
 			
             $this->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         }
-		catch(PDOException $e)
+        
+		catch(Exception $e)
 		{
-			$this->handle_error($e->getMessage(), $e->getCode());
+			trigger_error('Database Error! ' . $e->getMessage(), E_USER_ERROR);
         }
     }	
 
-	/**
-	 * 
-	 * @param string $error
-	 * @param integer $code
-	 */
-	protected function handle_error($error = null, $code = null)
-	{
-		die('<br><span style="color:red">MySql Database Error! Code: ' . $code . ', Message: ' . $error . '</span>');
-	}
 	
 	/**
 	 * 
@@ -88,6 +74,3 @@ class Database extends PDO
 			return $prepared;
 	}
 }
-
-//->fetch(PDO::FETCH_ASSOC);
-//->fetch(PDO::FETCH_OBJ);

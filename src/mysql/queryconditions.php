@@ -35,7 +35,7 @@ class QueryConditions
 		return new static($as_prep_statement);
 	}
 
-	// Only for non-prepared queries
+	 // Only for non-prepared queries
 	protected function quote($value)
 	{
 		if($value === null)
@@ -49,12 +49,6 @@ class QueryConditions
 		}
 	}
 
-	// Detect if a side is just a value or a condition object - NM 08 Jan 2017
-	// This solution sucks!  Rather replace this method with:
-	//  - if ($this->isSubcondition($side)) {
-	//		$this->params[$type] = array_merge($this->params[$type], $side->getParams());
-	//		$side = '(' . $side .')';
-	//	}
 	protected function resolve($side, $type)
 	{
 		$resolved = new \stdClass();
@@ -76,7 +70,6 @@ class QueryConditions
 	}
 
 	//Need Comment on How this is used! - NM 13 Aug 2014
-	//Propably: JOIN `t` *on* (expression) - NM 08 Jan 2017
 	public function on($columns, $tables = null) //, $type = 'AND'?
 	{
 		if(is_array($columns))
@@ -102,7 +95,7 @@ class QueryConditions
 
 	 // If $table is a string, $leftside MUST be a string
 	 // If $table == array, $leftside AND rightside MUST be strings
-	public function where($leftside, $operator, $rightside, $table = null, $type = 'AND')
+	public function where($leftside, $operator = null, $rightside = null, $table = null, $type = 'AND')
 	{
 		$leftside = $this->resolve($leftside, $type);
 
@@ -132,9 +125,7 @@ class QueryConditions
 		{
 			if(is_array($table))
 			{
-				// e.g. statement = "t0.id = t1.t0_id",  leftside = "id", operator = "=",  rightside = "t0_id" ??? - NM 8 Jan 2017
 				$this->statements[$type][] = $table[0] . '.' . $leftside->asString . $operator . '?';
-				// What's up with "table.colname" string as param? - NM 8 jan 2017
 				$this->params[$type][] = $table[1] . '.' . $rightside->asString;
 				return $this;
 			}
@@ -147,7 +138,6 @@ class QueryConditions
 			}
 
 			$this->statements[$type][] = $leftside->asString . $operator . '?';
-			//$this->params[$type][] = $rightside->isObj ? $rightside->asObj : $rightside->asString; ??? - NM 8 Jan 2017
 			$this->params[$type][] = $rightside->isObj ? $rightside->asString : $rightside->asString;
 			return $this;
 		}
