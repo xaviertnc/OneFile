@@ -44,7 +44,7 @@ class Log
 	 *  
 	 * @var array
 	 */
-	protected $compiled;
+	protected $compiledFilenames;
 
 	/**
 	 * Indicates which log types are allowed.
@@ -83,13 +83,13 @@ class Log
 
 	/**
 	 * 
-	 * @param mixed $logsBasePath
+	 * @param mixed $basePath
 	 * @param array|string $allowedTypes e.g. array('error', 'info', 'debug')  or 'error|info|debug'
 	 * @param boolean $enabled
 	 */
-	public function __construct($logsBasePath = null, $allowedTypes = null, $enabled = true)
+	public function __construct($basePath = null, $allowedTypes = null, $enabled = true)
 	{
-		$this->setLogsBasePath($logsBasePath);
+		$this->setBasePath($basePath);
 		
 		$this->setAllowedTypes($allowedTypes);
 		
@@ -129,6 +129,7 @@ class Log
 	 */
 	public function getFilename($type = null)
 	{
+		
 		//We transfer $type to $key here to allow setting a default for $key while still being able
 		//to pass the original $type value to any custom filename function specified. 
 		if ($type)
@@ -140,9 +141,9 @@ class Log
 			$key = 'info'; 
 		}
 
-		if($this->compiled and isset($this->compiled[$key]))
+		if($this->compiledFilenames and isset($this->compiledFilenames[$key]))
 		{
-			return $this->compiled[$key];
+			return $this->compiledFilenames[$key];
 		}
 
 		if (isset($this->filenames[$key])) 
@@ -159,7 +160,7 @@ class Log
 		{
 			$filename = $filename_uncompiled($type, $this);
 
-			$this->compiled[$key] = $filename;
+			$this->compiledFilenames[$key] = $filename;
 
 			return $filename;
 		}
@@ -168,7 +169,7 @@ class Log
 		//the correct sequence.   %1$s = type, %2$s = short, %3$s = long.
 		$filename = sprintf($filename_uncompiled, $type, $this->getDate(), $this->getDate(true));
 
-		$this->compiled[$key] = $filename;
+		$this->compiledFilenames[$key] = $filename;
 
 		return $filename;
 		
@@ -213,37 +214,41 @@ class Log
 	 */
 	public function write($message = '', $type = null, $filename = null)
 	{
+		if ( ! $this->enabled) return;
+		
 		if ($type)
 		{
 			$type = strtolower($type);
+			
+			if ($this->allowedTypes and !in_array($type, $this->allowedTypes)) return;
+
+			$message = $this->formatMessage($message, $type);
 		}
 		
 		if ( ! $filename)
 		{
 			$filename = $this->getFilename($type);
 		}
-			
-		if ($type and $this->allowedTypes and !in_array($type, $this->allowedTypes))
-		{
-			return;
-		}
+		
+		$path = $this->path;
 
-		if ($type)
+		$groupPath = dirname($filename);
+				
+		if ($groupPath)
 		{
-			$message = $this->formatMessage($message, $type);
+			$path .= '/' . $groupPath;
 		}
-		
-		$logFilePath = $this->path ? $this->path . '/' . $filename : $filename;
-		
-		if ( ! file_exists($logFilePath))
+					
+		if ( ! is_dir($path))
 		{
 			$oldumask = umask(0);
 			
-			$dirname = dirname($logFilePath);
-			@mkdir($dirname, $this->mode, true);
+			mkdir($path, $this->mode, true);
 			
 			umask($oldumask);
 		}
+
+		$logFilePath = $this->path ? $this->path . '/' . $filename : $filename;
 		
 		file_put_contents($logFilePath, $message, FILE_APPEND | LOCK_EX);
 
@@ -279,7 +284,7 @@ class Log
 	 * @param string $logPath
 	 * @return \OneFile\Log
 	 */
-	public function setLogsBasePath($logPath)
+	public function setBasePath($logPath)
 	{
 		$this->path = $logPath;
 		
@@ -425,12 +430,21 @@ class Log
 	}
 	
 	/**
-	 * 
+	 * Get or Set the Log Enabled state
+	 * No Parameter == GET
+	 *
 	 * @return boolean
 	 */
-	public function enabled()
+	public function enabled($value = null)
 	{
-		return $this->enabled;
+		if (is_null($value))
+		{
+			return $this->enabled;
+		}
+		else
+		{
+			$this->enabled = $value;
+		}
 	}
 	
 	/**
@@ -450,6 +464,8 @@ class Log
 	 */
 	public function __call($name, $arguments)
 	{
+		if ( ! $this->enabled) return;
+		
 		switch(count($arguments))
 		{
 			case 1:

@@ -1,5 +1,7 @@
 <?php namespace OneFile;
 
+use AppLog;
+
 /*
  * $path_parts = pathinfo('/www/htdocs/inc/lib.inc.php');
  * 
@@ -58,16 +60,27 @@ class File
 	 *
 	 * @var boolean
 	 */
-	protected $mapped = false;
+	protected $pathInfoParsed = false;
 
 	
 	public function __construct($path = null, $filename = null, $mode = 0775)
 	{
-		$this->setFilePath($path, $filename);
-		$this->mode = $mode;
+		//AppLog::file("Initiating File!  path=$path, filename=$filename");
+		
+		if ($filename)
+		{
+			$this->setPath($path);
+			$this->setFilename($filename);
+		}
+		else
+		{
+			$this->setFilePath($path);
+		}
+		
+		$this->setMode($mode);
 	}
 	
-	protected function mapInfo()
+	protected function parsePathInfo()
 	{
 		$fileInfo = pathinfo($this->getFilePath());
 		
@@ -94,25 +107,25 @@ class File
 	
 	public function getPath()
 	{
-		if( ! $this->mapped) { $this->mapInfo(); }
+		if( ! $this->pathInfoParsed) { $this->parsePathInfo(); }
 		return $this->path;
 	}
 	
 	public function getFilename()
 	{
-		if( ! $this->mapped) { $this->mapInfo(); }
+		if( ! $this->pathInfoParsed) { $this->parsePathInfo(); }
 		return $this->filename;
 	}
 	
 	public function getNameOnly()
 	{
-		if( ! $this->mapped) { $this->mapInfo(); }
+		if( ! $this->pathInfoParsed) { $this->parsePathInfo(); }
 		return $this->nameonly?:'noname';
 	}
 	
 	public function getExt()
 	{
-		if( ! $this->mapped) { $this->mapInfo(); }
+		if( ! $this->pathInfoParsed) { $this->parsePathInfo(); }
 		return $this->ext;
 	}
 	
@@ -129,45 +142,79 @@ class File
 	
 	public function setFilePath($filePath)
 	{
-		$this->mapped = false;
+		//AppLog::file('Setting File Path = ' . $filePath);
 		$this->filePath = $filePath;
+		$this->parsePathInfo();
 		return $this;
 	}
 	
 	public function setPath($path)
-	{
-		$this->mapped = false;		
-		$this->filePath = $this->makeFilePath($path);
+	{		
+		$this->path = $path;
+		
+		$filePath = $path;
+		
+		if ($this->filename) $filePath .= '/' . $this->filename;
+
+		$this->filePath = $filePath;
+	
+		$this->pathInfoParsed = false;
+	
 		return $this;
 	}
 	
 	public function setFilename($filename, $ext = null)
-	{
-		$this->mapped = false;
-		$this->filePath = $this->makeFilePath(null, $filename, $ext);
+	{	
+		$this->filename = $filename;
+		
+		if ($ext) $this->ext = $ext;
+		
+		$filePath = $this->path;
+
+		$filePath .= "/$filename";
+		
+		if ($ext) $filePath .= ".$ext";
+
+		$this->filePath = $filePath;
+	
+		$this->pathInfoParsed = false;
+	
 		return $this;
 	}
 	
 	public function setExt($ext)
 	{
-		$this->mapped = false;
-		$this->filePath = $this->makeFilePath(null, null, $ext);
+		$this->ext = $ext;
+		
+		$filePath = $this->path;
+
+		$filename = $this->filename;
+		
+		if ( ! $filename) return $this;
+
+		if (($pos = strrpos($filename, '.'))) $filename = substr($filename, 0, $pos);
+		
+		$filePath .= "/$filename.$ext";
+		
+		$this->filePath = $filePath;
+	
+		$this->pathInfoParsed = false;
+	
 		return $this;
 	}
 	
 	public function write($data, $append = false)
 	{
-		$filePath = $this->getFilePath();
+		$path = $this->getPath();
 		
-		if ( ! file_exists($filePath))
+		if ( ! is_dir($path))
 		{
 			$oldumask = umask(0);
 			
-			$dirname = dirname($filePath);
-			@mkdir($dirname, $this->mode, true);
+			mkdir($path, $this->mode, true);
 			
 			umask($oldumask);
-		}
+		}		
 		
 		if ($append)
 		{
@@ -177,10 +224,12 @@ class File
 		{
 			$options = LOCK_EX;
 		}
+
+		$filePath = $this->getFilePath();
 		
 		file_put_contents($filePath, $data, $options);
 
-		chmod($filePath, $this->mode);		
+		chmod($filePath, $this->mode);			
 	}
 	
 	public function append($data)
@@ -189,12 +238,15 @@ class File
 	}
 	
 	/**
+	 * Code and params can be done better!
 	 * 
 	 * @param type $this->filePath
 	 * @return boolean
 	 */
 	public function delete($nocheck = false, $silentFail = false)
 	{
+		//AppLog::file('DELETING: ' . $this->getFilePath());
+		
 		if ($nocheck)
 		{
 			if ($silentFail)
@@ -206,6 +258,7 @@ class File
 				unlink($this->getFilePath());
 			}
 		}
+		
 		elseif(is_file($this->getFilePath()))
 		{
 			if ($silentFail)
@@ -283,6 +336,7 @@ class File
 	}	
 	
 	/**
+	 * E.g.  203948123 Bytes => "???.?? MB"
 	 * 
 	 * @param integer $size in Bytes
 	 * @return type
@@ -307,12 +361,13 @@ class File
 	}
 	
 	/**
+	 * E.g.  1.5 (MB)  == ??????? (Bytes)
 	 * 
 	 * @param integer $size
 	 * @param string $units
 	 * @return integer
 	 */
-	public function convertSize($size = null, $units = null)
+	public function sizeToBytes($size = null, $units = null)
 	{
 		switch ($units)
 		{
@@ -375,6 +430,7 @@ class File
 	}
 
 	/**
+	 * Override Me!
 	 * Adds a subfolder path in-front of the supplied filename
 	 * to enable saving the file in a specific file group
 	 * 
@@ -400,33 +456,33 @@ class File
 				break;
 
 			default:
-				if ($groupFormat)
-				{
-					$datePath = date($groupFormat, $groupDate);
-				}
-				else
-				{
-					$datePath = '';
-				}
+				$datePath = $groupFormat ? date($groupFormat, $groupDate) : '';
+				
 		}
 		
-		if ($groupName) { $prefix_parts[] =  $groupName; }
+		$path_parts = array();
 		
-		if ($datePath) { $prefix_parts[] = $datePath; }
+		if ($groupName) { $path_parts[] =  $groupName; }
+		
+		if ($datePath) { $path_parts[] = $datePath; }
 
-		if ($prefix_parts)
-		{
-			return implode(DIRECTORY_SEPARATOR, $prefix_parts);
-		}
-		else
-		{
-			return '';
-		}
+		return $path_parts ? implode(DIRECTORY_SEPARATOR, $path_parts) : '';
 	}
 	
-	public function addGroupPath($groupName = '', $groupFormat = 'Y', $groupDate = null)
+	/**
+	 * Automatically save your file to the correct group / catagory folder by defining the group name and a format string to
+	 * generate a DATE or other variable dependant path segment as the final part(s) of the file path.
+	 * 
+	 * NB: Your group path should / will be relative to your base path!
+	 * 
+	 * @param string $groupName A fixed path string (e.g. "mygroup" or "my/group") that will be inserted between the basePath and any variable path part(s).
+	 * @param string $groupFormat Can be "Y-m-d" or "%s/photos/%d" or "Quarterly". It depends on how you use it in makeGroupPath()!
+	 * @param datetime $groupDate Used in makeGroupPath of you want to include date elements. Sometimes we want the current date, other times the date of the file.
+	 * @return \OneFile\File
+	 */
+	public function addGroupPath($groupName = null, $groupFormat = null, $groupDate = null)
 	{
-		$path = $this->getPath();
+		$path = $this->getPath(); // If you want to use grouping, you must instantiate the file with path == base path!
 		
 		if ($path and $path !== '.') { $path_parts[] = $this->getPath(); }
 		
@@ -454,9 +510,12 @@ class File
 	{
 		if ( ! is_file($this->getFilePath()))
 		{
+			//AppLog::warning('Current file does not exist! Aborting File Move!');
 			return false;
 		}
 
+		//AppLog::file('Moving Current File To: ' . $destFilePath);
+		
 		$destPath = dirname($destFilePath);
 		
 		if ( ! is_dir($destPath))
@@ -502,6 +561,7 @@ class File
 	{
 		if ($this->isFile())
 		{
+			//AppLog::file('Getting File Contents for ' . $this->getFilePath());
 			return file_get_contents($this->getFilePath());
 		}
 	}
@@ -518,6 +578,6 @@ class File
 	
 	public function __toString()
 	{
-		return $this->getFilePath();
+		return (string) $this->getFilePath();
 	}
 }

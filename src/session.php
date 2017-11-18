@@ -30,6 +30,7 @@ class Session
 	 */
 	public function __construct($domain = null, $id = null)
 	{
+		session_write_close();
 		$this->start($domain, $id);
 	}
 

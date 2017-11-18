@@ -1,5 +1,7 @@
 <?php namespace OneFile;
 
+use AppLog;
+
 use InvalidArgumentException;
 
 /**
@@ -60,7 +62,7 @@ class Flash
 
 		$this->storeKey = $storeKey;
 
-		$this->nextBag = array();
+		$this->nextBag = array();		
 	}
 
 	/**
@@ -73,6 +75,7 @@ class Flash
 		if ($this->nextBag)
 		{
 			$this->storeWrite($this->storeKey, $this->nextBag);
+			AppLog::service('AppFlash::__destruct(), $_SESSION after nextBag Write = ' . print_r($_SESSION, true));
 		}
 	}
 	
@@ -176,6 +179,18 @@ class Flash
 		return true;
 	}
 
+	
+	/**
+	 * Checks if flash has any content
+	 * 
+	 * @return boolean
+	 */
+	public function hasAny()
+	{
+		return !empty($this->bag);
+	}
+	
+
 	/**
 	 * Gets a flash value with dot-notation allowed
 	 * Uses code from laravel array_get() helper
@@ -247,6 +262,7 @@ class Flash
 	 */
 	public function ageNewItems()
 	{
+		AppLog::service('AppFlash::ageNewItems(), START');
 		$this->bag = array_merge_recursive($this->bag, $this->nextBag);
 		$this->nextBag = array();
 	}

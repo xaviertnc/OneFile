@@ -131,3 +131,13 @@ if ( ! function_exists('redirect'))
 		exit(0);
 	}
 }
+
+if ( ! function_exists('obj_merge'))
+{
+	function obj_merge($obj1, $obj2) {
+		if (is_object($obj1) && is_object($obj2)) {
+			return (object) array_merge((array) $obj1, (array) $obj2);
+		}
+		return (object) $obj1;
+	}
+}	

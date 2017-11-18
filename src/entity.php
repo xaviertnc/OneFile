@@ -261,7 +261,7 @@ class Entity
 				$value = $this->mutate($value, 'fromClient', $metaData);
 			}
 			
-			if (__DEBUG__) echo "Entity::set($attributeName) = " . htmlentities(Format::limit(print_r($value, true))) . '<br>';
+//			if (__DEBUG__) echo "Entity::set($attributeName) = " . htmlentities(Format::limit(print_r($value, true))) . '<br>';
 			
 			$this->attributes[$attributeName] = $value;
 		}
@@ -276,7 +276,7 @@ class Entity
 	 */
 	public function &getAttribute($attributeName, $default = null)
 	{		
-		if (__DEBUG__) echo "Entity::getAttribute($attributeName)<br>";
+//		if (__DEBUG__) echo "Entity::getAttribute($attributeName)<br>";
 		
 		$metaData = $this->arrayGet($this->attributesMetaData, $attributeName);
 		
@@ -295,7 +295,7 @@ class Entity
 	 */
 	public function __set($attributeName, $value)
 	{
-		if (__DEBUG__) echo "Entity::__set($attributeName)<br>";
+//		if (__DEBUG__) echo "Entity::__set($attributeName)<br>";
 		
 		$this->setAttribute($attributeName, $value);
 	}
@@ -309,7 +309,7 @@ class Entity
 	 */
 	public function &__get($attribute_name)
 	{
-		if (__DEBUG__) echo "Entity::__get($attribute_name)<br>";
+//		if (__DEBUG__) echo "Entity::__get($attribute_name)<br>";
 		
 		return $this->getAttribute($attribute_name);
 	}

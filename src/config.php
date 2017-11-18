@@ -96,9 +96,16 @@ class Config
 		return $array;		
 	}
 	
-	public function merge(Config $alt_config)
+	/**
+	 * Merges an external array into the internal $config array
+	 * Use to layer config files by environment or just add seperate module configs.
+	 * 
+	 * @param array $alt_config
+	 * @return \OneFile\Config
+	 */
+	public function merge(array $alt_config)
 	{
-		$this->config = array_merge($this->config, $alt_config->get());
+		$this->config = array_merge($this->config, $alt_config);
 		
 		return $this;
 	}

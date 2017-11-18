@@ -1,7 +1,7 @@
 <?php namespace OneFile\MySql;
 
 /**
- *	@author C. Moller - 26 May 2014 <xavier.tnd@gmail.com>
+ *	@author C. Moller - 26 May 2014 <xavier.tnd@gmail.com> 
  */
 class QueryConditions
 {
@@ -10,31 +10,31 @@ class QueryConditions
 	 * @var array
 	 */
 	protected $statements;
-
+	
 	/**
 	 *
 	 * @var boolean
 	 */
 	protected $as_prepared_statement;
-
+	
 	/**
 	 *
 	 * @var array
 	 */
 	protected $params;
-
-
+	
+	
 	public function __construct($as_prepared_statement = true)
 	{
 		$this->as_prepared_statement = $as_prepared_statement;
 		$this->params = array('AND' => array(), 'OR' => array());
 	}
-
+	
 	public static function create($as_prep_statement = true)
 	{
 		return new static($as_prep_statement);
 	}
-
+	
 	 // Only for non-prepared queries
 	protected function quote($value)
 	{
@@ -48,27 +48,27 @@ class QueryConditions
 				return mysql_escape_string($value);
 		}
 	}
-
+	
 	protected function resolve($side, $type)
 	{
 		$resolved = new \stdClass();
-
+		
 		$resolved->isObj = is_object($side);
-
+		
 		if($resolved->isObj and is_a($side, get_class($this)))
 		{
 			if($this->as_prepared_statement)
 				$this->params[$type] = array_merge($this->params[$type], $side->getParams());
-
+									
 			$resolved->asObj = $side;
 			$resolved->asString = '(' . $side .')';
 		}
 		else
 			$resolved->asString = $side;
-
+		
 		return $resolved;
 	}
-
+	
 	//Need Comment on How this is used! - NM 13 Aug 2014
 	public function on($columns, $tables = null) //, $type = 'AND'?
 	{
@@ -81,32 +81,32 @@ class QueryConditions
 		{
 			$leftside = $rightside = $columns;
 		}
-
+		
 		if($tables)
 		{
 			$leftside = $tables[0] . '.' . $leftside;
 			$rightside = $tables[1] . '.' .$rightside;
 		}
-
+		
 		$this->statements['AND'][] = $leftside . ' = ' . $rightside; // $type?
-
+		
 		return $this;
 	}
-
+	
 	 // If $table is a string, $leftside MUST be a string
 	 // If $table == array, $leftside AND rightside MUST be strings
 	public function where($leftside, $operator = null, $rightside = null, $table = null, $type = 'AND')
 	{
 		$leftside = $this->resolve($leftside, $type);
-
-		// TODO: We can't accept NULL values since they will be seen as missing.  So we need to make them (string) "NULL" and check
+		
+		// TODO: We can't accept NULL values since thay will be seen as missing.  So we need to make then (string) "NULL" and check
 		// for it on this side, to restore the value to actual NULL.
-		if (is_null($operator))
+		if ( is_null($operator))
 		{
 			$this->statements[$type][] = $leftside->asString;
 			return $this;
 		}
-
+		
 		// Make the operator "Equals" and the rightside == second param if we get only 2 parameters.
 		if ( is_null($rightside))
 		{
@@ -117,9 +117,9 @@ class QueryConditions
 		{
 			$operator = ' ' . trim($operator) . ' ';
 		}
-
-		$rightside = $this->resolve($rightside, $type);
-
+		
+		$rightside = $this->resolve($rightside, $type);		
+		
 		//-- PREPARED TYPE VARIANTS --
 		if($this->as_prepared_statement)
 		{
@@ -129,14 +129,14 @@ class QueryConditions
 				$this->params[$type][] = $table[1] . '.' . $rightside->asString;
 				return $this;
 			}
-
+			
 			if($table)
 			{
 				$this->statements[$type][] = $table . '.' . $leftside->asString . $operator . '?';
 				$this->params[$type][] = $rightside->isObj ? $rightside->asString : $rightside->asString;
 				return $this;
 			}
-
+			
 			$this->statements[$type][] = $leftside->asString . $operator . '?';
 			$this->params[$type][] = $rightside->isObj ? $rightside->asString : $rightside->asString;
 			return $this;
@@ -154,17 +154,17 @@ class QueryConditions
 			$this->statements[$type][] = $table . '.' . $leftside->asString . $operator . $this->quote($rightside->asString);
 			return $this;
 		}
-
+		
 		$this->statements[$type][] = $leftside->asString . $operator . $this->quote($rightside->asString);
-
+		
 		return $this;
 	}
-
+		
 	public function orWhere($leftside, $operator = null, $rightside = null, $table = null)
 	{
 		return $this->where($leftside, $operator, $rightside, $table, 'OR');
 	}
-
+	
 	public function isNull($leftside, $table = null, $type = 'AND')
 	{
 		$this->statements[$type][] = '(' . ($table ? $table . '.' : '') . $leftside . 'IS NULL )';
@@ -176,18 +176,18 @@ class QueryConditions
 		$this->statements[$type][] = '(' . ($table ? $table . '.' : '') . $leftside . 'IS NOT NULL )';
 		return $this;
 	}
-
+	
 	public function raw($raw_statement, $type = 'AND')
 	{
 		$this->statements[$type][] = $raw_statement;
 		return $this;
 	}
-
+		
 	public function getParams()
 	{
 		return array_merge($this->params['AND'], $this->params['OR']);
 	}
-
+	
 	public function build()
 	{
 		$conditions = '';
@@ -202,12 +202,12 @@ class QueryConditions
 			if($conditions) $conditions .= ' OR ';
 			$conditions .= implode(' OR ', $this->statements['OR']);
 		}
-
+		
 //		echo '<span style="color:white">', $conditions, '</span><br>';
-
+		
 		return (string) $conditions;
 	}
-
+	
 	public function __toString()
 	{
 		return $this->build();

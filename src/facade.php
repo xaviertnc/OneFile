@@ -19,6 +19,6 @@ class Facade
 	
 	public static function __callStatic($method_name, $arguments)
 	{
-		return call_user_method_array($method_name, self::$hostClassInstances[get_called_class()], $arguments);
+		return call_user_func_array(array(self::$hostClassInstances[get_called_class()], $method_name), $arguments);
 	}
 }

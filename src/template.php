@@ -1,6 +1,8 @@
 <?php namespace OneFile;
 
+use AppLog;
 use Closure;
+use Exception;
 
 /**
  * Template is a PHP Templating class based largely on code from Laravel4's Blade Compiler
@@ -32,8 +34,8 @@ use Closure;
  *  Option to minify (Removing all redundant white space and comments)
  *  Yield Defaults
  *  Add @use('file.tpl', data_array) to the compiler.
- *    Like @include, but for partial templates. Each @use template is
- *    given its own scope and data so that it can be used more than once in the same view.
+ *    Like @include, but only evaluated at runtime.
+ *	 @use Statements should not compile to html, but rather compile to a PHP render function, like child templates in the old Blade system.
  * 
  * By: C. Moller - 11 May 2014
  * 
@@ -64,8 +66,9 @@ class Template
 		'Unless',
 		'EndUnless',
 		'Includes',
+		'SectionShow',
+		'SectionStop',
 		'Yield',
-		'Section',
 		'Extends',
 		'Tabs',
 	);
@@ -160,15 +163,15 @@ class Template
 	 * 
 	 * @param string $templatesPath
 	 * @param string $cachePath
-	 * @param Template $child_template A child template from which to import sections referenced in this template.
+	 * @param Template $childTemplate A child template from which to import sections referenced in this template.
 	 */
-	public function __construct($templatesPath = null, $cachePath = null, $child_template = null)
+	public function __construct($templatesPath = null, $cachePath = null, $childTemplate = null)
 	{
 		$this->setTemplatesPath($templatesPath);
 		
 		$this->setCachePath($cachePath);
 
-		$this->child = $child_template;
+		$this->child = $childTemplate;
 
 		//Initialize here to allow using preg_quote()
 		$this->commentTags = array(preg_quote('{*'), preg_quote('*}'));
@@ -206,20 +209,20 @@ class Template
 	 * Allows using only the template's relative path/filename in compile() or render()
 	 * for convienence.
 	 *
-	 * @param  string  $template_filename
+	 * @param  string  $templateFilename
 	 * @return string
 	 */
-	protected function addTemplatesPath($template_filename)
+	protected function addTemplatesPath($templateFilename)
 	{
-		if ( ! file_exists($template_filename))
+		if ( ! file_exists($templateFilename))
 		{
-			$template_filename = $this->templatesPath . '/' . $template_filename;
+			$templateFilename = $this->templatesPath . '/' . $templateFilename;
 
-			if ( ! file_exists($template_filename))
+			if ( ! file_exists($templateFilename))
 				return null;
 		}
 
-		return $template_filename;
+		return $templateFilename;
 	}
 
 	/**
@@ -228,16 +231,16 @@ class Template
 	 * Note: To save CPU cycles, put your template files close to your OS root folder
 	 * to shorten the resulting path strings.
 	 * 
-	 * @param string $templatefile_path
-	 * @param boolean $force_recalc We call this function a number of times during a cycle, so we only want to re-calculate on request
+	 * @param string $templatefilePath
+	 * @param boolean $forceRecalc We call this function a number of times during a cycle, so we only want to re-calculate on request
 	 * @param boolean $encode Change compiled filenames to MD5 encoded strings or use the same filenames as the uncompiled templates
 	 * @return string
 	 */
-	protected function getCompiledFilePath($templatefile_path, $force_recalc = false, $encode = true)
+	protected function getCompiledFilePath($templatefilePath, $forceRecalc = false, $encode = true)
 	{
-		if ( ! $this->compiledFilePath or $force_recalc)
+		if ( ! $this->compiledFilePath or $forceRecalc)
 		{
-			$this->compiledFilename = $encode ? md5($templatefile_path) : $templatefile_path;
+			$this->compiledFilename = $encode ? md5($templatefilePath) : $templatefilePath;
 
 			$this->compiledFilePath = $this->cachePath . '/' . $this->compiledFilename;
 		}
@@ -249,10 +252,10 @@ class Template
 	 * The Meta data file holds information on dependancies for each template used by isExpired()
 	 * Add underscore infront of the meta-filename to make it faster to scan the cache folder for meta and NON meta files!
 	 * 
-	 * @param type $cachefile_path
+	 * @param type $cachefilePath
 	 * @return type
 	 */
-	protected function getMetaFilePath($cachefile_path = null)
+	protected function getMetaFilePath($cachefilePath = null)
 	{
 		if ($this->compiledFilename)
 		{
@@ -260,7 +263,7 @@ class Template
 		}
 		else
 		{
-			$path = $cachefile_path;
+			$path = $cachefilePath;
 		}
 
 		return $path . '.meta';
@@ -270,16 +273,16 @@ class Template
 	 * Determine if the view at the given path is expired.
 	 * We assume that we are using the cache if we check for expired!
 	 *
-	 * @param  string  $templatefile_path
+	 * @param  string  $templatefilePath
 	 * @return bool
 	 */
-	protected function isExpired($templatefile_path)
+	protected function isExpired($templatefilePath)
 	{
 		//Always force updating the compiled file path on checking for Expired!
 		//We always check for Expited before compiling making this a nice place to ensure that the path
 		//is always current for compile() and render(), but still allowing the benefits of NOT re-calculating 
 		//the path in other places like reading and saving the compiled file.
-		$compiled = $this->getCompiledFilePath($templatefile_path, true);
+		$compiled = $this->getCompiledFilePath($templatefilePath, true);
 
 		// If the compiled file doesn't exist we will indicate that the view is expired
 		if ( ! file_exists($compiled))
@@ -293,17 +296,17 @@ class Template
 		if ( ! $dependancies)
 		{
 			//The compiled file has "Expired" if its timestamp is older than its source template timestamp
-			return filemtime($compiled) < filemtime($templatefile_path);
+			return filemtime($compiled) < filemtime($templatefilePath);
 		}
 
-		foreach ($dependancies as $dependant_file => $last_timestamp)
+		foreach ($dependancies as $dependantFile => $lastTimestamp)
 		{
-			if ( ! file_exists($dependant_file))
+			if ( ! file_exists($dependantFile))
 				return true;
 
 			//A dependnat file has changed if the file's last timestamp is older than its current timestamp
 			//A changed dependancy === Compiled File Expired! 
-			if ($last_timestamp < filemtime($dependant_file))
+			if ($lastTimestamp < filemtime($dependantFile))
 				return true;
 		}
 
@@ -312,63 +315,80 @@ class Template
 
 	/**
 	 * 
-	 * @param string $templatefile_path
+	 * @param string $templatefilePath
 	 * @return string
 	 */
-	protected function getCompiledFile($templatefile_path)
+	protected function getCompiledFile($templatefilePath)
 	{
-		if ( ! $this->isExpired($templatefile_path))
+		if ( ! $this->isExpired($templatefilePath))
 		{
-			return file_get_contents($this->getCompiledFilePath($templatefile_path));
+			return file_get_contents($this->getCompiledFilePath($templatefilePath));
 		}
 		else
 		{
-			return $this->compile($templatefile_path);
+			return $this->compile($templatefilePath);
 		}
 	}
 
 	/**
 	 * 
-	 * @param string $template_filename
+	 * @param string $templateFilename
 	 * @param array $data
-	 * @param boolean $as_string
-	 * @param boolean $use_cached
+	 * @param boolean $asString
+	 * @param boolean $useCached
 	 * @return string
 	 */
-	public function render($template_filename, $data = array(), $as_string = false, $use_cached = true)
+	public function render($templateFilename, $data = array(), $asString = false, $useCached = true)
 	{
-		extract($data);
+		try {
+			
+			extract($data);
 
-		$this->templateFilePath = $this->addTemplatesPath($template_filename);
+			$this->templateFilePath = $this->addTemplatesPath($templateFilename);
 
-		//Reset the compiled filepath because we could be rendering a different file
-		//with the same Template instance.
-		$this->compiledFilePath = null;
-
-		if ($as_string)
-		{
 			ob_start();
-		}
 
-		if ($use_cached and $this->cachePath)
-		{
-			if ($this->isExpired($this->templateFilePath))
-			{
-				//Compile with CacheContents=TRUE and ReturnConents=FALSE
-				$this->compile($this->templateFilePath, true, false);
+			// Render freshly compiled template using eval()... :/
+			if ( ! $useCached or ! $this->cachePath)
+			{				
+				// NOTE: The compile() function will return a string instead of writing directly to a file if cache=FALSE.
+				// NOTE: On some shared servers, eval() might be disabled for security reasons.
+				// NOTE: Don't use this option in a production setting! The intention was for testing or running an off-line code generator.
+				eval(" ?>" . $this->compile($this->templateFilePath, false) . "<?php ");
+				
+				return $asString ? ob_get_clean() : ob_flush();
 			}
 
-			include $this->getCompiledFilePath($this->templateFilePath);
-		}
-		else
-		{
-			//Compile with CacheContents=FALSE.  Contents will always be returned as string if Cache=FALSE.
-			eval(" ?>" . $this->compile($this->templateFilePath, false) . "<?php ");
-		}
+			// Reset the compiled filepath because we could be rendering a different file
+			// with the same Template instance.
+			$this->compiledFilePath = null;
 
-		if ($as_string)
+			// Render a cached version of the compiled template, but re-compile it first if its content has expired!
+			if ($this->isExpired($this->templateFilePath))
+			{
+				// Compile with CacheContents=TRUE and ReturnConents=FALSE
+				$this->compile($this->templateFilePath, true, false);
+			}
+	
+			include $this->getCompiledFilePath($this->templateFilePath);
+			
+			return $asString ? ob_get_clean() : ob_flush();
+			
+		}
+		
+		// Try and catch some errors here to prevent them showing in your response where they can pose a security risk.
+		// Not very effective!  Fatal errors sail right through!!!  You have to register a shutdown handler to catch / stop
+		// fatal errors!  Put ob_clear() in shutdown when an error is detected.
+		catch (Exception $ex)
 		{
-			return ob_get_clean();
+			ob_clean();
+
+			$response = "<html><body>Oops, Something went wrong rendering template: <b>$templateFilename</b>!<br>" . 
+			get_class($ex) . " Code {$ex->getCode()}: {$ex->getMessage()} in file: {$ex->getFile()} (Line {$ex->getLine()})<br>" .
+			str_repeat('=', 50) .
+			"Trace: {$ex->getTraceAsString()}</body></html>";
+
+			return $response;
 		}
 	}
 
@@ -397,15 +417,15 @@ class Template
 	 * To save CPU cycles we can specify if we want the compiled contents returned or not.  Only applicable
 	 * when Cache = TRUE.
 	 * 
-	 * @param string $template_filename
+	 * @param string $templateFilename
 	 * @param boolean $cache
-	 * @param string $cachefile_path
-	 * @param boolean $return_contents
+	 * @param string $cachefilePath
+	 * @param boolean $returnContents
 	 * @return string
 	 */
-	public function compile($template_filename, $cache = true, $cachefile_path = null, $return_contents = true)
+	public function compile($templateFilename, $cache = true, $cachefilePath = null, $returnContents = true)
 	{
-		$this->templateFilePath = $this->addTemplatesPath($template_filename);
+		$this->templateFilePath = $this->addTemplatesPath($templateFilename);
 
 		$this->dependancies[$this->templateFilePath] = filemtime($this->templateFilePath);
 
@@ -425,11 +445,11 @@ class Template
 
 		if ($cache and ! is_null($this->cachePath) and ! $this->child)
 		{
-			if ($cachefile_path)
+			if ($cachefilePath)
 			{
 				//Get compiled file path with ForceReCalc = TRUE and EncodeFilename = FALSE
-				$compiledFilePath = $cachefile_path;
-				file_put_contents($this->getMetaFilePath($cachefile_path), $this->renderDependancies());
+				$compiledFilePath = $cachefilePath;
+				file_put_contents($this->getMetaFilePath($cachefilePath), $this->renderDependancies());
 			}
 			else
 			{
@@ -441,24 +461,24 @@ class Template
 			file_put_contents($compiledFilePath, $contents);
 		}
 
-		if ($return_contents)
+		if ($returnContents)
 			return $contents;
 	}
 
 	/**
 	 * Compile the given Blade template contents.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	public function compileString($value)
+	public function compileString($templateString)
 	{
 		foreach ($this->compilers as $compiler)
 		{
-			$value = $this->{"compile{$compiler}"}($value);
+			$templateString = $this->{"compile{$compiler}"}($templateString);
 		}
 
-		return $value;
+		return $templateString;
 	}
 
 	/**
@@ -475,177 +495,179 @@ class Template
 	/**
 	 * Execute the user defined extensions.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileExtensions($value)
+	protected function compileExtensions($templateString)
 	{
 		foreach ($this->extensions as $compiler)
 		{
-			$value = call_user_func($compiler, $value, $this);
+			$templateString = call_user_func($compiler, $templateString, $this);
 		}
 
-		return $value;
+		return $templateString;
 	}
 
 	/**
-	 * Compile Blade comments into valid PHP.
+	 * Compile comments into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileComments($value)
+	protected function compileComments($templateString)
 	{
 		$pattern = sprintf('/[[:blank:]]*%1$s[\s\S]*?%2$s[[:blank:]]*[\r\n]?/', $this->commentTags[0], $this->commentTags[1]);
 
-		return preg_replace($pattern, '', $value);
+		return preg_replace($pattern, '', $templateString);
 	}
 
 	/**
-	 * Compile Blade echos into valid PHP.
+	 * Compile echos into valid PHP.
+	 * Check tag lengths to ensure determine what type of compile needs to run first!
+	 * First compile long tags, then short tags since short tags can be partials of the long tags!
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileEchos($value)
+	protected function compileEchos($templateString)
 	{
 		$difference = strlen($this->contentTags[0]) - strlen($this->escapedTags[0]);
 
 		if ($difference > 0)
 		{
-			return $this->compileEscapedEchos($this->compileRegularEchos($value));
+			return $this->compileEscapedEchos($this->compileRegularEchos($templateString));
 		}
 
-		return $this->compileRegularEchos($this->compileEscapedEchos($value));
+		return $this->compileRegularEchos($this->compileEscapedEchos($templateString));
 	}
 
 	/**
 	 * Compile the "regular" echo statements.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileRegularEchos($value)
+	protected function compileRegularEchos($templateString)
 	{
 		$pattern = sprintf('/%s\s*(.+?)\s*%s/s', $this->contentTags[0], $this->contentTags[1]);
 
-		return preg_replace($pattern, '<?php echo $1; ?>', $value);
+		return preg_replace($pattern, '<?php echo $1; ?>', $templateString);
 	}
 
 	/**
 	 * Compile the escaped echo statements.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileEscapedEchos($value)
+	protected function compileEscapedEchos($templateString)
 	{
 		$pattern = sprintf('/%s\s*(.+?)\s*%s/s', $this->escapedTags[0], $this->escapedTags[1]);
 
-		return preg_replace($pattern, '<?php echo htmlentities($1, ENT_QUOTES | ENT_IGNORE, "UTF-8", false); ?>', $value);
+		return preg_replace($pattern, '<?php echo htmlentities($1, ENT_QUOTES | ENT_IGNORE, "UTF-8", false); ?>', $templateString);
 	}
 
 	/**
 	 * Compile the raw php statements.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileStatements($value)
+	protected function compileStatements($templateString)
 	{
 		$pattern = sprintf('/%s\s*(.+?)\s*%s/s', $this->statementTags[0], $this->statementTags[1]);
 
-		return preg_replace($pattern, '<?php $1; ?>', $value);
+		return preg_replace($pattern, '<?php $1; ?>', $templateString);
 	}
 
 	/**
-	 * Compile Blade structure openings into valid PHP.
+	 * Compile structure openings into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileOpenings($value)
+	protected function compileOpenings($templateString)
 	{
-		$pattern = '/(?(R)\((?:[^\(\)]|(?R))*\)|(?<!\w)(\s*)@(if|elseif|foreach|for|while)(\s*(?R)+))/';
+		$pattern = '/(?(R)\((?:[^\(\)]|(?R))*\)|(?<!\w)([[:blank:]]*)@(if|elseif|foreach|for|while)(\s*(?R)+))/';
 
-		return preg_replace($pattern, '$1<?php $2$3: ?>', $value);
+		return preg_replace($pattern, '$1<?php $2$3: ?>', $templateString);
 	}
 
 	/**
-	 * Compile Blade structure closings into valid PHP.
+	 * Compile structure closings into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileClosings($value)
+	protected function compileClosings($templateString)
 	{
 		$pattern = '/(\s*)@(endif|endforeach|endfor|endwhile)(\s*)/';
 
-		return preg_replace($pattern, '$1<?php $2; ?>$3', $value);
+		return preg_replace($pattern, '$1<?php $2; ?>$3', $templateString);
 	}
 
 	/**
-	 * Compile Blade else statements into valid PHP.
+	 * Compile else statements into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileElse($value)
+	protected function compileElse($templateString)
 	{
 		$pattern = $this->createPlainMatcher('else');
 
-		return preg_replace($pattern, '$1<?php else: ?>$2', $value);
+		return preg_replace($pattern, '$1<?php else: ?>$2', $templateString);
 	}
 
 	/**
-	 * Compile Blade unless statements into valid PHP.
+	 * Compile unless statements into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileUnless($value)
+	protected function compileUnless($templateString)
 	{
 		$pattern = $this->createMatcher('unless');
 
-		return preg_replace($pattern, '$1<?php if ( !$2): ?>', $value);
+		return preg_replace($pattern, '$1<?php if ( !$2): ?>', $templateString);
 	}
 
 	/**
-	 * Compile Blade end unless statements into valid PHP.
+	 * Compile end unless statements into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileEndUnless($value)
+	protected function compileEndUnless($templateString)
 	{
 		$pattern = $this->createPlainMatcher('endunless');
 
-		return preg_replace($pattern, '$1<?php endif; ?>$2', $value);
+		return preg_replace($pattern, '$1<?php endif; ?>$2', $templateString);
 	}
 
 	/**
-	 * Compile Blade include statements into valid PHP.
+	 * Compile include statements into valid PHP.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileIncludes($value)
+	protected function compileIncludes($templateString)
 	{
 		$pattern = $this->createOpenMatcher('include');
 
 		$matches = array();
 
-		preg_match_all($pattern, $value, $matches);
+		preg_match_all($pattern, $templateString, $matches);
 
 		if ( ! $matches or ! $matches[0])
-			return $value;
+			return $templateString;
 
 //		echo '<p style="color:red">Matches = ' . print_r($matches,true) . '</p>';
 
-		$replaceble_strings = array();
-		foreach ($matches[0] as $replace)
+		$includeStatements = array();
+		foreach ($matches[0] as $includeStatement)
 		{
-			$replaceble_strings[] = $replace;
+			$includeStatements[] = $includeStatement;
 		}
 
 		$indents = array();
@@ -670,7 +692,7 @@ class Template
 
 			if (is_null($content_to_include) or $content_to_include === '')
 			{
-				$value = str_replace($replaceble_strings[$i], '', $value);
+				$templateString = str_replace($includeStatements[$i], '', $templateString);
 				continue;
 			}
 
@@ -678,132 +700,206 @@ class Template
 
 			foreach ($lines as $no => $line)
 			{
+//				$lines[$no] = ($no ? $indents[$i] : '') . $line;
 				$lines[$no] = $indents[$i] . $line;
 			}
 
-			$value = str_replace($replaceble_strings[$i], implode('', $lines), $value);
+			$templateString = str_replace($includeStatements[$i], implode(PHP_EOL, $lines), $templateString);
 		}
 
-		return $value;
+		return $templateString;
 	}
 
 	/**
-	 * Compile Blade yield statements into valid PHP.
+	 * Extract SectionShow blocks into a sections array to be used in Yield statements.
 	 *
-	 * @param  string  $value
+	 * @param  string  $templateString
 	 * @return string
 	 */
-	protected function compileYield($value)
+	protected function compileSectionShow($templateString)
 	{
-		if ( ! $this->child)
-			return $value;
+		// Note: Any whitespace between the last content character and @end will be ignored.
+		// Note: Sections can NOT be nested.
+		//		Use @include to add partials inside a section.
+		//		Partials may be other templates with their own layout and sections
 
+		$matches = array();
+
+		$pattern = '/(?<!\w)([[:blank:]]*)@section\s*\((.*?)\)\s*([\s\S]*?)\s*@show/';
+
+		preg_match_all($pattern, $templateString, $matches, PREG_OFFSET_CAPTURE);
+
+		if ( ! $matches or ! $matches[0])
+			return $templateString;
+		
+		// We need to adjust the initial offset values since the string changes length during substitutions!
+		// This problem probably has a much better solution...
+
+		// NB: This approach will only work if the matches are ordered nearest-to-start to nearest-to-end!
+
+		$offsetAdjust = 0;
+		
+		foreach ($matches[0] as $i => $fullMatch)
+		{
+			$sectionName = trim($matches[2][$i][0], "'\""); // Strip Quotes of section names
+			
+			$sectionContent = $matches[3][$i][0]; // Section content only
+						
+			$this->sections[$sectionName] = $sectionContent;
+
+			
+			$startOffset = $fullMatch[1] + $offsetAdjust; // Full Match Start Position. I.e including @section('name')
+			
+			$fullSectionLength = strlen($fullMatch[0]);
+			
+			$yieldStatement = $matches[1][$i][0] . "@yield('$sectionName')";
+			
+			$yieldStatementLength = strlen($yieldStatement);
+			
+			$offsetAdjust += $yieldStatementLength - $fullSectionLength;
+
+			// Replace \s*@section('section_name')content...@show with \s*@yield('section_name') so compileYield() will render it!
+			// Remember, we might have child templates overriding this section's content, so we can't just plain remove the @section..@show content!
+			// We have to first save the section content as if we parsed it from a child template and see if it will be needed later.
+			// If a real child template re-defines this section, the value we save here will be replaced.
+			$templateString = substr_replace($templateString, $yieldStatement, $startOffset, $fullSectionLength);
+		}
+
+		return $templateString;
+	}
+
+	/**
+	 * Extract SectionStop blocks into a sections array to be used in Yield statements.
+	 *
+	 * @param  string  $templateString
+	 * @return string
+	 */
+	protected function compileSectionStop($templateString)
+	{
+		// Note: Any whitespace between the last content character and @end will be ignored.
+		// Note: Sections can NOT be nested.
+		//		Use @include to add partials inside a section.
+		//		Partials may be other templates with their own layout and sections
+
+		$matches = array();
+
+		$pattern = '/(?<!\w)[[:blank:]]*@section\s*\((.*?)\)\s*([\s\S]*?)\s*@stop/';
+
+		preg_match_all($pattern, $templateString, $matches);
+
+		if ( ! $matches or ! $matches[0])
+			return $templateString;
+
+		$sectionNames = array();
+
+		foreach ($matches[1] as $nameMatchRaw)
+		{
+			$sectionNames[] = trim($nameMatchRaw, "'\""); //Removes quotes!
+		}
+
+		foreach ($matches[2] as $i => $sectionContent)
+		{
+			$this->sections[$sectionNames[$i]] = $sectionContent;
+		}
+
+		return $templateString;
+	}
+	
+	/**
+	 * Compile yield statements into valid PHP.
+	 *
+	 * @param  string  $templateString
+	 * @return string
+	 */
+	protected function compileYield($templateString)
+	{		
 		$pattern = $this->createOpenMatcher('yield');
 
 		$matches = array();
 
-		preg_match_all($pattern, $value, $matches);
+		preg_match_all($pattern, $templateString, $matches);
 
 		if ( ! $matches or ! $matches[0])
-			return $value;
+			return $templateString;
 
-		$replaceble_strings = array();
-		foreach ($matches[0] as $replace)
+		$yieldStatements = array();
+		
+		// mathces[0]: [ws1]@yield[ws2]('section')
+		foreach ($matches[0] as $yieldStatement)
 		{
-			$replaceble_strings[] = $replace;
+			$yieldStatements[] = $yieldStatement;
 		}
 
 		$indents = array();
+		
+		// matches[1] === ws1
 		foreach ($matches[1] as $indent)
 		{
 			$indents[] = $indent;
 		}
 
 		$sections = array();
-		foreach ($matches[2] as $sectionname_match_raw)
+		
+		// matches[2] === [ws2]('section'
+		foreach ($matches[2] as $nameMatchRaw)
 		{
 			//Scrub Section Name Match String
 			//SubStr offset = 2 ... Jumps over (' part of string, but leaves ' at end. Hence also trim()
-			$sections[] = trim(substr($sectionname_match_raw, 2), "'\"");
+			$sections[] = trim(substr($nameMatchRaw, 2), "'\"");
 		}
 
-		foreach ($sections as $i => $section_name)
+		foreach ($sections as $i => $sectionName)
 		{
-			$section_content = isset($this->child->sections[$section_name]) ? $this->child->sections[$section_name] : '';
+			$hasDefaultContent = isset($this->sections[$sectionName]);
+			$sectionContent = $hasDefaultContent ? $this->sections[$sectionName] : '';
+			$hasContentOverride = (is_object($this->child) and isset($this->child->sections[$sectionName]));
 
-			if ($section_content === '')
+			if ( ! $hasDefaultContent and ! $hasContentOverride)
 			{
-				$value = str_replace($replaceble_strings[$i], '', $value);
+				// No content exists for this @yield statement!
+				// Remove the @yield statement from the template by replacing it with an empty string.
+				$templateString = str_replace($yieldStatements[$i], '', $templateString);
 				continue;
 			}
 
-			$lines = preg_split("/(\r?\n)/", $section_content);
+			if ($hasContentOverride)
+			{
+				// A child section was found that overrides the default/parent section content
+				// If the child/override content contains a "@parent" tag, the tag will be replaced with the parent content.
+				$childContent = & $this->child->sections[$sectionName];
+				$parentContent = & $sectionContent;
+				$sectionContent = preg_replace('/.*@parent.*/', $parentContent, $childContent);
+			}
+	
+			// If no Content Override, $sectionContent will still contain the parent/default section content!
+
+			$lines = preg_split("/(\r?\n)/", $sectionContent);
 
 			foreach ($lines as $no => $line)
 			{
 				$lines[$no] = $indents[$i] . $line;
 			}
 
-			$value = str_replace($replaceble_strings[$i], implode('', $lines), $value);
+			$templateString = str_replace($yieldStatements[$i], implode(PHP_EOL, $lines), $templateString);
 		}
 
-		return $value;
+		return $templateString;
 	}
-
-	/**
-	 * Extract Blade Section blocks into a sections array to be used in Yield statements.
-	 *
-	 * @param  string  $value
-	 * @return string
-	 */
-	protected function compileSection($value)
-	{
-		//Note: @section MUST be on it's own line to preserve content formatting! 
-		//		Everything on the line after @section will be ignored.
-		//		Any whitespace before @end will be ignored.
-		//		
-		//Note: Sections can NOT be nested.
-		//		Use @include to add partials inside a section.
-		//		Partials may be other templates with their own layout and sections
-
-		$matches = array();
-
-		$pattern = '/(?<!\w)\s*@section\s*\((.*)\).*[\n\r]*([\s\S]*?)\s*@stop/';
-
-		preg_match_all($pattern, $value, $matches);
-
-		if ( ! $matches or ! $matches[0])
-			return $value;
-
-		$section_names = array();
-
-		foreach ($matches[1] as $sectionname_match_raw)
-		{
-			$section_names[] = trim($sectionname_match_raw, "'\""); //Removes quotes!
-		}
-
-		foreach ($matches[2] as $i => $section_content)
-		{
-			$this->sections[$section_names[$i]] = $section_content;
-		}
-
-		return $value;
-	}
-
+	
 	/**
 	 * 
-	 * @param type $value
+	 * @param type $templateString
 	 */
-	protected function compileExtends($value)
+	protected function compileExtends($templateString)
 	{
 		$pattern = $this->createOpenMatcher('extends');
 
 		$matches = array();
 
-		preg_match($pattern, $value, $matches);
+		preg_match($pattern, $templateString, $matches);
 
 		if ( ! $matches or ! $matches[0])
-			return $value;
+			return $templateString;
 
 		$parent = new self($this->templatesPath, $this->cachePath, $this);
 
@@ -813,13 +909,14 @@ class Template
 	}
 
 	/**
+	 * Replace TABS with SPACES
 	 * 
-	 * @param type $value
+	 * @param type $templateString
 	 * @return type
 	 */
-	protected function compileTabs($value)
+	protected function compileTabs($templateString)
 	{
-		return str_replace("\t", '   ', $value);
+		return str_replace("\t", '   ', $templateString);
 	}
 
 	/**
@@ -830,18 +927,28 @@ class Template
 	 */
 	protected function createMatcher($function)
 	{
-		return '/(?<!\w)(\s*)@' . $function . '(\s*\(.*\))/';
+		return '/(?<!\w)([[:blank:]]*)@' . $function . '(\s*\(.*\))/';
 	}
 
 	/**
-	 * Get the regular expression for a generic Blade function.
-	 *
+	 * Get the regular expression for getting the parameters of blade functions like:
+	 * [whitespace1]@section[whitespace2]('main')[SectionContent]@stop
+	 * 
+	 * Matches:
+	 *   match[0] = [whitespace1]@section[whitespace2]('main')
+	 *   match[1] = [whitespace1]
+	 *   match[2] = [whitespace2]('main'
+	 * 
+	 * Use match[1] for indenting
+	 * Use match[2] to extract the function parameters or to swtich out with php equivalent.
+	 * E.g. For "@if (A==B)", match[2] = " (A==B", PHP = "if (A==B)" or we add to params: "if (A==B and C==D)"
+	 * 
 	 * @param  string  $function
 	 * @return string
 	 */
 	protected function createOpenMatcher($function)
 	{
-		return '/(?<!\w)(\s*)@' . $function . '(\s*\(.*)\)/';
+		return '/(?<!\w)([[:blank:]]*)@' . $function . '(\s*\(.*)\)/';
 	}
 
 	/**
@@ -852,20 +959,7 @@ class Template
 	 */
 	protected function createPlainMatcher($function)
 	{
-		return '/(?<!\w)(\s*)@' . $function . '(\s*)/';
-	}
-
-	/**
-	 * Sets the content tags used for the compiler.
-	 *
-	 * @param  string  $openTag
-	 * @param  string  $closeTag
-	 * @param  bool    $escaped
-	 * @return void
-	 */
-	public function setContentTags($openTag, $closeTag)
-	{
-		$this->contentTags = array(preg_quote($openTag), preg_quote($closeTag));
+		return '/(?<!\w)([[:blank:]]*)@' . $function . '([[:blank:]]*)/';
 	}
 
 	/**
@@ -879,6 +973,19 @@ class Template
 	public function setStatementTags($openTag, $closeTag)
 	{
 		$this->statementTags = array(preg_quote($openTag), preg_quote($closeTag));
+	}
+
+	/**
+	 * Sets the content tags used for the compiler.
+	 *
+	 * @param  string  $openTag
+	 * @param  string  $closeTag
+	 * @param  bool    $escaped
+	 * @return void
+	 */
+	public function setContentTags($openTag, $closeTag)
+	{
+		$this->contentTags = array(preg_quote($openTag), preg_quote($closeTag));
 	}
 
 	/**
