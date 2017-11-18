@@ -220,6 +220,15 @@ class Collection
 		return $this->get();
 	}
 
+	
+	/**
+	 * Returns true if the collection is Empty
+	 */
+	public function isEmpty()
+	{
+		return ! $this->items;
+	}
+
 
 	/**
 	 * Clears the entire items!

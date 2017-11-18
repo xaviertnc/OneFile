@@ -80,11 +80,11 @@ class View
 		die();
 	}
 
-	public function makeRedirectResponse($redirectUrl = null)
+	public function makeRedirectResponse($redirectUrl = null, $pjax = true)
 	{
 		if (ob_get_level()) ob_end_clean();
 		$this->setResponseCode(202);
-		$response = ["redirect" => $redirectUrl];
+		$response = ["redirect" => $redirectUrl, "pjax" => $pjax];
 		die(json_encode($response));
 	}
 
@@ -127,9 +127,9 @@ class View
 			die;
         } else {
             die("Error: File not found.");
-        } 
+        }
     }
-    
+
     // TODO: Also add (Array) $csvdata STREAM to php://out version (i.e. No save to disk)
     public function makeCsvDownloadResponse($filename)
 	{
@@ -145,12 +145,12 @@ class View
 	{
 	    $this->makeDownloadResponse($filename, 'js', 'application/javascript');
 	}
-	
+
 	public function makeZipDownloadResponse($filename)
 	{
 	    $this->makeDownloadResponse($filename, 'zip', 'application/zip', 'binary');
 	}
-	
+
 	public function with($key, $value)
 	{
 		$this->data[$key] = $value;
@@ -234,7 +234,7 @@ class View
 		http_response_code($responseCode);
 		return $this;
 	}
-	
+
 	public function setResponseContentType($contentType)
 	{
 		$this->responseContentType = $contentType;

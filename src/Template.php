@@ -53,11 +53,14 @@ use Exception;
  * TODO: Remove rarely used features. Simplify as is the OneFile motto!
  * TODO: Cleanup Code and Comments
  *
- * @update: 6 Feb 2017
+ * @update: 06 Feb 2017
  *   - Fix error with multi-line STATEMENT regex. Added single-line (/s) option to regex!  {{~ ... ~}}
  *
  * @update: 25 Mar 2017
  *   - Fix if|while|for etc. detect Regex to properly handle nested brackets!
+ *
+ * @update: 05 Oct 2017
+ *   - @include directive arguments can now be PHP statements.
  *
  */
 class Template
@@ -709,8 +712,24 @@ class Template
 		}, $templateString);
 	}
 
+
+	/**
+	 * Compile include statements helper method.
+	 *
+	 * @param  string  $str
+	 * @return string
+	 */
+	protected function _echo($str)
+	{
+		return print_r($str, true);
+	}
+
+
 	/**
 	 * Compile include statements into valid PHP.
+	 *
+	 * NOTE: The @include directive argument can be an ASB path, REL path OR
+	 *       a PHP Statement evaluating to either type of path!
 	 *
 	 * @param  string  $templateString
 	 * @return string
@@ -743,10 +762,27 @@ class Template
 		}
 
 		$files = array();
+
 		foreach ($matches[2] as $filename_match_raw)
 		{
-			//SubStr offset = 2 ... Jumps over (' part of string, but leaves ' at end. Hence also trim()
-			$files[] = trim(substr($filename_match_raw, 2), "'\"");
+			// $filename_match_raw typical values:
+			// ===================================
+			//
+			// `('some/dir/fileToInclude.ext'`
+			// `('/some/abs/dir/fileToInclude.ext'`
+			//
+			// OR
+			//
+			// `(__PAGES__ . '/' . Route::$pageRef . '/some/absdir/fileToInclude.ext'`
+			//
+			// NOTE: Notice the missing closing bracket on match!
+			//
+			// NOTE2: Be careful if you make this code public, the eval() arg needs to be sanitized.
+			//
+			// Log::template("$logPrefix filename_match_raw = $filename_match_raw");
+			//
+			$file = eval('return $this->_echo' . $filename_match_raw . ');');
+			$files[] = $file;
 		}
 
 		foreach ($files as $i => $filename)
