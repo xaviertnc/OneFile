@@ -1,9 +1,28 @@
 <?php namespace OneFile;
 
-use FilesystemIterator;
+/*
+ * $path_parts = pathinfo('/www/htdocs/inc/lib.inc.php');
+ * 
+ * echo $path_parts['dirname'];
+ * echo $path_parts['basename'];
+ * echo $path_parts['extension'];
+ * echo $path_parts['filename']; // since PHP 5.2.0
+ * 
+ * The above example will output:
+ * 
+ * /www/htdocs/inc
+ * lib.inc.php
+ * php
+ * lib.inc	
+ */
 
 class File
 {
+	/**
+	 *
+	 * @var string
+	 */
+	protected $filePath;
 
 	/**
 	 *
@@ -21,47 +40,248 @@ class File
 	 *
 	 * @var string
 	 */
-	protected $filepath;
+	protected $nameonly;
+
+	/**
+	 *
+	 * @var string
+	 */
+	protected $ext;
 
 	/**
 	 *
 	 * @var octal
 	 */
-	protected $mode;
-
+	protected $mode = 0775;
+	
 	/**
-	 * 
-	 * @param type $path
+	 *
+	 * @var boolean
 	 */
+	protected $mapped = false;
+
+	
 	public function __construct($path = null, $filename = null, $mode = 0775)
 	{
 		$this->setFilePath($path, $filename);
 		$this->mode = $mode;
 	}
-
-	protected function setFilePath($path = null, $filename = null)
+	
+	protected function mapInfo()
 	{
-		if ($filename)
+		$fileInfo = pathinfo($this->getFilePath());
+		
+		if ( ! $fileInfo) return;
+		
+		$this->path = isset($fileInfo['dirname']) ? $fileInfo['dirname'] : null;
+		
+		$this->filename = isset($fileInfo['basename']) ? $fileInfo['basename'] : null;
+		
+		$this->ext = isset($fileInfo['extension']) ? $fileInfo['extension'] : null;
+		
+		$this->nameonly = isset($fileInfo['filename']) ? $fileInfo['filename'] : null;
+	}
+	
+	public function getFilePath()
+	{
+		if (is_array($this->filePath))
 		{
-			$this->path = $path;
-			$this->filename = $filename;
-			$this->filepath = $path . DIRECTORY_SEPARATOR . $filename;
+			$this->filePath = implode(DIRECTORY_SEPARATOR, $this->filePath);
 		}
-		elseif ($path)
+		
+		return $this->filePath;
+	}
+	
+	public function getPath()
+	{
+		if( ! $this->mapped) { $this->mapInfo(); }
+		return $this->path;
+	}
+	
+	public function getFilename()
+	{
+		if( ! $this->mapped) { $this->mapInfo(); }
+		return $this->filename;
+	}
+	
+	public function getNameOnly()
+	{
+		if( ! $this->mapped) { $this->mapInfo(); }
+		return $this->nameonly?:'noname';
+	}
+	
+	public function getExt()
+	{
+		if( ! $this->mapped) { $this->mapInfo(); }
+		return $this->ext;
+	}
+	
+	public function getMode()
+	{
+		return $this->mode;
+	}
+	
+	public function setMode($mode)
+	{
+		$this->mode = $mode;
+		return $this;
+	}
+	
+	public function setFilePath($filePath)
+	{
+		$this->mapped = false;
+		$this->filePath = $filePath;
+		return $this;
+	}
+	
+	public function setPath($path)
+	{
+		$this->mapped = false;		
+		$this->filePath = $this->makeFilePath($path);
+		return $this;
+	}
+	
+	public function setFilename($filename, $ext = null)
+	{
+		$this->mapped = false;
+		$this->filePath = $this->makeFilePath(null, $filename, $ext);
+		return $this;
+	}
+	
+	public function setExt($ext)
+	{
+		$this->mapped = false;
+		$this->filePath = $this->makeFilePath(null, null, $ext);
+		return $this;
+	}
+	
+	public function write($data, $append = false)
+	{
+		$filePath = $this->getFilePath();
+		
+		if ( ! file_exists($filePath))
 		{
-			if (is_file($path))
+			$oldumask = umask(0);
+			
+			$dirname = dirname($filePath);
+			@mkdir($dirname, $this->mode, true);
+			
+			umask($oldumask);
+		}
+		
+		if ($append)
+		{
+			$options = FILE_APPEND | LOCK_EX;
+		}
+		else
+		{
+			$options = LOCK_EX;
+		}
+		
+		file_put_contents($filePath, $data, $options);
+
+		chmod($filePath, $this->mode);		
+	}
+	
+	public function append($data)
+	{
+		return $this->write($data, true);
+	}
+	
+	/**
+	 * 
+	 * @param type $this->filePath
+	 * @return boolean
+	 */
+	public function delete($nocheck = false, $silentFail = false)
+	{
+		if ($nocheck)
+		{
+			if ($silentFail)
 			{
-				$this->path = dirname($path);
-				$this->filename = basename($path);
-				$this->filepath = $path;
+				@unlink($this->getFilePath());
 			}
 			else
 			{
-				$this->path = $path;
+				unlink($this->getFilePath());
 			}
 		}
+		elseif(is_file($this->getFilePath()))
+		{
+			if ($silentFail)
+			{
+				@unlink($this->getFilePath());
+			}
+			else
+			{
+				unlink($this->getFilePath());
+			}
+		}
+		
+		return $this;
+	}
+	
+	/**
+	 * Makes a new file path based on the parameters provided and existing file properties.
+	 * If a path or filename is not specified, the corresponding current file property value will
+	 * be used.
+	 * 
+	 * If "Extension" is not specified, it is assumed that the extension is included in the filename value.
+	 * 
+	 * If "Extension" is specified without a filename value, the current "NameOnly" property of the file will
+	 * be used as the name part of the filename.
+	 * 
+	 * @param string $path
+	 * @param string $filename
+	 * @param string $extension
+	 * @return string
+	 */
+	public function makeFilePath($path = null, $filename = null, $extension = null)
+	{
+		if (is_array($path))
+		{
+			$path = implode(DIRECTORY_SEPARATOR, $path);
+		}
+
+		$path = $path?:$this->getPath();
+				
+		if ($extension)
+		{			
+			$filename = $filename ? $filename . '.' . $extension : $this->getNameOnly() . '.' . $extension;
+		}
+		else
+		{
+			$filename = $filename?:$this->getFilename();
+		}
+		
+		if ($filename)
+		{
+			$path = rtrim($path, '/') . '/';
+		}
+
+		return $path . $filename;
+	}
+	
+	/**
+	 * 
+	 * @param type $filename
+	 * @return type
+	 */
+	public function sanitize($filename)
+	{
+		return preg_replace('/[^A-Za-z0-9_\-\.]+/', '', $filename);
 	}
 
+	/**
+	 * Get the file's last modification time.
+	 *
+	 * @return int
+	 */
+	public function lastModified()
+	{
+		return filemtime($this->filePath);
+	}	
+	
 	/**
 	 * 
 	 * @param integer $size in Bytes
@@ -69,9 +289,9 @@ class File
 	 */
 	public function sizeToString($size = null)
 	{
-		if (is_null($size) and $this->filepath)
+		if (is_null($size) and $this->filePath)
 		{
-			$size = filesize($this->filepath);
+			$size = filesize($this->filePath);
 		}
 
 		if ($size < 1024)
@@ -85,7 +305,7 @@ class File
 		else
 			return round($size / 1099511627776, 2) . ' TB';
 	}
-
+	
 	/**
 	 * 
 	 * @param integer $size
@@ -104,350 +324,200 @@ class File
 
 		return $size;
 	}
-
+	
 	/**
+	 * This method assumes you already found that the file path is
+	 * not available and it should find the next possible name.
 	 * 
-	 * @param type $filePath
-	 * @return boolean
-	 */
-	public function delete($filePath = null)
-	{
-		if ( ! $filePath and $this->filepath)
+	 * @param string $filePath
+	 * @param integer $duplicateIndexLimit
+	 * @return string
+	 */	
+	public function getNextPossibleName($filePath, $duplicateIndexLimit = 100)
+	{	
+		$file = new static($filePath); //Make another file instance within the File class itself!
+		
+		$originalName = $file->getNameOnly();
+		
+		$ext = $file->getExtension();
+		
+		$duplicateIndex = 0;
+		
+		// $duplicationLimit = Endless loop precaution measure + Prevent excessive performance hit
+		while ($file->exists() and $duplicateIndex < $duplicateIndexLimit)
 		{
-			$filePath = $this->filepath;
+			$file->setFilename($originalName . "_$duplicateIndex" . $ext);
+			$duplicateIndex++;
 		}
 
-		if (is_file($filePath) and file_exists($filePath))
+		return $file->getFilePath();
+	}
+	
+	/**
+	 * Return the quarter for a timestamp.
+	 * @returns integer
+	 */
+	protected function quarter($ts) {
+	   return ceil(date('n', $ts)/3);
+	}
+	
+	public function mkdir($dir, $mode = 0775)
+	{
+		$oldumask = umask(0);
+
+		if ( ! mkdir($dir, $mode, true))
 		{
-			unlink($filePath);
-			return true;
-		}
-		else
+			umask($oldumask);
 			return false;
-	}
-
-	/**
-	 * 
-	 * @param type $filename
-	 * @return type
-	 */
-	public function slugFilename($filename)
-	{
-		$ext = pathinfo($filename, PATHINFO_EXTENSION);
-
-		if ($ext)
-		{
-			$ext = '.' . $ext;
 		}
 
-		$p = strpos($filename, $ext);
-
-		$filename = preg_replace('/[^A-Z^a-z^0-9_\-]/', '', substr($filename, 0, $p));
-
-		return $filename . $ext;
+		umask($oldumask);			
 	}
 
 	/**
+	 * Adds a subfolder path in-front of the supplied filename
+	 * to enable saving the file in a specific file group
 	 * 
-	 * @param type $filename
-	 * @return type
+	 * @param string $groupName
+	 * @param string $groupFormat
+	 * @param time $groupDate
+	 * @return string
 	 */
-	public function ext($filename)
-	{
-		return strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-	}
-
-	/**
-	 * Get the file's last modification time.
-	 *
-	 * @param  string  $path
-	 * @return int
-	 */
-	public function lastModified($path)
-	{
-		return filemtime($path);
-	}
-
-	/**
-	 * Get an array of all files in a directory.
-	 *
-	 * @param  string  $directory
-	 * @return array
-	 */
-	public function files($directory)
-	{
-		$glob = glob($directory . '/*');
-
-		if ($glob === false)
-			return array();
-
-		// To get the appropriate files, we'll simply glob the directory and filter
-		// out any "files" that are not truly files so we do not end up with any
-		// directories in our list, but only true files within the directory.
-		return array_filter($glob, function($file) {
-			return filetype($file) == 'file';
-		});
-	}
-
-	/**
-	 * Create a directory.
-	 *
-	 * @param  string  $path
-	 * @param  int     $mode
-	 * @param  bool    $recursive
-	 * @param  bool    $force
-	 * @return bool
-	 */
-	public function makeDirectory($path, $mode = 0777, $recursive = false, $force = false)
-	{
-		if ($force)
+	public function makeGroupPath($groupName = '', $groupFormat = 'Y', $groupDate = null)
+	{	
+		if( ! $groupDate) { $groupDate = time(); }
+		
+		switch ($groupFormat)
 		{
-			return @mkdir($path, $mode, $recursive);
+			case 'YQ':
+				$datePath = date('Y', $groupDate) . 'Q' . $this->quarter($groupDate);
+				break;
+			
+			//The next option is covered by the default action, but it is shown here to 
+			//remind that you can add subfolder slashes to the format string!
+			case 'Y/m':
+				$datePath = date('Y/m', $groupDate);
+				break;
+
+			default:
+				if ($groupFormat)
+				{
+					$datePath = date($groupFormat, $groupDate);
+				}
+				else
+				{
+					$datePath = '';
+				}
+		}
+		
+		if ($groupName) { $prefix_parts[] =  $groupName; }
+		
+		if ($datePath) { $prefix_parts[] = $datePath; }
+
+		if ($prefix_parts)
+		{
+			return implode(DIRECTORY_SEPARATOR, $prefix_parts);
 		}
 		else
 		{
-			return mkdir($path, $mode, $recursive);
+			return '';
 		}
 	}
-
-	/**
-	 * Copy a directory from one location to another.
-	 *
-	 * @param  string  $directory
-	 * @param  string  $destination
-	 * @param  int     $options
-	 * @return bool
-	 */
-	public function copyDirectory($directory, $destination, $options = null)
+	
+	public function addGroupPath($groupName = '', $groupFormat = 'Y', $groupDate = null)
 	{
-		if (!$this->isDirectory($directory))
-			return false;
-
-		$options = $options ? : FilesystemIterator::SKIP_DOTS;
-
-		// If the destination directory does not actually exist, we will go ahead and
-		// create it recursively, which just gets the destination prepared to copy
-		// the files over. Once we make the directory we'll proceed the copying.
-		if ( ! $this->isDirectory($destination))
-		{
-			$this->makeDirectory($destination, 0777, true);
-		}
-
-		$items = new FilesystemIterator($directory, $options);
-
-		foreach ($items as $item)
-		{
-			// As we spin through items, we will check to see if the current file is actually
-			// a directory or a file. When it is actually a directory we will need to call
-			// back into this function recursively to keep copying these nested folders.
-			$target = $destination . '/' . $item->getBasename();
-
-			if ($item->isDir())
-			{
-				$path = $item->getPathname();
-
-				if ( ! $this->copyDirectory($path, $target, $options))
-					return false;
-			}
-
-			// If the current items is just a regular file, we will just copy this to the new
-			// location and keep looping. If for some reason the copy fails we'll bail out
-			// and return false, so the developer is aware that the copy process failed.
-			else
-			{
-				if ( ! $this->copy($item->getPathname(), $target))
-					return false;
-			}
-		}
-
-		return true;
+		$path = $this->getPath();
+		
+		if ($path and $path !== '.') { $path_parts[] = $this->getPath(); }
+		
+		$path_parts[] = $this->makeGroupPath($groupName, $groupFormat, $groupDate);
+		
+		$this->setFilePath(implode(DIRECTORY_SEPARATOR, $path_parts), $this->getFilename());
+		
+		return $this;
 	}
-
-	/**
-	 * Recursively delete a directory.
-	 *
-	 * The directory itself may be optionally preserved.
-	 *
-	 * @param  string  $directory
-	 * @param  bool    $preserve
-	 * @return bool
-	 */
-	public function deleteDirectory($directory, $preserve = false)
-	{
-		if ( ! $this->isDirectory($directory))
-			return false;
-
-		$items = new FilesystemIterator($directory);
-
-		foreach ($items as $item)
-		{
-			// If the item is a directory, we can just recurse into the function and
-			// delete that sub-director, otherwise we'll just delete the file and
-			// keep iterating through each file until the directory is cleaned.
-			if ($item->isDir())
-			{
-				$this->deleteDirectory($item->getPathname());
-			}
-
-			// If the item is just a file, we can go ahead and delete it since we're
-			// just looping through and waxing all of the files in this directory
-			// and calling directories recursively, so we delete the real path.
-			else
-			{
-				$this->delete($item->getPathname());
-			}
-		}
-
-		if ( ! $preserve)
-			@rmdir($directory);
-
-		return true;
-	}
-
-	/**
-	 * Empty the specified directory of all files and folders.
-	 *
-	 * @param  string  $directory
-	 * @return bool
-	 */
-	public function cleanDirectory($directory)
-	{
-		return $this->deleteDirectory($directory, true);
-	}
-
+	
 	/**
 	 *
 	 * Moves a file from one location to another.
 	 * If OVERWRITE_DESTFILE = FALSE , a number will be added to the end of the
 	 * destination filename to prevent overwriting the existing file!
 	 *
-	 * @param string $src_path  Path ONLY + Trailing Slash Optional
-	 * @param string $dest_path Path ONLY + Trailing Slash Optional
-	 * @param string $src_filename
-	 * @param string $dest_filename
-	 * @param boolean $overwrite_destfile Don't over-write an existing dest file TRUE / FALSE
-	 * @param boolean $delete_sourcefile
+	 * @param string $destFilePath
+	 * @param boolean $overwrite Don't over-write an existing dest file TRUE / FALSE
+	 * @param boolean $force
 	 * @param octal $mode
+	 * @param boolean $move
 	 * @return string|boolean Move Succuessfull = Dest Filename / Else FALSE
 	 */
-	public function move($src_path, $dest_path, $src_filename = null, $dest_filename = null, 
-			$overwrite_destfile = true, $delete_sourcefile = true, $mode = 0775)
+	public function copy($destFilePath, $overwrite = true, $force = false, $mode = 0775, $silentFail = false, $move = false)
 	{
-		if ( ! $src_filename)
-		{
-			if(is_file($src_path))
-			{
-				$src_filepath = $src_path;
-				$src_path = dirname($src_filepath);
-				$src_filename = basename($src_filepath);
-			}
-			else
-			{
-				return false;
-			}
-		}
-
-		if ( ! $dest_filename)
-		{
-			if(is_file($dest_path))
-			{
-				$dest_filepath = $src_path;
-				$dest_path = dirname($dest_filepath);
-				$dest_filename = basename($dest_filepath);
-			}
-			else
-			{
-				$dest_filename = $src_filename;
-			}
-		}
-
-		$src_path = rtrim($src_path, DIRECTORY_SEPARATOR);
-		$dest_path = rtrim($dest_path, DIRECTORY_SEPARATOR);
-
-		$src_file = $src_path . DIRECTORY_SEPARATOR . $src_filename;
-		$dest_file = $dest_path . DIRECTORY_SEPARATOR . $dest_filename;
-
-		if ( ! file_exists($src_file))
+		if ( ! is_file($this->getFilePath()))
 		{
 			return false;
 		}
 
-		//The "dest_filename" can sometimes contain a path segment or two, so recalc the 
-		//actual path after combining "dest_path"+"dest_filename"...NM 13 Nov 2012
-		$full_dest_path = dirname($dest_file);
-
-		if ( ! file_exists($full_dest_path))
+		$destPath = dirname($destFilePath);
+		
+		if ( ! is_dir($destPath))
 		{
-			$oldumask = umask(0);
+			$this->mkdir($destPath, $mode);
+		}
 
-			if ( ! mkdir($full_dest_path, $mode, true))
+		if ( ! $overwrite and file_exists($destFilePath))
+		{
+			if ( ! $force)
 			{
 				return false;
 			}
-
-			umask($oldumask);
-
-			//chmod($full_dest_path, $mode);
+			
+			//Force copy, but use an indexed version of the destination filename
+			$destFilePath = $this->getNextPossibleName($destFilePath);
 		}
 
-		if (!$overwrite_destfile and file_exists($dest_file))
-		{
-			$file_ext = pathinfo($dest_filename, PATHINFO_EXTENSION);
-
-			if ($file_ext)
-			{
-				$file_ext = '.' . $file_ext;
-			}
-
-			$n = 0;
-
-			$p = strpos($dest_filename, $file_ext);
-
-			$base_name = substr($dest_filename, 0, $p);
-
-			$new_name = $base_name . '_' . $n . $file_ext;
-
-			$dest_file = $dest_path . $new_name;
-
-			//n < 1000 is an endless loop precaution measure
-			while (file_exists($dest_file) and $n < 1000)
-			{
-				$n++;
-				$new_name = $base_name . '_' . $n . $file_ext;
-				$dest_file = $dest_path . $new_name;
-			}
-
-			$dest_filename = $new_name;
-		}
-
-		if ( ! copy($src_file, $dest_file))
+		if ( ! copy($this->getFilePath(), $destFilePath))
 		{
 			return false;
 		}
 
-		chmod($dest_file, $mode);
+		chmod($destFilePath, $mode);
 
-		if ($delete_sourcefile)
+		if ($move)
 		{
-			$this->delete($src_file);
+			$this->delete(true, $silentFail);
 		}
+		
+		//Move this file instance to point to the newly copied / moved file.
+		$this->setFilePath($destFilePath);
 
-		return $dest_filename;
+		return $destFilePath;
 	}
 
-	/**
-	 * 
-	 * @param type $src_path
-	 * @param type $dest_path
-	 * @param type $src_filename
-	 * @param type $dest_filename
-	 * @param type $overwrite_destfile
-	 * @param type $mode
-	 * @return type
-	 */
-	public function copy($src_path, $dest_path, $src_filename = '', $dest_filename = '', $overwrite_destfile = true, $mode = 0775)
+	public function move($dest_path, $overwrite = true, $force = false, $mode = 0775, $silentFail = false)
 	{
-		return $this->move($src_path, $dest_path, $src_filename, $dest_filename, $overwrite_destfile, false, $mode);
+		return $this->copy($dest_path, $overwrite, $force, $mode, $silentFail, true);
 	}
-
+	
+	public function read()
+	{
+		if ($this->isFile())
+		{
+			return file_get_contents($this->getFilePath());
+		}
+	}
+	
+	public function exists()
+	{
+		return file_exists($this->getFilePath());
+	}
+	
+	public function isFile()
+	{
+		return is_file($this->getFilePath());
+	}
+	
+	public function __toString()
+	{
+		return $this->getFilePath();
+	}
 }

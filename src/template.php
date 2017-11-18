@@ -41,7 +41,6 @@ use Closure;
  */
 class Template
 {
-
 	/**
 	 * All of the registered extensions.
 	 *
@@ -147,7 +146,7 @@ class Template
 	 * @var array 
 	 */
 	protected $sections = array();
-	
+
 	/**
 	 * Array of template files that are required to successfully compile this template
 	 * The list includes this file
@@ -165,14 +164,40 @@ class Template
 	 */
 	public function __construct($templatesPath = null, $cachePath = null, $child_template = null)
 	{
-		$this->templatesPath = $templatesPath ? realpath($templatesPath) : __DIR__;
-
-		$this->cachePath = $cachePath ? realpath($cachePath) : null;
+		$this->setTemplatesPath($templatesPath);
+		
+		$this->setCachePath($cachePath);
 
 		$this->child = $child_template;
 
 		//Initialize here to allow using preg_quote()
 		$this->commentTags = array(preg_quote('{*'), preg_quote('*}'));
+	}
+	
+	/**
+	 * Override current or lazy assign (After class instantiation) the uncompiled templates path depending on your use case
+	 * 
+	 * @param string $templatesPath
+	 * @return \OneFile\Template Return this class to allow method chaining
+	 */
+	public function setTemplatesPath($templatesPath = null)
+	{
+		$this->templatesPath = $templatesPath ? realpath($templatesPath) : __DIR__;
+		
+		return $this;
+	}
+	
+	/**
+	 * Override or lazy assign the compiled templates path depending on your use case
+	 * 
+	 * @param string $cachePath
+	 * @return \OneFile\Template Return this class to allow method chaining
+	 */
+	public function setCachePath($cachePath = null)
+	{
+		$this->cachePath = $cachePath ? realpath($cachePath) : null;
+		
+		return $this;
 	}
 
 	/**
@@ -191,7 +216,7 @@ class Template
 			$template_filename = $this->templatesPath . '/' . $template_filename;
 
 			if ( ! file_exists($template_filename))
-					return null;
+				return null;
 		}
 
 		return $template_filename;
@@ -204,15 +229,16 @@ class Template
 	 * to shorten the resulting path strings.
 	 * 
 	 * @param string $templatefile_path
-	 * @param boolean $force_recalc
-	 * @param boolean $encode
+	 * @param boolean $force_recalc We call this function a number of times during a cycle, so we only want to re-calculate on request
+	 * @param boolean $encode Change compiled filenames to MD5 encoded strings or use the same filenames as the uncompiled templates
 	 * @return string
 	 */
 	protected function getCompiledFilePath($templatefile_path, $force_recalc = false, $encode = true)
 	{
-		if (! $this->compiledFilePath or $force_recalc)
+		if ( ! $this->compiledFilePath or $force_recalc)
 		{
 			$this->compiledFilename = $encode ? md5($templatefile_path) : $templatefile_path;
+
 			$this->compiledFilePath = $this->cachePath . '/' . $this->compiledFilename;
 		}
 
@@ -256,7 +282,7 @@ class Template
 		$compiled = $this->getCompiledFilePath($templatefile_path, true);
 
 		// If the compiled file doesn't exist we will indicate that the view is expired
-		if (!file_exists($compiled))
+		if ( ! file_exists($compiled))
 		{
 			return true;
 		}
@@ -264,7 +290,7 @@ class Template
 		//Get the "Last Modified" timestamps of all the child templates including this this template's timestamp
 		$dependancies = include($this->getMetaFilePath());
 
-		if (!$dependancies)
+		if ( ! $dependancies)
 		{
 			//The compiled file has "Expired" if its timestamp is older than its source template timestamp
 			return filemtime($compiled) < filemtime($templatefile_path);
@@ -273,12 +299,12 @@ class Template
 		foreach ($dependancies as $dependant_file => $last_timestamp)
 		{
 			if ( ! file_exists($dependant_file))
-					return true;
+				return true;
 
 			//A dependnat file has changed if the file's last timestamp is older than its current timestamp
 			//A changed dependancy === Compiled File Expired! 
 			if ($last_timestamp < filemtime($dependant_file))
-					return true;
+				return true;
 		}
 
 		return false;
@@ -364,7 +390,7 @@ class Template
 
 		return $timestamps;
 	}
-	
+
 	/**
 	 * Compile the view at the given path.
 	 * If we specify $cachefile_path, the cached file path will not be an encoded string, but the path name given.
@@ -385,7 +411,7 @@ class Template
 
 		//If $cache=FALSE we always return freshly compiled content as a
 		//string and we don't bother with possibly expired dependancies.
-		if (!$cache)
+		if ( ! $cache)
 		{
 			return $this->compileString(file_get_contents($this->templateFilePath));
 		}
@@ -415,8 +441,8 @@ class Template
 			file_put_contents($compiledFilePath, $contents);
 		}
 
-		if ($return_contents) 
-				return $contents;
+		if ($return_contents)
+			return $contents;
 	}
 
 	/**
@@ -669,8 +695,8 @@ class Template
 	 */
 	protected function compileYield($value)
 	{
-		if (!$this->child)
-				return $value;
+		if ( ! $this->child)
+			return $value;
 
 		$pattern = $this->createOpenMatcher('yield');
 
@@ -679,7 +705,7 @@ class Template
 		preg_match_all($pattern, $value, $matches);
 
 		if ( ! $matches or ! $matches[0])
-				return $value;
+			return $value;
 
 		$replaceble_strings = array();
 		foreach ($matches[0] as $replace)
@@ -750,7 +776,7 @@ class Template
 			return $value;
 
 		$section_names = array();
-				
+
 		foreach ($matches[1] as $sectionname_match_raw)
 		{
 			$section_names[] = trim($sectionname_match_raw, "'\""); //Removes quotes!

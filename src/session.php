@@ -19,15 +19,11 @@
  * @update C. Moller - 9 June 2014: Added session domain support
  * 
  */
-
-class Session {
-
+class Session
+{
 	protected $domain;
-	
+
 	/**
-	 * Specify a domain if you want to keep your session values seperate
-	 * from other potential session users.
-	 * 
 	 * Allows selecting a specific session to start by specifying its id.
 	 * 
 	 * @param string $id
@@ -43,25 +39,28 @@ class Session {
 		{
 			return session_id($id);
 		}
-		
+
 		return session_id();
 	}
 
 	public function start($domain = null, $id = null)
 	{
+		$this->domain = $domain;
+
 		if ($id)
 		{
 			$this->id($id);
 		}
-		
+
 		$ok = session_start();
 		
-		if ($ok and $domain)
+		//NB: Don't use session->has($domain) or session->put($domain) 
+		// to detect and set the $domain array!
+		if ( $domain and ! isset($_SESSION[$domain]))
 		{
-			$this->domain = $domain;
 			$_SESSION[$domain] = array();
 		}
-		
+
 		return $ok;
 	}
 
@@ -104,7 +103,7 @@ class Session {
 	{
 		if ($this->domain)
 		{
-			$_SESSION[$this->domain][$key] = $value;			
+			$_SESSION[$this->domain][$key] = $value;
 		}
 		else
 		{
@@ -116,7 +115,7 @@ class Session {
 	{
 		if ($this->domain)
 		{
-			unset($_SESSION[$this->domain][$key]);			
+			unset($_SESSION[$this->domain][$key]);
 		}
 		else
 		{
@@ -140,6 +139,7 @@ class Session {
 		{
 			if ($this->domain)
 			{
+				//NB: Don't use session->put() to set the $domain array!
 				$_SESSION[$this->domain] = array();
 			}
 			else
@@ -158,6 +158,7 @@ class Session {
 	{
 		if ($this->domain)
 		{
+			//NB: Don't use session->put() to set the $domain array!
 			$_SESSION[$this->domain] = $new_session_array;
 		}
 		else

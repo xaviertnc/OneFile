@@ -2,13 +2,25 @@
 
 /**
  * Concept:
- * Make Template Files for Each Html Control / Component
+ * Replace the HTML:: helper class in frameworks like Laravel with a dynamically generated helper class that allows changing of themes and only include
+ * templates needed for a particular request.
+ * 
+ * Use this class to output compiled and cached HTML fragments like FORM INPUT FIELDS, SELECT FIELDS, MENUS etc. at runtime OR 
+ * Pre-comiple template fragmanets into full templates, compile and cache OR
+ * Create code/html content generators.
  * 
  * Example: HTML::dropdown(name, data, options):
- *  1. Find dropdown template based on NAME + THEME
- *  2. Compile Template
- *  3. Add Compiled Template to a Collection File if not specified to be stand alone. (I.e. Most common templates are in one file!) Big ones, stand alone.
- *  4. Bind template with model and POST depending on parameters supplied and form state etc.
+ *  1. Check HTML Cache Manifest for "dropdown" html
+ *  2. IF Cached: ( IF Expired: Goto step 3 ELSE Return cached html fragment ) ELSE Goto step 3
+ *  3. Find "dropdown" template in THEME subfolder
+ *  4. Compile + Cache "dropdown" template into Minified phtml
+ *  5. Add compiled template to Cache Manifest
+ *  6. Add compiled template to local templates cache to speed up repeated template use
+ * 
+ *  7. Add the compiled template to a view + Bind data to values required in the template + Echo to screen or some othe output destination. OR
+ *  8. Add the compiled template to
+ * 
+ * Bind template with model and POST depending on parameters supplied and form state etc.
  *  5. Render template!
  *
  * @author C. Moller <xavier.tnc@gmail.com> - 8 June 2014
@@ -17,11 +29,21 @@
  * 
  */
 
+interface PhpTemplateCompiler
+{
+	/**
+	 * Compiles template file content (loaded as string) into valid PHP
+	 * @param string $template
+	 */
+	public function compileString($template);
+}
+
+
 class Html
 {
 	protected $theme;
 	
-	protected $templatesPath;
+	protected $templatesBasePath;
 	
 	protected $templateFilePattern = '%s/%s.tpl';
 	
@@ -36,32 +58,42 @@ class Html
 	protected $manifests;
 	
 	/**
-	 * A memory cache / array of Compiled Components indexed
+	 * A memory cache / array of Compiled Templates indexed
 	 * by their types for the specific theme and incrementally 
-	 * filled from file cache as we request components to render.
+	 * filled from file cache as we request templates to render.
 	 * 
 	 * But we want to Mix themes at times!?  Make sure we also catagorise according to theme
 	 * 
 	 * @var array
 	 */
-	protected $components;
+	protected $templates;
 	
 	/**
 	 * 
 	 * @param string $theme
-	 * @param string $templatesPath
+	 * @param string $templatesBasePath
 	 * @param string $compiledPath
 	 */
-	public function __construct($theme, $templatesPath, $compiledPath)
+	public function __construct($theme, $templatesBasePath, $compiledPath, $compiler = null)
 	{
 		$this->theme = $theme;
-		$this->templatesPath = $templatesPath;
+		$this->templatesBasePath = $templatesBasePath;
 		$this->compiledPath = $compiledPath;
+		
+		if ($compiler)
+		{
+			$this->setCompiler($compiler, $this->getTemplatesPath($theme), $compiledPath);
+		}
 	}
 	
-	protected function getTemplateFilePath($theme, $type)
+	protected function compile($template)
 	{
-		return $this->templatesPath . '/' . sprintf($this->templateFilePattern, $theme, $type);
+		$this->compiler->compileString($template);
+	}
+	
+	protected function getTemplatesPath($theme)
+	{
+		return $this->templatesBasePath . '/' . $theme;
 	}
 	
 	protected function getCompiledFilePath($theme, $type)
@@ -78,15 +110,15 @@ class Html
 	{
 		if (is_null($key))
 		{
-			return $this->components;
+			return $this->templates;
 		}
 
-		if (isset($this->components[$key]))
+		if (isset($this->templates[$key]))
 		{
-			return $this->components[$key];
+			return $this->templates[$key];
 		}
 
-		$array = & $this->components;
+		$array = & $this->templates;
 
 		foreach (explode('.', $key) as $segment)
 		{
@@ -106,22 +138,24 @@ class Html
 		return file_put_contents($this->getManifestFilePath($theme), '<?php return ' . var_export($this->manifests[$theme], true) . ';');
 	}
 
-	protected function compileTemplate($theme, $templateFilePath)
+	protected function compileTemplates($theme, $templatesPath)
 	{
-//		var_dump($templateFilePath);
+		var_dump($templatesPath);
 		
-		if ( ! file_exists($templateFilePath))
+		if ( ! is_dir($templatesPath))
 		{
 			return false;
 		}
+		
+		$templateFiles = glob($templatesPath . '/*.tpl');
 
 		$matches = array();
 		
-		$contents = file_get_contents($templateFilePath);
+		$contents = file_get_contents($templatesPath);
 		
-//		var_dump($contents);
+		var_dump($contents);
 		
-		$pattern = '/(?<!\w)\s*@component\s*\((.*)\).*[\n\r]*([\s\S]*?)\s*@endcomp/';
+		$pattern = '/(?<!\w)\s*@html\s*\((.*)\).*[\n\r]*([\s\S]*?)\s*@endhtml/';
 
 		preg_match_all($pattern, $contents, $matches);
 
@@ -130,33 +164,33 @@ class Html
 			return false;
 		}
 
-		$component_types = array();
+		$template_types = array();
 				
-		foreach ($matches[1] as $componenttype_match_raw)
+		foreach ($matches[1] as $templatetype_match_raw)
 		{
-			$component_types[] = trim($componenttype_match_raw, "'\""); //Removes quotes!
+			$template_types[] = trim($templatetype_match_raw, "'\""); //Removes quotes!
 		}
 
 		$compiled_stack = array();
 		
-		foreach ($matches[2] as $i => $component)
+		foreach ($matches[2] as $i => $template)
 		{
-			$compiled = $this->compiler->compileString($component);
+			$compiled = $this->compiler->compileString($template);
 
-			$type = $component_types[$i];
+			$type = $template_types[$i];
 			
 			$compiled_stack[$type] = $compiled;
 			
-			$this->components[$theme][$type] = $compiled;
+			$this->templates[$theme][$type] = $compiled;
 		}
 		
-		$compiledFilePath = $this->getCompiledFilePath($theme, $component_types[0]);
+		$compiledFilePath = $this->getCompiledFilePath($theme, $template_types[0]);
 		
 		file_put_contents($compiledFilePath, '<?php return ' . var_export($compiled_stack, true) . ';');
 
 		$manifest_entries = $this->manifests[$theme];
 		
-		foreach($component_types as $type)
+		foreach($template_types as $type)
 		{
 			$manifest_entries[$type] = $compiledFilePath;
 		}
@@ -176,7 +210,7 @@ class Html
 	 * @param string $attributes
 	 * @param string $options
 	 */
-	protected function renderComponent($compiledTemplateString, $attributes)
+	protected function renderTemplate($compiledTemplateString, $attributes)
 	{
 		extract($attributes);
 
@@ -187,19 +221,19 @@ class Html
 		return ob_get_clean();
 	}
 	
-	protected function updateComponents($theme, $compiledFilePath)
+	protected function updateTemplates($theme, $compiledFilePath)
 	{
-		$componentsToAdd = include($compiledFilePath);
+		$templatesToAdd = include($compiledFilePath);
 		
-		foreach($componentsToAdd as $type => $component)
+		foreach($templatesToAdd as $type => $template)
 		{
-			$this->components[$theme][$type] = $component;
+			$this->templates[$theme][$type] = $template;
 		}
 	}
 	
-	protected function loadComponent($theme, $type)
+	protected function loadTemplate($theme, $type)
 	{
-		//Ceck Compiled Components List
+		//Ceck Compiled Templates List
 		if (isset($this->manifests[$theme]))
 		{
 			$manifest = $this->manifests[$theme];
@@ -220,38 +254,40 @@ class Html
 
 		if (isset($manifest[$type]))
 		{
-			$this->updateComponents($theme, $manifest[$type]);
+			$this->updateTemplates($theme, $manifest[$type]);
 			
 			return $this->getCached("$theme.$type");
 		}
 		
-		if ($this->compileTemplate($theme, $this->getTemplateFilePath($theme, $type)))
+		if ($this->compileTemplates($theme, $this->getTemplatesPath($theme)))
 		{
 			return $this->getCached("$theme.$type");
 		}
 	}
 	
-	protected function getComponent($theme, $type, $attributes)
+	protected function getTemplate($theme, $type, $attributes)
 	{
 		//Check in memory
-		$component = $this->getCached("$theme.$type");
+		$template = $this->getCached("$theme.$type");
 		
-		if( ! $component)
+		if( ! $template)
 		{
-			$component = $this->loadComponent($theme, $type);
+			$template = $this->loadTemplate($theme, $type);
 		}
 		
-		if ($component)
+		if ($template)
 		{
-			return $this->renderComponent($component, $attributes);
+			return $this->renderTemplate($template, $attributes);
 		}
 		
-		return "Error: Failed to Find Component $theme:$type!";
+		return "Error: Failed to Find Template $theme:$type!";
 	}
 
-	public function setCompiler($compiler)
+	public function setCompiler(PhpTemplateCompiler $compiler, $templatesPath = null, $compiledPath = null)
 	{
 		$this->compiler = $compiler;
+		if ($templatesPath) { $this->compiler->setTemplatesPath($templatesPath); }
+		if ($compiledPath) { $this->compiler->setCompiledPath($compiledPath); }
 		return $this;
 	}
 	
@@ -294,7 +330,7 @@ class Html
 		if (empty($theme)) { $theme = $this->theme;	$attributes['theme'] = $theme; } //$theme, $type, etc from extract()!
 		if (empty($type)) { $type = 'text'; $attributes['type'] = $type; }
 		
-		return $this->getComponent($theme, $type, $attributes);
+		return $this->getTemplate($theme, $type, $attributes);
 	}
 		
 }

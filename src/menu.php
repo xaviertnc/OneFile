@@ -39,13 +39,13 @@ class MenuItem
 	 *
 	 * @var string
 	 */
-	public $first_child;
+	public $firstChild;
 	
 	/**
 	 *
 	 * @var string
 	 */
-	public $last_child;
+	public $lastChild;
 	
 	/**
 	 *
@@ -63,12 +63,16 @@ class MenuItem
 	
 	function get($key, $default = null)
 	{
-		if(isset($this->$key))
+		if (isset($this->$key))
+		{
 			return $this->$key;
+		}
 		else
+		{
 			return $default;
+		}
 	}
-	
+
 	
 	public function __construct($id, $text, $properties = array())
 	{
@@ -76,15 +80,22 @@ class MenuItem
 		
 		$this->text = $text;
 		
-		if($properties)
+		if ($properties)
 		{
-			foreach($properties as $key=>$value)
+			foreach ($properties as $key => $value)
 			{
 				$this->set($key, $value);
 			}
 		}
 	}
+	
+	
+	public function __toString()
+	{
+		return $this->text;
+	}
 }
+
 
 /**
  * By. C Moller: 27 Apr 2014
@@ -126,13 +137,13 @@ class Menu
 	}
 	
 	
-	function get($id)
+	function getItem($id)
 	{
-		return isset($this->items[$id])?$this->items[$id]:null;
+		return isset($this->items[$id]) ? $this->items[$id] : null;
 	}
 	
 	
-	function set($id, MenuItem $item)
+	function setItem($id, MenuItem $item)
 	{
 		$this->items[$id] = $item;
 		
@@ -140,47 +151,51 @@ class Menu
 	}
 	
 	
-	function add($id, $text, $properties = array())
+	function addItem(MenuItem $newItem)
 	{
-		$new_item = new MenuItem($id, $text, $properties);
-						
-		if(!$new_item->get('parent'))
+		if ( ! $newItem->get('parent'))
 		{
-			if(!$this->items)
-				$this->first = $id;
+			if ( ! $this->items)
+			{
+				$this->first = $newItem->id;
+			}
 			else
 			{
-				$this->get($this->last)->next = $id;
-				$new_item->prev = $this->last;
+				$this->getItem($this->last)->next = $newItem->id;
+				$newItem->prev = $this->last;
 			}
 			
-			$this->last = $id;
+			$this->last = $newItem->id;
 		}
 		
-		$this->set($id, $new_item);
+		$this->setItem($newItem->id, $newItem);
 		
-		return $new_item;
+		return $newItem;
 	}
 	
 	
-	function add_to($parent_id, $id, $text, $properties = array())
-	{
-		$properties['parent'] = $parent_id;
+	function insertItem($parentId, MenuItem $newItem)
+	{	
+		$parent = $this->getItem($parentId);
 		
-		$parent = $this->get($parent_id);
-		
-		if($parent)
+		if ($parent)
 		{
-			if(!$parent->first_child)
-				$parent->first_child = $id;
+			if ( ! $parent->firstChild)
+			{
+				$parent->firstChild = $newItem->id;
+			}
 			else
-				$this->get($parent->last_child)->next = $id;
+			{
+				$this->getItem($parent->lastChild)->next = $newItem->id;
+			}
 
-			$item = $this->add($id, $text, $properties);
-			$item->prev = $parent->last_child;
-			$parent->last_child = $id;
+			$newItem->parent = $parentId;
+			$newItem->prev = $parent->lastChild;
+			$parent->lastChild = $newItem->id;
 			
-			return $item;
+			$this->setItem($newItem->id, $newItem);
+			
+			return $newItem;
 		}
 	}
 }

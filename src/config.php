@@ -10,6 +10,67 @@ class Config
 		$this->config = include($config_path);
 	}
 
+	/**
+	 * Sets a config value with dot-notation allowed
+	 * 
+	 * @param string $key
+	 * @param mixed $value
+	 */
+	public function set($key, $value)
+	{
+		if (strpos($key, '.') === false)
+		{
+			$this->config[$key] = $value;
+		}
+		else
+		{
+			$current = & $this->config;
+
+			foreach (explode('.', $key) as $key)
+			{
+				$current = & $current[$key];
+			}
+
+			$current = $value;
+		}	
+	}
+
+	/**
+	 * Checks if a config value exists with dot-notation allowed
+	 * 
+	 * @param string $key
+	 * @return boolean
+	 */
+	public function has($key)
+	{
+		if (isset($this->config[$key]))
+		{
+			return true;
+		}
+
+		$array = & $this->config;
+
+		foreach (explode('.', $key) as $segment)
+		{
+			if ( ! is_array($array) or ! array_key_exists($segment, $array))
+			{
+				return false;
+			}
+
+			$array = & $array[$segment];
+		}
+
+		return true;
+	}
+	
+	/**
+	 * Gets a config value with dot-notation allowed
+	 * Uses code from laravel array_get() helper
+	 * 
+	 * @param string $key
+	 * @param mixed $default
+	 * @return mixed
+	 */	
 	public function get($key = null, $default = null)
 	{
 		if (is_null($key))
@@ -17,19 +78,14 @@ class Config
 			return $this->config;
 		}
 
-		if ( ! is_array($key) and isset($this->config[$key]))
+		if (isset($this->config[$key]))
 		{
 			return $this->config[$key];
 		}
 
 		$array = & $this->config;
 
-		if ( ! is_array($key))
-		{
-			$key = explode('.', $key);
-		}
-
-		foreach ($key as $segment)
+		foreach (explode('.', $key) as $segment)
 		{
 			if ( ! is_array($array) or ! array_key_exists($segment, $array))
 				return $default;
@@ -37,7 +93,13 @@ class Config
 			$array = & $array[$segment];
 		}
 
-		return $array;
+		return $array;		
 	}
-
+	
+	public function merge(Config $alt_config)
+	{
+		$this->config = array_merge($this->config, $alt_config->get());
+		
+		return $this;
+	}
 }

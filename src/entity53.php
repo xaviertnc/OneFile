@@ -1,7 +1,8 @@
 <?php namespace OneFile;
 
 /**
- * BasicEntity Class
+ * BasicEntity Class for PHP 5.3 and older.
+ * Do not use "PASS BY REFERENCE" on getters as it is not properly supported before PHP 5.4!
  * 
  * @author C. Moller <xavier.tnc@gmail.com> - 02 May 2014
  * 
@@ -11,7 +12,7 @@
  * Licensed under the MIT license. Please see LICENSE for more information.
  * 
  */
-class Entity
+class Entity53
 {
 	/**
 	 * Where all current Entity property / field / attribute (all same thing really) values are kept.
@@ -82,17 +83,12 @@ class Entity
 	protected $validationMessages = array();
 	
 	/**
-	 * Used in __get() to store an existing or newly created reference to the requested value
-	 * using the Entity::value() method.
-	 * 
-	 * We need ALL values returned by __get() to be references to an existing variable.
-	 * No static returned values allowed!
-	 * 
-	 * @var mixed
+	 *
+	 * @var string
 	 */
-	private $__vref__ = null;
-	
-	
+	protected $state;
+
+
 	/**
 	 * Instantiate and initialze an entity
 	 * 
@@ -102,9 +98,11 @@ class Entity
 	 */
 	public function __construct($initialAttributeValues = array(), $defaults = array(), $allowed = array(), $readOnly = array())
 	{
+		$this->setState('loading');
+		
 		$this->allowed = $allowed;	
 		$this->readOnly = $readOnly;
-		
+				
 		if ( ! $initialAttributeValues)
 		{
 			//Convert $currentAttributeValues to an array if we get passed some kind of FALSY object instead of an array!
@@ -125,25 +123,13 @@ class Entity
 			
 			if ( ! $readOnly or empty($readOnly[$attributeName]))
 			{
-				$this->initialValues[$attributeName] = $initialAttributeValues[$attributeName];
+				$this->initAttribute($attributeName, $initialAttributeValues[$attributeName]);
 			}
+			
+			$this->setAttribute($attributeName, $initialAttributeValues[$attributeName], 'fromSaved');
 		}
-
-		$this->attributes = $initialAttributeValues;		
-	}
-	
-	/**
-	 * Magic function!
-	 * To allow operations on virtual Entity array properties (aka. attributes) like:  $entity->arrayTypeAttribute[] = $newItem
-	 * which fails with a "Indirect modification of overloaded property has no effect" type error,
-	 * because the array is not returned by reference, so only a copy of the array gets updated.
-	 * 
-	 * @param type $value
-	 * @return type
-	 */
-	private function &value(&$value)
-	{
-		return $this->__vref__= &$value;
+		
+		$this->setState('updating');
 	}
 	
 	/**
@@ -154,9 +140,9 @@ class Entity
 	 * @param mixed $default
 	 * @return mixed
 	 */
-	protected function &arrayGet(&$array, $key, $default = null)
+	protected function arrayGet($array, $key, $default = null)
 	{
-		return isset($array[$key]) ? $this->value($array[$key]) : $this->value($default);
+		return isset($array[$key]) ? $array[$key] : $default;
 	}
 
 	/**
@@ -198,70 +184,132 @@ class Entity
 		return $validator;
 	}
 	
+	
+	protected function getMutateOptions(array $metaData, $direction = null)
+	{
+		$mutator = $this->arrayGet($metaData, 'mutate');
+		
+		if ($mutator)
+		{
+			return $direction ? $this->arrayGet($mutator, $direction) : array();
+		}
+		
+		return array();
+	}
+	
+	
 	/**
-	 * Called each time we "set" an entity value.
-	 * Convert valid input data from client-side to
-	 * server-side format. (Typically for storage purposes)
+	 * Date mutator method that can be used independantly from the getters / setters.
+	 * Therefore also PUBLIC.
 	 * 
-	 * Convert server-side data into userfriendly 
-	 * client-side format. (Typically for display purposes)
-	 * 
+	 * @param mixed $value
+	 * @param array $options Mutator properties like: value-format, true-text, false-text, etc...
+	 * @return mixed
+	 */
+	public function mutateDate($value, $options = array())
+	{
+		$format = $this->arrayGet($options, 'format');
+		
+		if (is_string($value)) $value = strtotime($value);
+	
+		if ($format)
+		{
+			$value = date($format, $value);
+		}
+
+		\Log::debug("Entity53::mutateDate(), fmt='$format', mutated-value=$value, state={$this->state}");
+		
+		return $value;
+	}
+	
+	
+	public function mutateTimestamp($value, $options = array())
+	{
+		return $this->mutateDate($value, $options, 'Y-m-d H:i:s');
+	}
+	
+	
+	public function mutateTime($value, $options = array())
+	{
+		return $this->mutateDate($value, $options, 'H:i:s');
+	}
+	
+	
+	public function mutateBoolean($value, $options = array())
+	{
+		$true = $this->arrayGet($options, 'true', 1);
+		$false = $this->arrayGet($options, 'false', 0);
+		return $value ? $true : $false;
+	}
+
+
+	/** 
 	 * Override Me!
+	 * $mutator = new \OneFile\Mutator($value, $mutators);
+	 * return $mutator->mutatedValue;
 	 * 
 	 * Either extend/improve this implementation or call on a 
 	 * seperate Mutator class. See first two commented lines...
 	 * 
 	 * @param mixed $value
-	 * @param string $direction Possible values: 'toClient','fromClient'
-	 * @param mixed $mutators Could apply more than one mutator per attribute.
+	 * @param array $metaData Additional attribute info like: 'type', 'mutators', 'validators', etc...
+	 * @param string $options
 	 * @return mixed
 	 */
-	protected function mutate($value = null, $direction = 'fromClient', $mutators = array())
+	protected function mutate($value, $metaData = array(), $options = null)
 	{
-		// $mutator = new \OneFile\Mutator($value, $mutators);
-		// return $mutator->mutatedValue;
-
-		if ($direction == 'fromClient')
+		$type = ucfirst($this->arrayGet($metaData, 'type'));
+				
+		$methodName = "mutate$type";
+		
+		\Log::debug("Entity53::mutate(value=$value), method=$methodName, direction=" . print_r($options, true));
+		
+		if (method_exists($this, $methodName))
 		{
-			
-			//Very basic mutator implementation
-			if (in_array('date', $mutators))
+			if (! is_array($options))
 			{
-				return date('Y-m-d', strtotime($value));
+				$options = $this->getMutateOptions($metaData, $options);
 			}
-
-			if (in_array('timestamp', $mutators))
-			{
-				return date('Y-m-d H:i:s', strtotime($value));
-			}
-
-			if (in_array('boolean', $mutators))
-			{
-				return $value ? 1 : 0;
-			}
-			
+			return call_user_method_array($methodName, $this, array($value, $options));
 		}
 		
 		return $value;
 	}
 	
+	
+	/**
+	 * Set the ENTITY STATE to determine how data will be mutated by the GETTER and SETTER.
+	 * 
+	 * @param string $state Values: 'loading', 'updating', 'saving'
+	 */
+	public function setState($state)
+	{
+		$this->state = $state;
+	}
+	
+	
 	/**
 	 * 
 	 * @param string $attributeName
 	 * @param mixed $value
+	 * @param mixed $options
 	 */
-	public function setAttribute($attributeName, $value = null)
+	public function setAttribute($attributeName, $value = null, $options = null)
 	{
 		if (empty($this->allowed) or in_array($attributeName, $this->allowed))
 		{
-			$metaData = $this->arrayGet($this->attributesMetaData, $attributeName);
-			
-			if ($metaData)
+			if ( ! $options)
 			{
-				$value = $this->mutate($value, 'fromClient', $metaData);
+				$this->attributes[$attributeName] = $value;
+				return;
 			}
 			
-			if (__DEBUG__) echo "Entity::set($attributeName) = " . htmlentities(Format::limit(print_r($value, true))) . '<br>';
+			$metaData = $this->arrayGet($this->attributesMetaData, $attributeName);
+			
+			if ($metaData and isset($metaData['mutate']))
+			{
+				$value = $this->mutate($value, $metaData, $options);
+			}
 			
 			$this->attributes[$attributeName] = $value;
 		}
@@ -272,21 +320,43 @@ class Entity
 	 * 
 	 * @param string $attributeName
 	 * @param mixed $default
+	 * @param mixed $options
 	 * @return mixed
 	 */
-	public function &getAttribute($attributeName, $default = null)
+	public function getAttribute($attributeName, $default = null, $options = null)
 	{		
-		if (__DEBUG__) echo "Entity::getAttribute($attributeName)<br>";
-		
-		$metaData = $this->arrayGet($this->attributesMetaData, $attributeName);
-		
-		if ($metaData) //Might have to be more specific on this test...
+		if ($options)
 		{
-			return $this->value($this->mutate($this->arrayGet($this->attributes, $attributeName, $default), 'toClient', $metaData));
+			$metaData = $this->arrayGet($this->attributesMetaData, $attributeName);
+
+			if ($metaData and isset($metaData['mutate'])) //Might have to be more specific on this test...
+			{
+				return $this->mutate($this->arrayGet($this->attributes, $attributeName, $default), $metaData, $options);
+			}
 		}
 				
 		return $this->arrayGet($this->attributes, $attributeName, $default);
 	}
+	
+	/**
+	 * 
+	 * @param string $attributeName
+	 * @param mixed $value
+	 */
+	public function initAttribute($attributeName, $value = null)
+	{
+		if ($this->readOnly and in_array($attributeName, $this->readOnly)) return;
+		
+		$metaData = $this->arrayGet($this->attributesMetaData, $attributeName);
+
+		if ($metaData and isset($metaData['mutate']))
+		{
+			$value = $this->mutate($value, $metaData, 'fromSaved');
+		}
+
+		$this->attributes[$attributeName] = $value;
+		$this->initialValues[$attributeName] = $value;
+	}	
 
 	/**
 	 * 
@@ -295,9 +365,7 @@ class Entity
 	 */
 	public function __set($attributeName, $value)
 	{
-		if (__DEBUG__) echo "Entity::__set($attributeName)<br>";
-		
-		$this->setAttribute($attributeName, $value);
+		$this->setAttribute($attributeName, $value, (($this->state == 'loading') ? 'fromSaved' : 'fromClient'));
 	}
 
 	/**
@@ -307,11 +375,9 @@ class Entity
 	 * @param string $attribute_name
 	 * @return mixed
 	 */
-	public function &__get($attribute_name)
+	public function __get($attribute_name)
 	{
-		if (__DEBUG__) echo "Entity::__get($attribute_name)<br>";
-		
-		return $this->getAttribute($attribute_name);
+		return $this->getAttribute($attribute_name, null, (($this->state == 'saving') ? 'toSave' : 'toClient'));
 	}
 
 	/**

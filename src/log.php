@@ -20,6 +20,17 @@ class Log
 	 * @var string
 	 */
 	protected $path;
+	
+	/**
+	 * Gets set in the constructor or by calling setFilename('optional/relative/sub/path/newname.log') 
+	 * without a second argument to specify the type.
+	 * 
+	 * Note: The default filename/filepath must always be relative to the Logs Base Path specified in
+	 * the constructor.
+	 * 
+	 * @var string
+	 */
+	protected $defaultFilename;
 
 	/**
 	 * Can be string, function or closure. We use default generator if not defined
@@ -36,12 +47,13 @@ class Log
 	protected $compiled;
 
 	/**
-	 * Indicates which log types are enabled.
-	 * If a type is not in the list, Log requests of that type will not execute,
+	 * Indicates which log types are allowed.
+	 * 
+	 * NB: If $allowedTypes = array(), all log types will pass!
 	 * 
 	 * @var array
 	 */
-	protected $allowedTypes = array('Error', 'Warning', 'Info');
+	protected $allowedTypes = array();
 
 	/**
 	 *
@@ -53,7 +65,7 @@ class Log
 	 *
 	 * @var string
 	 */
-	protected $longDateFormat = 'd M Y h:i:s';
+	protected $longDateFormat = 'd M Y H:i:s';
 
 	/**
 	 * Can be sprintf() string, function or closure
@@ -67,24 +79,43 @@ class Log
 	 * 
 	 * @var octal
 	 */
-	protected $permissions = 0775;
+	protected $mode = 0775;
 
 	/**
 	 * 
-	 * @param mixed $logPath
-	 * @param boolean $enable
-	 * @param array|string $typesFilter
-	 * @param boolean $replaceDefaultFilter
+	 * @param mixed $logsBasePath
+	 * @param array|string $allowedTypes e.g. array('error', 'info', 'debug')  or 'error|info|debug'
+	 * @param boolean $enabled
 	 */
-	public function __construct($logPath = null, $enable = true, $typesFilter = null, $replaceDefaultFilter = false)
+	public function __construct($logsBasePath = null, $allowedTypes = null, $enabled = true)
 	{
-		$this->setLogPath($logPath);
+		$this->setLogsBasePath($logsBasePath);
 		
-		$this->addAllowedTypes($typesFilter, $replaceDefaultFilter);
-
-		$this->enabled = $enable;
+		$this->setAllowedTypes($allowedTypes);
+		
+		$this->enabled = $enabled;
+		
+		$this->defaultFilename = $this->getDate() . '.log';
 	}
-
+	
+	/**
+	 * 
+	 * @return string
+	 */
+	public function getLogPath()
+	{
+		return $this->path;
+	}
+	
+	/**
+	 * 
+	 * @return array
+	 */
+	public function getFilenames()
+	{
+		return $this->filenames;
+	}
+	
 	/**
 	 * Get filename based on the content type of $this->filenames
 	 *  - Content can be an array or single: closure, callable, sprintf() string
@@ -98,50 +129,49 @@ class Log
 	 */
 	public function getFilename($type = null)
 	{
-		
-		$names_count = count($this->filenames);
-		
-		if ($names_count)
+		//We transfer $type to $key here to allow setting a default for $key while still being able
+		//to pass the original $type value to any custom filename function specified. 
+		if ($type)
 		{
-			
-			if ($type)
-			{
-				$key = $type;
-			}
-			else
-			{
-				$keys = array_keys($this->filenames);
-				$key = $keys[0]; 
-			}
-			
-			if($this->compiled and isset($this->compiled[$key]))
-			{
-				return $this->compiled[$key];
-			}
+			$key = $type;
+		}
+		else
+		{
+			$key = 'info'; 
+		}
 
-			$filename_uncompiled = isset($this->filenames[$key]) ? $this->filenames[$key] : $this->filenames['Info'];
-		
-			if (is_callable($filename_uncompiled))
-			{
-				$filename = $filename_uncompiled($type, $this);
-				
-				$this->compiled[$key] = $filename;
-				
-				return $filename;
-			}
-			
-			//Use indexed references inside your filename template if the parameters aren't in
-			//the correct sequence.   %1$s = type, %2$s = short, %3$s = long.
-			$filename = sprintf($filename_uncompiled, $type, $this->getDate(), $this->getDate(true));
+		if($this->compiled and isset($this->compiled[$key]))
+		{
+			return $this->compiled[$key];
+		}
+
+		if (isset($this->filenames[$key])) 
+		{
+			$filename_uncompiled = $this->filenames[$key];
+		}
+		else
+		{
+			//Return the default filename if we can't find a configured filename for the specified type of log.
+			return $this->defaultFilename;
+		}
+
+		if (is_callable($filename_uncompiled))
+		{
+			$filename = $filename_uncompiled($type, $this);
 
 			$this->compiled[$key] = $filename;
 
 			return $filename;
 		}
-		else
-		{
-			return $this->getDate() . '.log';
-		}
+
+		//Use indexed references inside your filename template if the parameters aren't in
+		//the correct sequence.   %1$s = type, %2$s = short, %3$s = long.
+		$filename = sprintf($filename_uncompiled, $type, $this->getDate(), $this->getDate(true));
+
+		$this->compiled[$key] = $filename;
+
+		return $filename;
+		
 	}
 
 	/**
@@ -152,7 +182,7 @@ class Log
 	 * @param string $type
 	 * @return string
 	 */
-	public function formatMessage($message, $type = 'Info')
+	public function formatMessage($message, $type = 'info')
 	{
 		if ($this->formatter)
 		{
@@ -169,7 +199,7 @@ class Log
 		}
 		else
 		{
-			return '[' . str_pad($type, 5) . "]:\t" . $this->getDate(true) . ' - ' . $message . PHP_EOL;
+			return '[' . str_pad(ucfirst($type), 5) . "]:\t" . $this->getDate(true) . ' - ' . $message . PHP_EOL;
 		}
 	}
 
@@ -183,12 +213,17 @@ class Log
 	 */
 	public function write($message = '', $type = null, $filename = null)
 	{
+		if ($type)
+		{
+			$type = strtolower($type);
+		}
+		
 		if ( ! $filename)
 		{
 			$filename = $this->getFilename($type);
 		}
 			
-		if ($type and ! in_array($type, $this->allowedTypes))
+		if ($type and $this->allowedTypes and !in_array($type, $this->allowedTypes))
 		{
 			return;
 		}
@@ -198,11 +233,21 @@ class Log
 			$message = $this->formatMessage($message, $type);
 		}
 		
-		$logFilepath = $this->path ? $this->path . '/' . $filename : $filename;
+		$logFilePath = $this->path ? $this->path . '/' . $filename : $filename;
 		
-		file_put_contents($logFilepath, $message, FILE_APPEND | LOCK_EX);
+		if ( ! file_exists($logFilePath))
+		{
+			$oldumask = umask(0);
+			
+			$dirname = dirname($logFilePath);
+			@mkdir($dirname, $this->mode, true);
+			
+			umask($oldumask);
+		}
+		
+		file_put_contents($logFilePath, $message, FILE_APPEND | LOCK_EX);
 
-		chmod($logFilepath, $this->permissions);
+		chmod($logFilePath, $this->mode);
 	}
 
 	/**
@@ -234,7 +279,7 @@ class Log
 	 * @param string $logPath
 	 * @return \OneFile\Log
 	 */
-	public function setLogPath($logPath)
+	public function setLogsBasePath($logPath)
 	{
 		$this->path = $logPath;
 		
@@ -242,55 +287,94 @@ class Log
 	}
 	
 	/**
+	 * Set the default filename or specify a filename for logs
+	 * of type $logFile.
 	 * 
-	 * @param array|string $filename
+	 * If $logFile is an array of type names, 
+	 * the same filename will be used for each of the types specified in the array.
+	 * 
+	 * @param string $filename
+	 * @param array|string $logType
 	 * @return \OneFile\Log
 	 */
-	public function setFilename($filename, $logType = 'Info')
+	public function setFilename($filename, $logType = null)
 	{
-		if (is_array($logType))
+		if ( ! $logType)
+		{
+			$this->defaultFilename = $filename;
+		}
+		elseif (is_array($logType))
 		{
 			foreach($logType as $type)
 			{
-				$this->filenames[$type] = $filename;
+				$this->filenames[strtolower($type)] = $filename;
 			}
 		}
 		else
 		{
-			$this->filenames[$logType] = $filename;			
+			$this->filenames[strtolower($logType)] = $filename;			
 		}
 
 		return $this;
 	}
 
 	/**
+	 * Like setFilename() but $logType is required!
 	 * 
-	 * @param array|string $filter
-	 * @param boolean $replaceExistingFilter
+	 * @param string $filename
+	 * @param array|string $logType
 	 * @return \OneFile\Log
 	 */
-	public function addAllowedTypes($filter, $replaceExistingFilter = true)
+	public function addFilename($filename, $logType)
 	{
-		if ( ! $filter)
+		return $this->setFilename($filename, $logType);
+	}
+
+	/**
+	 * 
+	 * @param array|string $types e.g. array('error', 'info', 'debug')  or 'error|info|debug'
+	 * @param boolean $replaceExisting
+	 * @return \OneFile\Log
+	 */
+	public function addAllowedTypes($types, $replaceExisting = false)
+	{
+		if ( ! $types)
 		{
+			$this->allowedTypes = array();
 			return $this;
 		}
 		
-		if ($filter and ! is_array($filter))
+		if ($types and ! is_array($types))
 		{
-			$filter = explode('|', $filter);
+			$types = explode('|', $types);
 		}
 
-		if ($replaceExistingFilter)
+		if ($replaceExisting)
 		{
-			$this->allowedTypes = $filter;
+			$this->allowedTypes = $types;
 		}
 		else
 		{
-			$this->allowedTypes = array_merge($this->allowedTypes, $filter);
+			$this->allowedTypes = array_merge($this->allowedTypes, $types);
+		}
+		
+		// Always save types in lower case.  i.e. Types aren't case sensitive
+		foreach ($this->allowedTypes as $key => $type)
+		{
+			$this->allowedTypes[$key] = strtolower($type);
 		}
 
 		return $this;
+	}
+	
+	/**
+	 * Same as addAllowedTypes but we don't retain any existing types.
+	 * 
+	 * @param array|string $types e.g. array('error', 'info', 'debug')  or 'error|info|debug'
+	 */
+	public function setAllowedTypes($types)
+	{
+		$this->addAllowedTypes($types, true);
 	}
 
 	/**
@@ -308,12 +392,12 @@ class Log
 
 	/**
 	 * 
-	 * @param octal $permissions
+	 * @param octal $mode
 	 * @return \OneFile\Log
 	 */
-	public function setFilePermissions($permissions)
+	public function setFileMode($mode)
 	{
-		$this->permissions = $permissions;
+		$this->mode = $mode;
 
 		return $this;
 	}
@@ -340,6 +424,20 @@ class Log
 		return $this;
 	}
 	
+	/**
+	 * 
+	 * @return boolean
+	 */
+	public function enabled()
+	{
+		return $this->enabled;
+	}
+	
+	/**
+	 * 
+	 * @param boolean $long
+	 * @return string
+	 */
 	public function getDate($long = false)
 	{
 		return $long ? date($this->longDateFormat) : date($this->shortDateFormat);
@@ -352,16 +450,14 @@ class Log
 	 */
 	public function __call($name, $arguments)
 	{
-		$name = ucfirst($name);
-		
 		switch(count($arguments))
 		{
 			case 1:
-				$this->write($arguments[0], $name);
+				$this->write($arguments[0], $name); // e.g. $log->debug('message');
 				break;
 
 			case 2:
-				$this->write($arguments[1], $name);
+				$this->write($arguments[1], $name, $arguments[0]); // e.g $log->mylogtype('/path/to/logfile.log', 'message')
 				break;
 
 			default:

@@ -1,112 +1,130 @@
 <?php namespace OneFile;
 
-/**
- * Description of Flash To Session
- * @author neels - 02 May 2014
- * @updated 24 May 2014 : Added dot-notation key support
- */
+use InvalidArgumentException;
 
-class Flash {
-	
+/**
+ * Read Once / "Flash" Type Storage Class.
+ * 
+ * Used to persist input and/or state values for a single request cycle only.
+ * 
+ * @author neels - 02 May 2014
+ * 
+ * @updated 24 May 2014 : Added dot-notation key support
+ * 
+ * @updated 05 Aug 2014 : Changed method and property naming conventions + 
+ * Added storeConnect(), forgetAll(), mergeNewItems() + _destruct()
+ * Changed / simplified existing store methods.
+ * 
+ */
+class Flash
+{
 	/**
-	 * Wrapper array for all flashed data values / sets
+	 * Wrapper array for all stored flash data values/ sets
+	 * from the previous request cycle.
+	 * 
 	 * @var array
 	 */
-	protected $flash_bag;
+	protected $bag;
+
+	/**
+	 * Wrapper array for NEW flash data values/ sets
+	 * for the next request cycle.
+	 * 
+	 * @var array
+	 */
+	protected $nextBag;
 
 	/**
 	 * Can be changed via constructor parameter.
 	 * @var string
 	 */
-	protected $flash_bag_session_key;
+	protected $storeKey;
 
 	/**
 	 * Automatically retrieve the flashed content and keep it available 
-	 * in "$this->flash_bag" for the remainder of the request.
+	 * in "$this->bag" for the remainder of the request.
 	 * 
-	 * @param string $flash_bag_session_key
+	 * @param string $storeKey
 	 */
-	public function __construct($flash_bag_session_key = '__FLASH__')
+	public function __construct($storeKey = '__FLASH__')
 	{
-		if ($flash_bag_session_key)
+		if ( ! $this->storeConnect() or ! $storeKey)
 		{
-			$this->flash_bag_session_key = $flash_bag_session_key;
+			throw new InvalidArgumentException('Invalid Flash Store or Store Key');
 		}
 
-		$this->flash_bag = $this->_session_read($this->flash_bag_session_key, array());
+		$this->bag = $this->storeRead($storeKey, array());
+		
+		//Clear the flash stored data after retrieving it
+		$this->storeForget($storeKey);
 
-		//Clear the flash after retrieving it
-		$this->clear();
+		$this->storeKey = $storeKey;
+
+		$this->nextBag = array();
 	}
 
 	/**
-	 * OVERRIDE if you use a different session driver
+	 * Store the flash items added for consumption in the next request just
+	 * before we exit this script / request.
+	 * 
+	 */
+	public function __destruct()
+	{
+		if ($this->nextBag)
+		{
+			$this->storeWrite($this->storeKey, $this->nextBag);
+		}
+	}
+	
+	/**
+	 * OVERRIDE if you use a different store driver
+	 * 
+	 */
+	protected function storeConnect()
+	{
+		if ( ! session_id())
+		{
+			return session_start();
+		}
+		
+		return true;
+	}
+
+	/**
+	 * OVERRIDE if you use a different store driver
 	 * 
 	 * @param string $key
 	 */
-	protected function _session_forget($key)
+	protected function storeForget($key)
 	{
-		if (session_id())
-		{
-			unset($_SESSION[$key]);
-		}
+		unset($_SESSION[$key]);
 	}
 
 	/**
-	 * OVERRIDE if you use a different session driver
+	 * OVERRIDE if you use a different store driver
 	 * 
 	 * @param string $key
 	 * @param mixed $default
 	 * @return mixed
 	 */
-	protected function _session_read($key, $default = null)
+	protected function storeRead($key, $default = null)
 	{
-		if ( ! session_id())
-		{
-			session_start();
-		}
-		
 		return isset($_SESSION[$key]) ? $_SESSION[$key] : $default;
 	}
 
 	/**
-	 * OVERRIDE you if use a different session driver
+	 * OVERRIDE you if use a different store driver
 	 * 
 	 * @param string $key
 	 * @param mixed $value
 	 */
-	protected function _session_write($key, $value)
+	protected function storeWrite($key, $value)
 	{
-		if ( ! session_id())
-		{
-			session_start();
-		}
-		
 		$_SESSION[$key] = $value;
 	}
 
 	/**
-	 * Removes any trace of flash data from the session.
-	 * 
-	 */
-	public function clear()
-	{
-		$this->_session_forget($this->flash_bag_session_key);
-	}
-
-	/**
-	 * 
-	 * @param string $key
-	 */
-	public function forget($key)
-	{
-		unset($this->flash_bag[$key]);
-		
-		$this->_session_write($this->flash_bag_session_key, $this->flash_bag);
-	}
-
-	/**
-	 * Sets a flash value with one level deep dot-notation allowed
+	 * Sets a flash value with dot-notation allowed
 	 * 
 	 * @param string $key
 	 * @param mixed $value
@@ -115,37 +133,35 @@ class Flash {
 	{
 		if (strpos($key, '.') === false)
 		{
-			$this->flash_bag[$key] = $value;
+			$this->nextBag[$key] = $value;
 		}
 		else
 		{
-			$current = &$this->flash_bag;
+			$current = & $this->nextBag;
 
 			foreach (explode('.', $key) as $key)
 			{
-				$current = &$current[$key];
+				$current = & $current[$key];
 			}
 
 			$current = $value;
-		}
-
-		$this->_session_write($this->flash_bag_session_key, $this->flash_bag);
+		}	
 	}
 
 	/**
-	 * Checks if a flash value exists with one level deep dot-notation allowed
+	 * Checks if a flash value exists with dot-notation allowed
 	 * 
 	 * @param string $key
 	 * @return boolean
 	 */
 	public function has($key)
 	{
-		if (isset($this->flash_bag[$key]))
+		if (isset($this->bag[$key]))
 		{
 			return true;
 		}
 
-		$array = & $this->flash_bag;
+		$array = & $this->bag;
 
 		foreach (explode('.', $key) as $segment)
 		{
@@ -161,7 +177,7 @@ class Flash {
 	}
 
 	/**
-	 * Gets a flash value with one level deep dot-notation allowed
+	 * Gets a flash value with dot-notation allowed
 	 * Uses code from laravel array_get() helper
 	 * 
 	 * @param string $key
@@ -172,15 +188,15 @@ class Flash {
 	{
 		if (is_null($key))
 		{
-			return $this->flash_bag;
+			return $this->bag;
 		}
 
-		if (isset($this->flash_bag[$key]))
+		if (isset($this->bag[$key]))
 		{
-			return $this->flash_bag[$key];
+			return $this->bag[$key];
 		}
 
-		$array = & $this->flash_bag;
+		$array = & $this->bag;
 
 		foreach (explode('.', $key) as $segment)
 		{
@@ -196,11 +212,43 @@ class Flash {
 	}
 
 	/**
+	 * Convenience method. get() might not be intuitive!
+	 * 
 	 * @return array
 	 */
-	public function get_bag()
+	public function getAll()
 	{
 		return $this->get();
 	}
+	
+	/**
+	 * Remove a specific flash key stored in the previous request.
+	 * 
+	 * @param string $key
+	 */
+	public function forget($key)
+	{
+		unset($this->bag[$key]);
+}
 
+	/**
+	 * Remove ALL the flash keys/data stored in the previous request.
+	 * 
+	 */
+	public function forgetAll()
+	{	
+		$this->bag = array();
+	}
+	
+	/**
+	 * If we are not going to redirect, let's activate/consume any new flash messages
+	 * by merging them into the active/current bag.
+	 * 
+	 */
+	public function ageNewItems()
+	{
+		$this->bag = array_merge_recursive($this->bag, $this->nextBag);
+		$this->nextBag = array();
+	}
+	
 }

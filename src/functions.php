@@ -16,7 +16,7 @@ if ( ! function_exists('value'))
 }
 
 //Laravel4 Illuminate/Support/helpers.php
-if(!function_exists('array_get'))
+if ( ! function_exists('array_get'))
 {
 	/**
 	 * Get an item from an array using "dot" notation.
@@ -30,30 +30,26 @@ if(!function_exists('array_get'))
 	 */
 	function array_get($array, $key, $default = null)
 	{
-		$start_memory = memory_get_usage();
-		
-		if(is_null($key))
+		if (is_null($key))
 			return $array;
 
-		if(isset($array[$key]))
+		if (isset($array[$key]))
 			return $array[$key];
 
-		foreach(explode('.', $key) as $segment)
+		foreach (explode('.', $key) as $segment)
 		{
-			if(!is_array($array) || !array_key_exists($segment, $array))
+			if ( ! is_array($array) or ! array_key_exists($segment, $array))
 				return value($default);
 
 			$array = $array[$segment];
 		}
 
-		echo 'array_get() memory: ' . (memory_get_usage() - $start_memory) . '<br>';
-		
 		return $array;
 	}
 }
 
 //Adapted version of array_get
-if(!function_exists('array_has'))
+if ( ! function_exists('array_has'))
 {
 	/**
 	 * Checks for an item from an array using "dot" notation.
@@ -66,26 +62,22 @@ if(!function_exists('array_has'))
 	 */
 	function array_has($array, $key)
 	{
-		$start_memory = memory_get_usage();
-		
-		if(isset($array[$key]))
+		if (isset($array[$key]))
 			return true;
 
-		foreach(explode('.', $key) as $segment)
+		foreach (explode('.', $key) as $segment)
 		{
-			if(!is_array($array) || !array_key_exists($segment, $array))
+			if ( ! is_array($array) or ! array_key_exists($segment, $array))
 				return false;
 
 			$array = $array[$segment];
 		}
-		
-		echo 'array_get() memory: ' . (memory_get_usage() - $start_memory) . '<br>';
 
 		return true;
 	}
 }
 
-if(!function_exists('array_set'))
+if ( ! function_exists('array_set'))
 {
 	/**
 	 * Set an array item using "dot" notation.
@@ -98,17 +90,17 @@ if(!function_exists('array_set'))
 	 */
 	function array_set(&$array, $key, $value)
 	{
-		if(strpos($key, '.') === false)
+		if (strpos($key, '.') === false)
 		{
 			$array[$key] = value($value);
 		}
 		else
 		{
-			$current = &$array;
+			$current = & $array;
 
-			foreach(explode('.', $key) as $key)
+			foreach (explode('.', $key) as $key)
 			{
-				$current = &$current[$key];
+				$current = & $current[$key];
 			}
 
 			$current = value($value);
