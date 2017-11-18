@@ -16,6 +16,18 @@ class Format {
 	/**
 	 *
 	 * @param type $value
+	 * @param type $nullTypes
+	 * @param type $nullValue
+	 * @return type
+	 */
+	public static function nulltype($value = null, $nullTypes = array('', 'NULL'), $nullValue = null)
+	{
+		return in_array($value, $nullTypes) ? $nullValue : $value;
+	}
+
+	/**
+	 *
+	 * @param type $value
 	 * @param type $default
 	 * @param type $decimals
 	 * @param type $seperator
