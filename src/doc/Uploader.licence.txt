@@ -1,0 +1,3 @@
+PHP Uploader 0.4
+https://github.com/CreativeDream/php-uploader
+Licensed under <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License 2.0</a>.
