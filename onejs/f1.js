@@ -3,7 +3,6 @@
 /*jshint browser:true */
 
 /**
- *
  * f1.js
  *
  * OneFile PHP Framework, Javascript Support Library
@@ -14,7 +13,18 @@
  * Updated and extended from OneFile main.js - 03 Mar 2013
  * Updated continuously Oct 2016 - May 2017
  * Updated 07 Jun 2017 - IE9 / History.js support (Check if templates work... != to !== issue)
- *
+ * Updated 29 Nov 2017
+ *   - Improved/fixed F1.File:
+ *      - Fix default image uri's
+ *      - Ensure initialUploads are CLONED
+ *      - Fix F1.File.onUploadsChange(). Properly remove validation error messages
+ *      - Add detailed F1.File.uploader comments
+ *   - Improve / Fix Alerts,
+ *   - Bug Fixes: ga vs. window.ga
+ *   - Handle PJAX requests,
+ *   - Restore "modal-backdrop" handling,
+ *   - Ajax Redirect on GET request
+ *   - F1.Url.csrfToken = newcsrf
  */
 
 window.F1 = window.F1 || {};
@@ -180,10 +190,15 @@ F1.Ajax = {
 		//console.log('F1.Ajax.update() successful! respdata = ', respdata);
 		var urlChanged, currentUrl = F1.Url.current(), requestedUrl = respdata.redirect ? respdata.redirect : currentUrl;
 		//console.log('F1.Ajax.update(), HTTP 202 - Redirect after Ajax POST, currentUrl:', currentUrl, ', requestedUrl:', requestedUrl);
-		urlChanged = (currentUrl !== requestedUrl);
-		if (urlChanged) { F1.Url.pushState(requestedUrl, '', true); } // NB: pushState MUST be before Ajax.load()!
-		F1.Ajax.load(requestedUrl);
-		if (urlChanged) { F1.Url.init(); } // Before loading we pushed a new window location, so now update our Url object
+		if (respdata.pjax) {
+			urlChanged = (currentUrl !== requestedUrl);
+			if (urlChanged) { F1.Url.pushState(requestedUrl, '', true); } // NB: pushState MUST be before Ajax.load()!
+			F1.Ajax.load(requestedUrl);
+			if (urlChanged) { F1.Url.init(); } // Before loading we pushed a new window location, so now update our Url object
+		}
+		else {
+			window.location.href = requestedUrl;
+		}
 	},
 
 	/**
@@ -199,8 +214,8 @@ F1.Ajax = {
 		var i, $backdrop, $newpage, regex, matches, newcsrf, newtitle, newstyles, $newalerts, $newtopnav, $content;
 
         // Remove any modal-backdrop if we had a popup open while exiting the last page...
-		// $backdrop = $('body').children('.modal-backdrop');
-		// if ($backdrop.length) { $backdrop.remove(); }
+		$backdrop = $('body').children('.modal-backdrop');
+		if ($backdrop.length) { $backdrop.remove(); }
 
 		// regex = /ken" content="(.*)"[\s\S]+?tle>(.*)<\/ti[\s\S]+?css">\s*([\s\S]+?)<\/st/;
         // matches = regex.exec(respdata);
@@ -225,6 +240,7 @@ F1.Ajax = {
  		//console.log('F1.Ajax.update(), $head = ', F1.Document.$head);
 
 		F1.Document.$head.find('meta[name="x-csrf-token"]').attr('content', newcsrf);
+		F1.Url.csrfToken = newcsrf;
 		F1.Document.$head.find('title').html(newtitle);
 		// F1.Document.$head.find('link[rel="canonical"]').attr('href', F1.Url.current);
 		// F1.Document.$head.find('meta[property="og:url"]').attr('content', F1.Url.current);
@@ -260,7 +276,7 @@ F1.Ajax = {
 		}
 
 		// Google analytics... record pageview
-		if (ga) {
+		if (window.ga) {
 		    ga('send', 'pageview', F1.Url.current());
 	    }
 
@@ -301,16 +317,30 @@ F1.Ajax = {
 	 */
 	load: function(url, containerSelectors, onSuccessScript)
 	{
-		url = F1.Url.normalize(url);
 		F1.bindScripts = [];
+		url = F1.Url.normalize(url);
+
+		// Reset OpenX duplicate-adverts check
 		if (window.reviveAsync) { window.reviveAsync = undefined; }
+
 		//console.log('F1.Ajax.load(), url:', url);
 		//console.log('F1.Ajax.load(), onSuccessScript:', onSuccessScript);
 		//console.log('F1.Ajax.load(), F1.Url.assets:', F1.Url.assets, ', loading.ico url:', F1.Url.base + 'img/loading.ico');
 		F1.Document.$favicon.attr('href', F1.Url.assets + 'img/loading.ico');
  		$('body').addClass('busy');
 		containerSelectors = F1.Ajax.initContainerSelectors(containerSelectors);
-		$.ajax({ 'url': url, 'method': 'GET', 'cache': false, 'success': function(data) { F1.Ajax.update(data, containerSelectors, onSuccessScript); }, 'error': F1.Ajax.error }).then(F1.Ajax.always);
+		$.ajax({
+			'url': url, 'method': 'GET', 'cache': false,
+			'success': function(respdata, status, jqXHR) {
+		        if (jqXHR.status === 202) {
+					// We tried to nav to an unauthorized url, so we get redirected to the login page.
+		            F1.Ajax.redirect(respdata);
+		        } else {
+		            F1.Ajax.update(respdata, containerSelectors, onSuccessScript);
+		        }
+			},
+			'error': F1.Ajax.error
+		}).then(F1.Ajax.always);
 	},
 
 	post: function(url, postdata, containerSelectors, onSuccessScript)
@@ -782,6 +812,35 @@ F1.Form = {
 
 F1.File = {
 
+	/**
+	 * C. Moller - 23 Nov 2017
+	 *
+	 * NOTE: Before you cry about this component not working!
+	 *  - Uploader currently uses "F1.Url.assets" to reference default images like "unknown.svg"
+	 *  - Uploader assumes the upload API path is: api/upload.php! (i.e. relative to DOCROOT or whatever <base href="?"> is set to)
+	 *  - Uploader uses ES5+ features so don't expect it to work on <= IE10 or old Android devices without SHIMS
+	 *  - Uploader uplCfg.onChange option MUST be SET and its value=Fn MUST be declared BEFORE setting the option!
+	 *  - Uploader assumes specific error state classes, so check your CSS.
+	 *
+	 * Values like F1.Url.assets should be set from PHP via header incl. script
+	 * File.uploader's default images and BaseUrl can be set from either F1.Url or during initialisation through the Options param.
+	 *
+	 * There is also a PHP side to uploader in the ui.php service, Widgets/Form/fileinput and in api/uploader.php.
+	 * Check that file paths are correctly defined in these places too!
+	 *
+	 * Example client side init:
+	 * =========================
+	 *
+	 * F1.File.uploader('logo-field', { maxFiles: 2, maxSize: (256  * 1024), ref: 'photos', onChange: F1.MyPhotos.happyTestIfUploadFieldIsValid });
+	 *
+	 * @param object options {
+	 *     maxFiles: (int)?
+	 *     maxSize:  (int)? in bytes
+	 *     ref:      (str)? An upload-group-identifier used by the backend (server) to determine how to process any files in this group.
+	 *     onChange: (fn(elUploader))? used in F1.File.onUploadsChange. Very important to allow the client to react to changes!
+	 * }
+	 *
+	 */
 	uploader: function (elUploader_id, options)
 	{
 		var elUploader = document.getElementById(elUploader_id), cfg = {};
@@ -790,7 +849,7 @@ F1.File = {
 		cfg.dropzone = elUploader.getElementsByClassName('file-dropzone')[0];
 		cfg.template = F1.Template.trim(elUploader.getElementsByTagName('script')[0].innerHTML);
 		cfg.initialUploads = F1.File.getUploads(cfg.viewzone);
-		cfg.uploads = cfg.initialUploads;
+		cfg.uploads = cfg.initialUploads.slice(0); // NB: We MUST clone!
 		cfg.fc = cfg.dropzone.getElementsByTagName('input')[0];
 		cfg.options = options || {};
 		elUploader.uplCfg = cfg;
@@ -836,7 +895,7 @@ F1.File = {
 		fvData.size = file.size;
 		fvData.type = file.type;
 		fvData.desc = file.name;
-		fvData.name = file.type === 'application/pdf' ? 'img/pdf.svg' : 'img/unknown.svg';
+		fvData.name = file.type === 'application/pdf' ? F1.Url.assets + 'img/pdf.svg' : F1.Url.assets + 'img/unknown.svg';
 		fvData.sizeAsStr = F1.File.sizeToString(file.size);
 		uploadedFile = F1.File.inUploads(cfg.uploads, fvData);
 		if (uploadedFile) {
@@ -858,7 +917,7 @@ F1.File = {
 		fvModel.progress = elFileView.getElementsByClassName('file-progress')[0];
 		fvModel.elUploader = elUploader;
 		elViewZone.appendChild(elFileView);
-		if (getPreview || fvData.name !== 'img/unknown.svg') { fvModel.progress.classList.remove('hidden'); }
+		if (getPreview || fvData.name !== (F1.Url.assets + 'img/unknown.svg')) { fvModel.progress.classList.remove('hidden'); }
 		if (getPreview) { F1.File.getImageDataURL(fvModel); }
 		if (autoUpload) { F1.File.ajaxSender(fvModel); }
 		return err;
@@ -874,11 +933,33 @@ F1.File = {
 
 	onUploadsChange: function(elUploader)
 	{
-		//console.log('F1.File.onUploadsChange(), elUploader = ', elUploader);
-		var r, errors, cfg = elUploader.uplCfg; if (!cfg) { return; }
-		if (cfg.options.onChange) { r = cfg.options.onChange(elUploader); if (F1.isDefined(r)) { return r; } } // console.log('CUSTOM onChange(), result:', r);
-		errors = F1.File.getUploadErrors(elUploader); if (errors.length) { elUploader.classList.add('has-error'); } // console.log('F1.File.onUploadsChange(), ADDED HAS-ERROR');
-		else { elUploader.classList.remove('has-error'); } // console.log('F1.File.onUploadsChange(), REMOVED HAS-ERROR');
+		// console.log('F1.File.onUploadsChange(), elUploader =', elUploader, ', elUploader.uplCfg =', elUploader.uplCfg);
+
+		var r, errors, errorTextElements, cfg = elUploader.uplCfg;
+
+		if (!cfg) { return; }
+
+		// NOTE: If options.onChange is defined AND we return a value (anything DEFINED, even false!)
+		// from that function, we exit this method without clearing any errors the default way!
+		if (cfg.options.onChange) {
+			r = cfg.options.onChange(elUploader);
+			// console.log('CUSTOM onChange(), result:', r);
+			if (F1.isDefined(r)) { return r; }
+		}
+
+		errors = F1.File.getUploadErrors(elUploader);
+
+		if (errors.length) {
+			elUploader.classList.add('has-error');
+			// console.log('F1.File.onUploadsChange(), ADDED HAS-ERROR');
+		} else {
+			elUploader.classList.remove('has-error');
+			// NM Edit - 28 Nov 2017
+			errorTextElements = elUploader.getElementsByClassName('error-text');
+			for (i in errorTextElements) { errorTextElements[i].innerHTML = ''; };
+			// console.log('F1.File.onUploadsChange(), REMOVED .has-error classes and error messages inside:', errorTextElements);
+		}
+
 		return errors;
 	},
 
@@ -979,6 +1060,7 @@ F1.File = {
 
 	removeUpload: function (elRemoveBtn)
 	{
+		console.log('Removing Upload!');
 		var r, errors, elFileView = elRemoveBtn.parentElement.parentElement,
 		elUploader = elFileView.parentElement.parentElement.parentElement, cfg = elUploader.uplCfg;
 		r = F1.File.removeFileView(elUploader, elFileView);
@@ -1204,7 +1286,7 @@ F1.Alert = {
 		alertTemplateFn = function(message, type) {
 			return '<div class="alert alert-dismissible alert-' + type + '  fade in" role="alert">' +
 				'<button class="close" name="dismiss-alert" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>' +
-				'<div class="message-container">' + message + '</div><a href="javascript:void(0)" class="more-messages hidden" onclick="F1.Alert.showMore(this)">Wys meer...</a></div>';
+				'<div class="message-container">' + message + '</div><a href="javascript:void(0)" class="more-messages hidden" onclick="F1.Alert.showMore(this)">Wys alles...</a></div>';
 		};
 		if ( ! $alerts.length) { return; }
 		$alertRow = $alerts.find('#' + alert_id).first();
@@ -1214,7 +1296,7 @@ F1.Alert = {
 			else {
 				$messageContainer = $alert.find('.message-container');
 				$messageContainer.append(message);
-				if ($messageContainer[0].childElementCount > 2) {
+				if ($messageContainer[0].childElementCount > 4) {
 					$messageContainer.next().removeClass('hidden');
 				}
 			}
@@ -1228,7 +1310,7 @@ F1.Alert = {
 	showMore: function (elm) {
 		var $elm = $(elm), $messageContainer = $elm.prev();
 		$messageContainer.toggleClass('expanded');
-		if ($messageContainer.is('.expanded')) { $elm.html('Wys minder...'); } else { $elm.html('Wys meer...'); }
+		if ($messageContainer.is('.expanded')) { $elm.html('Wys minder...'); } else { $elm.html('Wys alles...'); }
 	}
 };
 // end: F1.Alert
