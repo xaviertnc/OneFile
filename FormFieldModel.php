@@ -23,6 +23,9 @@ use Log; // Debug only. Remove!
  *   - Restore support for formatters
  *   - Refactor / improve validation
  *   - Distinguish between ModelValue, ViewValue and DisplayValue
+ *
+ * @updated: C. Moller - 24 Nov 2017
+ *   - Add using the "field name" as fallback in validation messages if no "field label" is specified!
  */
 
 
@@ -216,7 +219,12 @@ class FormFieldModel
 		foreach ($this->__props['validators'] as $validator)
 		{
 			$validate = $validator['fn']; $errorTemplate = $validator['tpl'];
-			$result = $validate($isTest ? $testValue : $this->getValue(), $this->__props['label'], $auxData, $errorTemplate);
+			// NM Edit - 24 Nov 2017: Add using field-name as fallback if no field-label is specified!
+			// The field label will be set to the field name ONLY if the label-value is set to NULL.
+			// Setting label-value = '' gives NO LABEL! But what about validation messages!?
+			// Therefore, to address this problem, we check JUST before validation if a label exists.
+			// If not, we set the validation message label == the field name
+			$result = $validate($isTest ? $testValue : $this->getValue(), ($this->__props['label']?:$this->__props['name']), $auxData, $errorTemplate);
 			if (empty($result)) continue;
 			$errors[] = $result;
 		}
