@@ -89,7 +89,7 @@ Queue.prototype.start = function()
 {
 	var next = this.items.shift();
 
-	while (next.run())
+	while (next.run());
 };
 
 Queue.prototype.next = function()
