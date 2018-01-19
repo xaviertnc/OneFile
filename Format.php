@@ -7,18 +7,21 @@
  *
  * Licensed under the MIT license. Please see LICENSE for more information.
  *
- * @updated: C. Moller - 24 Dec 2016
+ * @update: C. Moller - 24 December 2016
  *
+ * @update: C. Moller - 05 December 2017
+ *   - Add Format::nbsp()
+ *   - Add/correct function @param definitions
  */
 
 class Format {
 
 	/**
 	 *
-	 * @param type $value
-	 * @param type $nullTypes
-	 * @param type $nullValue
-	 * @return type
+	 * @param mixed $value
+	 * @param array $nullTypes
+	 * @param mixed $nullValue
+	 * @return mixed
 	 */
 	public static function nulltype($value = null, $nullTypes = array('', 'NULL'), $nullValue = null)
 	{
@@ -27,11 +30,21 @@ class Format {
 
 	/**
 	 *
-	 * @param type $value
-	 * @param type $default
-	 * @param type $decimals
-	 * @param type $seperator
-	 * @return type
+	 * @param string $text
+	 * @return string
+	 */
+	public static function nbsp($text = null)
+	{
+		return str_replace(' ', '&nbsp;', $text);
+	}
+
+	/**
+	 *
+	 * @param mixed $value
+	 * @param mixed $default
+	 * @param integer $decimals
+	 * @param string $seperator
+	 * @return string
 	 */
 	public static function decimal($value, $default = null, $decimals = 0, $seperator = null)
 	{
@@ -41,12 +54,12 @@ class Format {
 
 	/**
 	 *
-	 * @param type $value
-	 * @param type $default
-	 * @param type $decimals
-	 * @param type $symbol
-	 * @param type $seperator
-	 * @return type
+	 * @param mixed $value
+	 * @param mixed $default
+	 * @param integer $decimals
+	 * @param string $symbol
+	 * @param string $seperator
+	 * @return string
 	 */
 	public static function currency($value, $default = null, $decimals = 0, $symbol = 'R', $seperator = null)
 	{
@@ -56,11 +69,11 @@ class Format {
 
 	/**
 	 *
-	 * @param type $value
-	 * @param type $default
-	 * @param type $decimals
-	 * @param type $seperator
-	 * @return type
+	 * @param mixed $value
+	 * @param mixed $default
+	 * @param integer $decimals
+	 * @param string $seperator
+	 * @return string
 	 */
 	public static function percent($value, $default = null, $decimals = 0, $seperator = null)
 	{
