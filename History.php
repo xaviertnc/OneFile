@@ -1,11 +1,34 @@
 <?php namespace OneFile;
 
 /**
+ * History Service - Ported and adapted from the KL project
+ * to be more framework agnostic and general purpose.
  *
- * By. C Moller - 2013 - 05 Dec 2013
- * Ported and adapted from the KL project to be more framework agnostic and general purpose.
- * Updated 18 Apr 2014 - Changed filename + namespace + Allow for framework specific SESSION + SERVER
- * Totally re-written - 04 May 2014 - Removed all static parts!
+ *  Features:
+ *  =========
+ *  - Keep a request-url history on the server.
+ *
+ *  - Allows session store override
+ *
+ *  - Separated construct and initialize
+ *
+ *  - Provide methods like:
+ *     - rollback([numberOfSteps])                // Trim the history by n-steps from the tail-end
+ *     - back([defaultBackUrl], [numberOfSteps])  // Get the previous DIFFERENT URL accessed or one n-steps back.
+ *     - beforeLast([defaultBackUrl])             // Get the "before last" DIFFERENT URL accessed
+ *     - last([defaultBackUrl])
+ *
+ *  - Prevent back-link loops!
+ *
+ * @date   05 Dec 2013
+ * @author By. C Moller
+ *
+ * @update 18 Apr 2014
+ *   - Changed filename + namespace + Allow for framework specific SESSION + SERVER
+ *
+ * @update 04 May 2014
+ *   - Total rewrite
+ *   - Removed all static parts.
  *
  * @update 19 Feb 2016
  * 	- Added "before last" method + Default URL to referer method
@@ -17,6 +40,11 @@
  * @update 29 Dec 2016
  *  - Added "back" method as base for "last" and "beforelast"
  *  - Updated some syntax styling
+ *
+ * @update 04 Dec 2017
+ *  - Updated more syntax styling.  Removed snake_case from
+ *    all property and method names, except the "override-me" props.
+ *  - Added more comments + Features list
  *
  */
 
@@ -35,25 +63,25 @@ class History
 	 *
 	 * @var array
 	 */
-	protected $history_items;
+	protected $historyItems;
 
 	/**
 	 * The key under which the history will be stored in your choice of session manager
 	 *
 	 * @var string
 	 */
-	protected $history_session_key;
+	protected $historySessionKey;
 
 	/**
 	 * Loads or initializes history
 	 *
 	 * @param integer $levels
-	 * @param string $history_session_key
+	 * @param string $historySessionKey
 	 */
-	public function __construct($levels = 5, $history_session_key = '__HISTORY__')
+	public function __construct($levels = 5, $historySessionKey = '__HISTORY__')
 	{
 		$this->levels = ($levels < 3) ? 3 : $levels;
-		$this->history_session_key = $history_session_key;
+		$this->historySessionKey = $historySessionKey;
 	}
 
 	/**
@@ -108,13 +136,13 @@ class History
 	 */
 	public function initialize()
 	{
-		$this->history_items = $this->_session_read($this->history_session_key);
+		$this->historyItems = $this->_session_read($this->historySessionKey);
 
-		if ( ! $this->history_items)
+		if ( ! $this->historyItems)
 		{
-			$this->history_items = array();
-			for ($i=0; $i < $this->levels; $i++) $this->history_items[] = null;
-			$this->_session_write($this->history_session_key, $this->history_items);
+			$this->historyItems = array();
+			for ($i=0; $i < $this->levels; $i++) $this->historyItems[] = null;
+			$this->_session_write($this->historySessionKey, $this->historyItems);
 		}
 	}
 
@@ -125,8 +153,8 @@ class History
 	 */
 	public function destroy()
 	{
-		$this->history_items = array();
-		$this->_session_forget($this->history_session_key);
+		$this->historyItems = array();
+		$this->_session_forget($this->historySessionKey);
 	}
 
 	/**
@@ -141,38 +169,42 @@ class History
 	 */
 	public function update($current_url)
 	{
-		if ( ! $this->history_items) { $this->initialize(); }
+		if ( ! $this->historyItems) { $this->initialize(); }
 
 		$last_item = $this->levels - 1;
 
-		if ($current_url != $this->history_items[$last_item])
+		if ($current_url != $this->historyItems[$last_item])
 		{
-			if ($current_url == $this->history_items[$last_item - 1])
+			if ($current_url == $this->historyItems[$last_item - 1])
 			{
-				unset($this->history_items[$last_item]);
-				array_unshift($this->history_items, null);
+				unset($this->historyItems[$last_item]);
+				array_unshift($this->historyItems, null);
 			}
 			else
 			{
-				array_shift($this->history_items);
-				$this->history_items[] = $current_url;
+				array_shift($this->historyItems);
+				$this->historyItems[] = $current_url;
 			}
 
-			$this->_session_write($this->history_session_key, $this->history_items);
+			$this->_session_write($this->historySessionKey, $this->historyItems);
 		}
 	}
 
-	/**
-	 * Trace back on your steps and remove any number of recent history entries.
-	 * Used to remove history on "Create Resource Page" links that convert to "Edit Resource" links after save.
-	 * We don't want to go back to the "Create" page again when we press "back" on the "Edit" page.
-	 * We want to go back to the page BEFORE the Create page in ONE step. i.e. Create Page history must be removed!
-	 *
-	 * @param integer $steps
-	 */
+    /**
+     * Trim the history by n-steps from the tail-end
+     *
+     * Use Case Example:
+     * =================
+     * If we have a "Create Page View" that is replaced by an "Edit Page View" on save,
+     * we don't want any back-links on the "Edit Page View" to send us back to the previous "Create Page View"!
+     * We typically want to erase the last entry (aka "Create Page View" entry) from the history so the new
+     * previous entry would be the page BEFORE we moved to "Create Page View".
+     *
+     * @param integer $steps
+     */
 	public function rollback($steps = 1)
 	{
-		if ( ! $this->history_items) { $this->initialize(); }
+		if ( ! $this->historyItems) { $this->initialize(); }
 
 		if ($steps < $this->levels)
 		{
@@ -180,8 +212,8 @@ class History
 
 			for ($i=0; $i < $steps; $i++)
 			{
-				unset($this->history_items[$last_item]);
-				array_unshift($this->history_items, null);
+				unset($this->historyItems[$last_item]);
+				array_unshift($this->historyItems, null);
 			}
 		}
 		else
@@ -189,7 +221,7 @@ class History
 			$this->initialize();
 		}
 
-		$this->_session_write($this->history_session_key, $this->history_items);
+		$this->_session_write($this->historySessionKey, $this->historyItems);
 	}
 
 	/**
@@ -201,9 +233,9 @@ class History
 	 */
 	public function back($default_url = null, $backsteps = 1)
 	{
-		if ( ! $this->history_items) { $this->initialize(); }
+		if ( ! $this->historyItems) { $this->initialize(); }
 		$current_url_index = $this->levels - 1;
-		$last = $this->history_items[$current_url_index - $backsteps];
+		$last = $this->historyItems[$current_url_index - $backsteps];
 		return is_null($last) ? $default_url : $last;
 	}
 
@@ -224,7 +256,7 @@ class History
 	 * @param string $default_url
 	 * @return string
 	 */
-	public function beforelast($default_url = '')
+	public function beforeLast($default_url = '')
 	{
 		return $this->back($default_url, 2);
 	}
