@@ -1,4 +1,4 @@
-this.Happy2Ext = { // Happy2Extra ...
+window.Happy2Ext = { // Happy2Extra ...
 
     tel: function (val) {
         return /^\(?(\d{3})\)?[\- ]?\d{3}[\- ]?\d{4}$/.test(val);
@@ -27,48 +27,48 @@ this.Happy2Ext = { // Happy2Extra ...
     },
 
     birthyear: function (val) {
-		var maxYear = moment().format('YYYY'), minYear = maxYear - 120;
-		return (val >= minYear && val <= maxYear);
-	},
+    var maxYear = moment().format('YYYY'), minYear = maxYear - 120;
+    return (val >= minYear && val <= maxYear);
+  },
 
     month: function (val) {
-		return (val >= 1 && val <= 12);
-	},
+    return (val >= 1 && val <= 12);
+  },
 
     day: function (val) {
-		return (val >= 1 && val <= 31);
-	},
+    return (val >= 1 && val <= 31);
+  },
 
     birthday: function (val) {
-		var happyField = this, result = 1;
-		//console.log('testBirthday(), happyField:', happyField);
+    var happyField = this, result = 1;
+    //console.log('testBirthday(), happyField:', happyField);
         $.each(happyField.inputs, function (i, happyInput) {
-			//console.log('testBirthday(), happyInput:', happyInput, ', type:', happyInput.type);
-			switch (happyInput.type) {
-				case 'date-birthyear': if ( ! Happy2Ext.birthyear(happyInput.$elm.val())) { result = -1; return false; } break;
-				case 'date-month': if ( ! Happy2Ext.month(happyInput.$elm.val())) { result = -2; return false; } break;
-				case 'date-day': if ( ! Happy2Ext.day(happyInput.$elm.val())) { result = -3; return false; } break;
-			}
-		});
-		if (result === 1) {
-			result = moment(val.replace(',', '-'), "YYYY-MM-DD").isValid();
-		}
-		return result;
+      //console.log('testBirthday(), happyInput:', happyInput, ', type:', happyInput.type);
+      switch (happyInput.type) {
+        case 'date-birthyear': if ( ! Happy2Ext.birthyear(happyInput.$elm.val())) { result = -1; return false; } break;
+        case 'date-month': if ( ! Happy2Ext.month(happyInput.$elm.val())) { result = -2; return false; } break;
+        case 'date-day': if ( ! Happy2Ext.day(happyInput.$elm.val())) { result = -3; return false; } break;
+      }
+    });
+    if (result === 1) {
+      result = moment(val.replace(',', '-'), "YYYY-MM-DD").isValid();
+    }
+    return result;
     },
 
     cleanAlpha: function (val) {
-		if (val && val.length) { return val.replace(/[^A-Za-z '\-.]/g, '').replace(/^\W+/, '').replace(/\W+$/, ''); }
-	},
+    if (val && val.length) { return val.replace(/[^A-Za-z '\-.]/g, '').replace(/^\W+/, '').replace(/\W+$/, ''); }
+  },
 
     cleanText: function (val) {
-		if (val && val.length) { return val.replace(/[^A-Za-z0-9 '\-.]/g, '').replace(/^\W+/, '').replace(/\W+$/, ''); }
-	},
+    if (val && val.length) { return val.replace(/[^A-Za-z0-9 '\-.]/g, '').replace(/^\W+/, '').replace(/\W+$/, ''); }
+  },
 
     cleanNaturalNumber: function (val) {
-		if (val && val.length) { return val.replace(/[^0-9]/g, ''); }
-	},
+    if (val && val.length) { return val.replace(/[^0-9]/g, ''); }
+  },
 
-    find: function ($elm, type, id) { var i, jqData = $elm.data(); //console.log('jQData:', jqData); 
+    find: function ($elm, type, id) { var i, jqData = $elm.data(); //console.log('jQData:', jqData);
         for (i in jqData) { if (jqData.hasOwnProperty(i) && (jqData[i].happyType === type) && (!id || jqData[i].id === id)) { return jqData[i]; } }
     }
 
