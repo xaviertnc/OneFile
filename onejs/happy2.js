@@ -87,12 +87,12 @@
     if (parent) { this[parent.happyType] = parent; parent.childItems.push(this); }
     this.modifiedClass = this.resolveOpt(happyType + 'ModifiedClass') || 'modified';
     this.unhappyClass = this.resolveOpt(happyType + 'UnhappyClass') || 'unhappy';
-    opt = this.getOpt(happyType + 'BeforeValidate'  );  if (opt) { this.beforeValidate = opt; }
-    opt = this.getOpt(happyType + 'Validate'    );  if (opt) { this.validate = opt;     }
-    opt = this.getOpt(happyType + 'Unhappy'     );  if (opt) { this.onUnhappy = opt;    }
-    opt = this.getOpt(happyType + 'Happy'     );  if (opt) { this.onHappy = opt;      }
-    opt = this.getOpt(happyType + 'Mount'     );  if (opt) { this.mount = opt;      }
-    opt = this.getOpt(happyType + 'Dismount'    );  if (opt) { this.dismount = opt;     }
+    opt = this.getOpt(happyType + 'BeforeValidate');  if (opt) { this.beforeValidate = opt; }
+    opt = this.getOpt(happyType + 'Validate'      );  if (opt) { this.validate = opt;       }
+    opt = this.getOpt(happyType + 'Unhappy'       );  if (opt) { this.onUnhappy = opt;      }
+    opt = this.getOpt(happyType + 'Happy'         );  if (opt) { this.onHappy = opt;        }
+    opt = this.getOpt(happyType + 'Mount'         );  if (opt) { this.mount = opt;          }
+    opt = this.getOpt(happyType + 'Dismount'      );  if (opt) { this.dismount = opt;       }
     opt = this.getOpt(happyType + 'BeforeUpdate'  );  if (opt) { this.beforeUpdate = opt;   }
     opt = this.getOpt(happyType + 'AfterValidate' );  if (opt) { this.aftrerValidate = opt; }
   }
@@ -167,16 +167,16 @@
       //console.log('HappyItem.isUnhappy(), this:', this.id);
       var i, n, r, o = this;
       if (this.beforeValidate) { r = this.beforeValidate(event, isSubmit); if (r) { return r; } }   // Before-validate hook
-      if (o.validate && !o.preventValidate) { o.validate(event, isSubmit); }                          // Validate (Only HappyFields have a "validate" method by default)
-      else { for (i = 0, n = o.childItems.length; i < n; i++) {                   // Keep drilling down until we get to "field" level.
-        if (o.childItems[i].isUnhappy(event, isSubmit) < 0) { return -1; } } }            // return -1 ==> We found an unhappy child! Abort remaining tests.
-      if (o.unhappy) { if (o.onUnhappy) { o.onUnhappy(event, isSubmit); } }             // Unhappy hook
-      else { if (o.onHappy) { o.onHappy(event, isSubmit); } }                     // Happy hook
-      if (o.modified) { if (o.onModified) { o.onModified(event, isSubmit); } }            // Modified hook
-      if (o.beforeUpdate) { r = o.beforeUpdate(event, isSubmit); if (r) { return r; } }         // After-validate but BEFORE updating parents and DOM hook
+      if (o.validate && !o.preventValidate) { o.validate(event, isSubmit); }                        // Validate (Only HappyFields have a "validate" method by default)
+      else { for (i = 0, n = o.childItems.length; i < n; i++) {                                     // Keep drilling down until we get to "field" level.
+        if (o.childItems[i].isUnhappy(event, isSubmit) < 0) { return -1; } } }                      // return -1 ==> We found an unhappy child! Abort remaining tests.
+      if (o.unhappy) { if (o.onUnhappy) { o.onUnhappy(event, isSubmit); } }                         // Unhappy hook
+      else { if (o.onHappy) { o.onHappy(event, isSubmit); } }                                       // Happy hook
+      if (o.modified) { if (o.onModified) { o.onModified(event, isSubmit); } }                      // Modified hook
+      if (o.beforeUpdate) { r = o.beforeUpdate(event, isSubmit); if (r) { return r; } }             // After-validate but BEFORE updating parents and DOM hook
       if (o.happyType === 'field') { o.updateParentStates(); o.updateDOM(); }
-      if (o.afterValidate) { r = o.afterValidate(event, isSubmit); if (r) { return r; } }       // After-validate hook
-      return isSubmit ? (o.unhappy ? -1 : 0) : o.unhappy;                       // -1 + Submit -> Quit validation loop / Error found / Only set on child level
+      if (o.afterValidate) { r = o.afterValidate(event, isSubmit); if (r) { return r; } }           // After-validate hook
+      return isSubmit ? (o.unhappy ? -1 : 0) : o.unhappy;                                           // -1 + Submit -> Quit validation loop / Error found / Only set on child level
     }
   };
 
