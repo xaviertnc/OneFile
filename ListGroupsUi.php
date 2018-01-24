@@ -176,8 +176,12 @@ class ListGroupsUi
   {
     $currentGroup = $this->rootGroup;
     $aggregateTypes = array_keys($aggregates);
+    $itemIndex = 1;
     foreach ($listItems as $item)
     {
+
+      $item->_index = $itemIndex++;
+
       // Get ITEM GROUP ID + LEVEL.
       // Note: GROUP PARENT + LIST-INDEX is only set for LEVEL1 groups!
       $targetGroup = $this->getItemGroup($item, $groupByProps);
