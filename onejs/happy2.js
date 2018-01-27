@@ -89,12 +89,13 @@
     this.unhappyClass = this.resolveOpt(happyType + 'UnhappyClass') || 'unhappy';
     opt = this.getOpt(happyType + 'BeforeValidate');  if (opt) { this.beforeValidate = opt; }
     opt = this.getOpt(happyType + 'Validate'      );  if (opt) { this.validate = opt;       }
+    opt = this.getOpt(happyType + 'TestHappy'     );  if (opt) { this.testHappy = opt;      }
     opt = this.getOpt(happyType + 'Unhappy'       );  if (opt) { this.onUnhappy = opt;      }
     opt = this.getOpt(happyType + 'Happy'         );  if (opt) { this.onHappy = opt;        }
     opt = this.getOpt(happyType + 'Mount'         );  if (opt) { this.mount = opt;          }
     opt = this.getOpt(happyType + 'Dismount'      );  if (opt) { this.dismount = opt;       }
     opt = this.getOpt(happyType + 'BeforeUpdate'  );  if (opt) { this.beforeUpdate = opt;   }
-    opt = this.getOpt(happyType + 'AfterValidate' );  if (opt) { this.aftrerValidate = opt; }
+    opt = this.getOpt(happyType + 'AfterValidate' );  if (opt) { this.afterValidate = opt;  }
   }
   HappyItem.prototype = {
     getOpt: function (optName) { return defined(this[optName]) ? this[optName] : this.happyParent.getOpt(optName); },
@@ -104,7 +105,7 @@
     dismount: function (ignoreParentStates) {
       //console.log('HappyItem::dismount(), this:', this, ', ignoreParentStates:', ignoreParentStates);
       var parent = this.happyParent || {};
-      if (this.childItems) { $.each(this.childItems, function dismountChildItems(i, item) { item.dismount(true); }); } // console.log('dismounting item:', i, ':', item);
+      if (this.childItems) { $.each(this.childItems, function dismountChildItems(i, item) { item.dismount(true); }); } //console.log('dismounting item:', i, ':', item);
       if (!ignoreParentStates) {
         this.unhappy = this.modified = ''; this.updateParentStates(); this.updateDOM();
         parent[parent.childItemsType] = parent.childItems = this.removeItem(parent.childItems || [], this);
@@ -115,7 +116,7 @@
     setClass: function (elm, cln) { return cln ? elm.setAttribute('class', cln) : elm.removeAttribute('class'); },
     addClass: function (elm, cln) {
       //console.log('ADD Class-before: cln:', cln, ', elm:', elm);
-      if (elm.classList) { elm.classList.add(cln); return; } // console.log('ADD Class-after: cln:', cln, ', elm:', elm);
+      if (elm.classList) { elm.classList.add(cln); return; } //console.log('ADD Class-after: cln:', cln, ', elm:', elm);
       var cls = this.getClass(elm), cll = cls.split(' '), rcls = this.removeItem(cll, cln).join(' ');
       if (rcls === cls) { this.setClass(elm, rcls ? (rcls + ' ' + cln) : cln); return true; }
     },
@@ -157,14 +158,14 @@
       if (updHappy || updModified) { parent.updateParentStates(); }
     },
     firstUnhappyChild: function () { var i, n = this.childItems.length; for (i = 0; i < n; i++) { if (this.childItems[i].unhappy) { return this.childItems[i]; } } },
-    firstUnhappy: function (happyType) { var item = this; if (!happyType) { happyType = 'input'; } console.log('HappyItem.firstUnhappy(), item:', item);
-      while (item && item.happyType !== happyType && item.unhappy) { item = item.firstUnhappyChild(); console.log('HappyItem.firstUnhappy(), next item:', item); }
+    firstUnhappy: function (happyType) { var item = this; if (!happyType) { happyType = 'input'; } //console.log('HappyItem.firstUnhappy(), item:', item);
+      while (item && item.happyType !== happyType && item.unhappy) { item = item.firstUnhappyChild(); } //console.log('HappyItem.firstUnhappy(), next item:', item);
       //if (item && item.unhappy) { return (!happyType && item.happyType === 'field' && item.input) ? item.input : item; }
       if (item && item.unhappy) { return item; }
     },
     isHappy: function (event, isSubmit) { return !this.isUnhappy(event, isSubmit); },
     isUnhappy: function (event, isSubmit) {
-      //console.log('HappyItem.isUnhappy(), this:', this.id);
+      //console.log('HappyItem.isUnhappy(), this.id:', this.id, ', event:', event);
       var i, n, r, o = this;
       if (this.beforeValidate) { r = this.beforeValidate(event, isSubmit); if (r) { return r; } }   // Before-validate hook
       if (o.validate && !o.preventValidate) { o.validate(event, isSubmit); }                        // Validate (Only HappyFields have a "validate" method by default)
@@ -196,7 +197,7 @@
     switch (this.type) {
     case 'radio':
     case 'checkbox': val = this.$elm.prop('checked') ? (this.$elm.val() || 1) : '';
-    // console.log('type:', this.type, ', val:', val);
+    //console.log('type:', this.type, ', val:', val);
     break;
     case 'option': val = this.$elm.prop('selected') ? (this.$elm.val() || 1) : ''; break;
     default:
@@ -228,10 +229,10 @@
   };
   HappyInput.prototype.mount = function mountInput() {
     var input = this, field = input.field, happyForm = field.form;
-    // console.log('Input.testWhen for:', input.id, ' =', input.testWhen);
+    //console.log('Input.testWhen for:', input.id, ' =', input.testWhen);
     $.each(castArray(input.testWhen), function (i, testWhen) {
       if (testWhen === 'blur.field') {
-        // console.log('Setting onFocus for:', input.id);
+        //console.log('Setting onFocus for:', input.id);
         input.$elm.on('focus.' + input.id, function handleFocusInput(event) {
           if (happyForm.validateTimer) {
             clearTimeout(happyForm.validateTimer);
@@ -242,14 +243,17 @@
           happyForm.currentField = field;
         });
         input.$elm.on('change.' + input.id, function handleChangeInput(event) {
+          //console.log('HappyInput::handleChangeInput(), event:', event);
           if (field.unhappy) { field.isUnhappy(event, false); }
         });
       }
       input.$elm.on(testWhen + '.' + input.id, function handleValidateInput(event) {
+        //console.log('HappyInput::handleValidateInput(), event:', event);
         if (testWhen === 'blur.field')  {
           if (happyForm.validateTimer) { clearTimeout(happyForm.validateTimer); }
           happyForm.validateTimer = setTimeout(function () { field.isUnhappy(event, false); }, 300);
         } else {
+          //console.log('HappyInput::handleValidateInput(),testWhen !== blur before Call to isUnhappy(), event:', event);
           field.isUnhappy(event, false);
         }
       });
@@ -271,9 +275,8 @@
     this.type = this.$elm.data('type') || this.resolveOpt('fieldType') || (this.input && this.input.type) || 'text'; // OR textarea, checkgroup, radiogroup, etc.
     opt = this.happyParent.getOpt('messageSelector' );  if (opt) { this.messageSelector = opt;  }  // only override the existing proto method if an alternative is provided!
     opt = this.happyParent.getOpt('messageTemplate' );  if (opt) { this.messageTemplate = opt;  }
-    opt = this.happyParent.getOpt('messageText'   );  if (opt) { this.messageText = opt;    }
+    opt = this.happyParent.getOpt('messageText'     );  if (opt) { this.messageText = opt;      }
     this.initialValue = this.val(true);
-    //console.log('New HappyField:', this);
   }
   HappyField.prototype = Object.create(HappyItem.prototype);
   HappyField.prototype.val = function (initial) {
@@ -367,6 +370,7 @@
     field.unhappy = 'yes'; field.updateParentStates(); field.updateDOM();
   };
   HappyField.prototype.validate = function (event, isSubmit) {
+    //console.log('HappyField.validate(), event:', event);
     var i, n, field = this, isHappy = true,
       error = field.error, errorParts,
       testArgs = castArray(field.testArgs),
@@ -412,6 +416,7 @@
   };
   HappyField.prototype.handleValidate = function (event) {
     var field = event.data;
+    //console.log('HappyField::handleValidate(), event:', event);
     //console.log('HappyField.' + field.id + '.HANDLE-VALIDATE');
     field.isUnhappy(event, false);
   };
