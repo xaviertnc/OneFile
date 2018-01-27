@@ -294,6 +294,11 @@ F1.File = {
     cfg.fc = cfg.dropzone.getElementsByTagName('input')[0];
     cfg.options = options || {};
     elUploader.uplCfg = cfg;
+    if (cfg.uploads.length >= (cfg.options.maxFiles || 1)) {
+      cfg.dropzone.classList.add('hidden');
+    } else {
+      cfg.dropzone.classList.remove('hidden');
+    }
     if (F1.isDefined(cfg.fc.files) && F1.isDefined(FileReader))
     { // HTML5 Ok :-)
       cfg.dropzone.addEventListener("dragover", F1.Events.stop, false);
@@ -325,7 +330,12 @@ F1.File = {
       err = F1.File.addFileView(elUploader, cfg.viewzone, files[i], i, nExisting, /^image\//.test(files[i].type), !cfg.options.manualUpload);
       if (err) { alert(err); return false; }
     }
-    if (cfg.uploads.length) cfg.viewzone.classList.remove('hidden');
+    if (cfg.uploads.length) { cfg.viewzone.classList.remove('hidden'); }
+    if (cfg.uploads.length >= (cfg.options.maxFiles || 1)) {
+      cfg.dropzone.classList.add('hidden');
+    } else {
+      cfg.dropzone.classList.remove('hidden');
+    }
   },
 
   addFileView: function(elUploader, elViewZone, file, index, nExisting, getPreview, autoUpload)
@@ -506,6 +516,11 @@ F1.File = {
     elUploader = elFileView.parentElement.parentElement.parentElement, cfg = elUploader.uplCfg;
     r = F1.File.removeFileView(elUploader, elFileView);
     if (!r.length) { cfg.viewzone.classList.add('hidden'); }
+    if (cfg.uploads.length >= (cfg.options.maxFiles || 1)) {
+      cfg.dropzone.classList.add('hidden');
+    } else {
+      cfg.dropzone.classList.remove('hidden');
+    }
     errors = F1.File.onUploadsChange(elUploader);
     if (!errors || !errors.length) { cfg.fc.focus(); }
   },
