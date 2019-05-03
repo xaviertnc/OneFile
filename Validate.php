@@ -41,7 +41,7 @@ class Validate
 
 	public function equals($other_value = null, $other_value_label = null)
 	{
-		if (is_null($other_value_label)) $other_value_label = json_encode($other_value);
+		if (is_null($other_value_label)) { $other_value_label = json_encode($other_value); }
 		$fn = function($v = null, $l = null, $d = null, $t = null) use ($other_value, $other_value_label)
 		{
 			$o = null; $l = rtrim($l, ':');
@@ -52,11 +52,29 @@ class Validate
 		return $fn;
 	}
 
+  
+	public function equals_case_insensitive($other_value = null, $other_value_label = null)
+	{
+		if (is_null($other_value_label)) { $other_value_label = json_encode($other_value); }
+		$fn = function($v = null, $l = null, $d = null, $t = null) use ($other_value, $other_value_label)
+		{
+			$o = null; $l = rtrim($l, ':');
+			if (strtolower($v) != strtolower($other_value)) { $o = is_null($t) ? "$l should equal $other_value_label" : sprintf($t, $l, $other_value_label); }
+			return $o;
+		};
 
+		return $fn;
+	}
+
+  
+  /**
+   * @param mixed $d Set to 'allow-empty' to only check if set.
+   */   
 	public function email()
 	{
 		$fn = function($v = null, $l = null, $d = null, $t = null)
 		{
+      if ( ! $v and $d == 'allow-empty') { return; }
 			$o = null; $l = rtrim($l, ':');
 			if ( ! filter_var($v, FILTER_VALIDATE_EMAIL)) { $o = is_null($t) ? "$l is invalid." : sprintf($t, $l); }
 			return $o;
