@@ -154,35 +154,42 @@ class FormModel
   }
 
 
-    public function __set($name, $value)
+  public function hasField($fieldName)
+  {
+    $fields = $this->__props['fields'];
+    return array_key_exists($fieldName, $fields);
+  }
+
+
+  public function __set($name, $value)
+  {
+      $this->__props[$name] = $value;
+  }
+
+
+  public function __get($name)
+  {
+    if (array_key_exists($name, $this->__props))
     {
-        $this->__props[$name] = $value;
+        return $this->__props[$name];
     }
 
-
-    public function __get($name)
-    {
-      if (array_key_exists($name, $this->__props))
-      {
-          return $this->__props[$name];
-      }
-
-      return $this->{$name};
-    }
+    return $this->{$name};
+  }
 
 
-    /**  As of PHP 5.1.0  */
-    public function __isset($name)
-    {
-      return isset($this->__props[$name]);
-    }
+  /**  As of PHP 5.1.0  */
+  public function __isset($name)
+  {
+    return isset($this->__props[$name]);
+  }
 
 
-    /**  As of PHP 5.1.0  */
-    public function __unset($name)
-    {
-        unset($this->__props[$name]);
-    }
+  /**  As of PHP 5.1.0  */
+  public function __unset($name)
+  {
+      unset($this->__props[$name]);
+  }
 
 
   public function addGlobalParser($parser)
@@ -207,6 +214,10 @@ class FormModel
   }
 
 
+  /**
+   * Set ALL the form field values.
+   * If a value is not provided, use the field's default/null value.
+   */
   public function setFieldValues(array $fieldValues, $init = false, $parse = false)
   {
     //Log::form('FormModel::setFieldValues(), $fieldValues = ' . var_export($fieldValues ?: 'none', true));
@@ -225,6 +236,32 @@ class FormModel
       {
         //Log::form('FormModel::setFieldValues('.$fieldName.'), Call: field->initValue(' . var_export($value, true) . ')');
         $field->initValue($value);
+      }
+      else
+      {
+        $field->setValue($value);
+      }
+    }
+
+    return $this;
+  }
+
+  /**
+   * Only set the field values listed in the provided valueset.
+   * If no matching field exists, just ignore!
+   */
+  public function updateFieldValues(array $fieldValues, $parse = false)
+  {
+    Log::form('FormModel::updateFieldValues(), $fieldValues = ' . var_export($fieldValues ?: 'none', true));
+    foreach ($fieldValues as $fieldName => $value)
+    {
+      $field = $this->field($fieldName);
+      
+      if ( ! $field) { continue; }
+
+      if ($parse)
+      {
+        $field->inputValue($value);
       }
       else
       {
@@ -419,7 +456,7 @@ class FormModel
     return $this;
   }
 
-
+  
   public function setErrors(array $errors, $fieldName = null)
   {
     //Log::form('OneFile.FormModel::setErrors(' . $this->__props['name'] . '), $fieldName = ' . $fieldName . ', $errors = ' . json_encode($errors?:'none'));
@@ -432,6 +469,16 @@ class FormModel
     {
       $this->__props['errors'][$fieldName] = $errors;
     }
+    return $this;
+  }
+
+
+  public function addError($fieldName, $errorMessage)
+  {
+    $errors = $this->__props['errors'];
+    $field = $this->field($fieldName);
+    $field->addError($errorMessage);
+    $this->__props['errors'][$fieldName] = $field->getErrors();
     return $this;
   }
 
@@ -480,18 +527,19 @@ class FormModel
    * @param array $fieldnames
    * @param Closure $validateFn
    * @param string $messageTemplate
+   * @param mixed $aux Any extra info required for this specific validation's case
    *
    * @return FormModel
    *
    */
-  public function addValidation($fieldnames, $validateFn, $messageTemplate = null)
+  public function addValidation($fieldnames, $validateFn, $messageTemplate = null, $aux = null)
   {
     if ( ! is_array($fieldnames)) $fieldnames = [$fieldnames];
 
     foreach ($fieldnames as $fieldname)
     {
       $field = $this->field($fieldname);
-      if ($field and $field->name !== 'error') { $field->addValidator($validateFn, $messageTemplate); }
+      if ($field and $field->name !== 'error') { $field->addValidator($validateFn, $messageTemplate, $aux); }
     }
 
     return $this;
@@ -531,16 +579,17 @@ class FormModel
    * @param string $fieldName
    * @param boolean $returnErrors Return $errors Array instead of True/False
    * @param mixed $testValue To test if a field value is valid without changing the current value.
+   * @param mixed $aux Any extra/custom info required for this specific validation.
    *
    * @return boolean|array
    */
-  public function validateField($fieldName, $returnErrors = false, $testValue = '_?_')
+  public function validateField($fieldName, $returnErrors = false, $testValue = '_?_', $aux = null)
   {
     $field = $this->field($fieldName);
     if ($field->name !== 'error')
     {
       $isTest = ($testValue !== '_?_');
-      $result = $field->validate($this, $returnErrors, $testValue);
+      $result = $field->validate($this, $returnErrors, $testValue, $aux);
       if ($returnErrors) { return $result; }
       if ($result) { return true; }
       $this->__props['errors'][$fieldName] = $field->getErrors();
