@@ -21,159 +21,189 @@
  */
 class Session
 {
-	protected $domain;
+  protected $domain;
 
 
-	public function id($id = null)
-	{
-		if ($id)
-		{
-			return session_id($id);
-		}
+  public function id($id = null)
+  {
+    if ($id)
+    {
+      return session_id($id);
+    }
 
-		return session_id();
-	}
-
-
-	public function started()
-	{
-		return (php_sapi_name() == 'cli' or (defined('PHP_SESSION_ACTIVE') and session_status() !== PHP_SESSION_ACTIVE) or !session_id()) ? false : true;
-	}
+    return session_id();
+  }
 
 
-	public function start($domain = null, $id = null)
-	{
-		$this->domain = $domain;
-
-		$started = $this->started();
-
-		if ($id)
-		{
-			if ($started)
-			{
-				session_write_close();
-				$started = false;
-			}
-
-			$this->id($id);
-		}
-
-		if ( ! $started)
-		{
-			// Throws an error if we try to re-start a started session!
-			session_start();
-		}
-
-		//NB: Don't use session->has($domain) or session->put($domain)
-		// to detect and set the $domain array!
-		if ( $domain and ! isset($_SESSION[$domain]))
-		{
-			$_SESSION[$domain] = array();
-		}
-	}
+  public function started()
+  {
+    return (php_sapi_name() == 'cli' or (defined('PHP_SESSION_ACTIVE') and session_status() !== PHP_SESSION_ACTIVE) or !session_id()) ? false : true;
+  }
 
 
-	public function has($key)
-	{
-		return $this->domain ? isset($_SESSION[$this->domain][$key]) : isset($_SESSION[$key]);
-	}
+  public function start($domain = null, $id = null)
+  {
 
-	/**
-	 * This method adds the convenience of not having to check if a key exists before retrieving
-	 * and also returns a default value if not set!
-	 *
-	 * @param string $key
-	 * @param mixed $default
-	 * @return mixed
-	 */
-	public function get($key = null, $default = null)
-	{
-		if (is_null($key))
-		{
-			return $this->domain ? $_SESSION[$this->domain] : $_SESSION;
-		}
+    $started = $this->started();
 
-		if ($this->has($key))
-		{
-			return $this->domain ? $_SESSION[$this->domain][$key] : $_SESSION[$key];
-		}
-		else
-		{
-			return $default;
-		}
-	}
+    if ($id)
+    {
+      if ($started)
+      {
+        session_write_close();
+        $started = false;
+      }
 
-	public function all()
-	{
-		return $this->get();
-	}
+      $this->id($id);
+    }
 
-	public function put($key, $value)
-	{
-		if ($this->domain)
-		{
-			$_SESSION[$this->domain][$key] = $value;
-		}
-		else
-		{
-			$_SESSION[$key] = $value;
-		}
-	}
+    if ( ! $started)
+    {
+      // Throws an error if we try to re-start a started session!
+      session_start();
+    }
 
-	public function forget($key)
-	{
-		if ($this->domain)
-		{
-			unset($_SESSION[$this->domain][$key]);
-		}
-		else
-		{
-			unset($_SESSION[$key]);
-		}
-	}
+    $this->set_domain($domain);
 
-	public function destroy()
-	{
-		session_destroy();
-	}
+  }
 
-	public function clear($destory_current = false)
-	{
-		if ($destory_current)
-		{
-			$this->destroy();
-			$this->start($this->domain);
-		}
-		else
-		{
-			if ($this->domain)
-			{
-				//NB: Don't use session->put() to set the $domain array!
-				$_SESSION[$this->domain] = array();
-			}
-			else
-			{
-				$_SESSION = array();
-			}
-		}
-	}
 
-	public function change_id($delete_old_session = false)
-	{
-		session_regenerate_id($delete_old_session);
-	}
+  public function get_domain()
+  {
+    return $this->domain;
+  }
 
-	public function replace(array $new_session_array)
-	{
-		if ($this->domain)
-		{
-			//NB: Don't use session->put() to set the $domain array!
-			$_SESSION[$this->domain] = $new_session_array;
-		}
-		else
-		{
-			$_SESSION = $new_session_array;
-		}
-	}
+
+  public function set_domain($domain = null)
+  {
+    //Note: Obviously don't use session->has($domain) or session->put($domain)
+    // to detect and set the $domain array!
+    if ($domain)
+    {
+      $this->domain = $domain;
+      if ( ! array_key_exists($domain, $_SESSION))
+      {
+        $_SESSION[$domain] = array();
+      }
+    }
+  }
+
+
+  public function change_domain($new_domain)
+  {
+    $this->domain = $new_domain;
+  }
+
+
+  public function has($key)
+  {
+    return $this->domain ? isset($_SESSION[$this->domain][$key]) : isset($_SESSION[$key]);
+  }
+
+
+  /**
+   * This method adds the convenience of not having to check if a key exists before retrieving
+   * and also returns a default value if not set!
+   *
+   * @param string $key
+   * @param mixed $default
+   * @return mixed
+   */
+  public function get($key = null, $default = null)
+  {
+    if (is_null($key))
+    {
+      return $this->domain ? $_SESSION[$this->domain] : $_SESSION;
+    }
+
+    if ($this->has($key))
+    {
+      return $this->domain ? $_SESSION[$this->domain][$key] : $_SESSION[$key];
+    }
+    else
+    {
+      return $default;
+    }
+  }
+
+
+  public function all()
+  {
+    return $this->get();
+  }
+
+
+  public function put($key, $value)
+  {
+    if ($this->domain)
+    {
+      $_SESSION[$this->domain][$key] = $value;
+    }
+    else
+    {
+      $_SESSION[$key] = $value;
+    }
+  }
+
+
+  public function forget($key)
+  {
+    if ($this->domain)
+    {
+      unset($_SESSION[$this->domain][$key]);
+    }
+    else
+    {
+      unset($_SESSION[$key]);
+    }
+  }
+
+
+  public function destroy()
+  {
+    session_destroy();
+  }
+
+
+  public function clear($destory_current = false)
+  {
+    if ($destory_current)
+    {
+      $this->destroy();
+      $this->start($this->domain);
+    }
+    else
+    {
+      if ($this->domain)
+      {
+        //NB: Don't use session->put() to set the $domain array!
+        $_SESSION[$this->domain] = array();
+      }
+      else
+      {
+        $_SESSION = array();
+      }
+    }
+  }
+
+
+  public function change_id($delete_old_session = false)
+  {
+    session_regenerate_id($delete_old_session);
+  }
+
+
+  public function replace(array $new_session_array)
+  {
+    if ($this->domain)
+    {
+      //NB: Don't use session->put() to set the $domain array!
+      $_SESSION[$this->domain] = $new_session_array;
+    }
+    else
+    {
+      $_SESSION = $new_session_array;
+    }
+  }
 
 }
