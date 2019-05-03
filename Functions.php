@@ -161,7 +161,10 @@ function array_first($array = null)
  */
 function array_ensure($value = null)
 {
-  return is_null($value) ? array() : (is_array($value) ? $value : array($value));
+  if (is_null($value) )  { return array(); }
+  if (is_array($value))  { return $value;  }
+  if (is_object($value)) { return (array) $value; }
+  return array($value);
 }
 
 
@@ -191,47 +194,86 @@ function array_except($array = null, $except = null)
 
 
 /**
+ * array_map_keys()
+ *
  * Rename the keys of an $array according to a new $keymap.
- * Only partially map if $keymap doesn't cover all the existing keys.
- * Only add missing keys if $add_missing_keys == true.
+ *  - Only partially map if $keymap doesn't cover all the existing keys.
+ *  - Only add missing keys if $add_missing_keys == true.
+ *  - Map keys to an object property value if the array is an array of objects.
  *
  * Examples:
- * array_map_keys($arr, ['curkey1'=>'newkey1', 'curkey2'=>'newkey2', ...] or fn($curkey(n)){ ... return $newkey(n); }
+ * $arr = [
+ *  'curkey1' => val1 or { id:1, prop:'obj1' },
+ *  'curkey2' => val2 or { id:2, prop:'obj2' },
+ *  ...
+ * ]
  *
- * @param  array $array
- * @param  mixed $keymap
+ * array_map_keys($arr, ['curkey1'=>'newkey1', 'curkey2'=>'newkey2', ...])
+ * Result: [
+ *  'newkey1' => val1 or { id:1, prop:'obj1' },
+ *  'newkey2' => val2 or { id:2, prop:'obj2' },
+ *  ...
+ * ]
+ *
+ * array_map_keys($arr, 'id')
+ * Note: $arr must be an array of objects!
+ * Result:[
+ *  1 => { id:1, prop:'obj1' },
+ *  2 => { id:2, prop:'obj2' },
+ *  ...
+ * ]
+ *
+ * array_map_keys($arr, fn($curkey(n)){ ... return $newkey(n); })
+ *
+ * @param  array $array An array of values or objects
+ * @param  mixed $keymap  Types: An array of values or decorating functions / closures,
+ *    a string property name OR a keys map-function / closure
  * @param  bool  $add_missing_keys
- * @param  mixed $missing_default     Default value to use when adding missing items
+ * @param  mixed $missing_default Default value to use when adding missing items
  *
  * @return array
+ *
  */
 function array_map_keys($array = null, $keymap = null, $add_missing_keys = null, $missing_default = null)
 {
   if ( ! $array or ! $keymap) return $array;
 
-  $mapped = [];
-  $keys = array_keys($array);
-  $keymap = is_array($keymap) ? $keymap : (is_callable($keymap) ? array_map($keymap, $keys) : null);
-  if ( ! $keymap) return $array;
-
-  foreach ($keys as $key)
+  if (is_callable($keymap))
   {
-     $newkey = isset($keymap[$key]) ? $keymap[$key] : $key;
-     // $newkey = fn($key) allows keys to be decorated. E.g. '1' -> 'item_1'
-     if (is_callable($newkey)) $newkey = $newkey($key);
-     $mapped[$newkey] = $array[$key];
+    $newkeys = array_map($keymap, array_keys($array));
+    $mapped = array_combine($newkeys, array_values($array));
+    return $mapped;
   }
 
-  if ($add_missing_keys)
+  if (is_array($keymap))
   {
-    $missing = array_diff($keys, $map);
-    foreach ($missing as $key) { $mapped[$key] = $missing_default; }
+    $mapped = [];
+    $keys = array_keys($array);
+    foreach ($keys as $key)
+    {
+       $newkey = isset($keymap[$key]) ? $keymap[$key] : $key;
+       // $newkey = fn($key) allows keys to be decorated. E.g. '1' -> 'item_1'
+       if (is_callable($newkey)) { $newkey = $newkey($key); }
+       $mapped[$newkey] = $array[$key];
+    }
+
+    if ($add_missing_keys)
+    {
+      $missing = array_diff($keys, $keymap);
+      foreach ($missing as $key) { $mapped[$key] = $missing_default; }
+    }
+
+    return $mapped;
   }
 
-  return $mapped;
+  // Re-list the array with keys set to: array-item-object->{$keymap}
+  return array_list($array, null, $keymap);
 }
 
 
+/**
+ * Map one object property name structure to another.
+ */
 function obj_map($obj = null, $propmap = null, $add_missing_props = null, $missing_default = null)
 {
   $objArr = (array) $obj;
@@ -316,41 +358,67 @@ function array_adapt($array = null, $options = null)
 
 
 /**
- * array_list() returns an array listing the values of a single property in each collection item,
- * indexed naturally/numerically or by another property's value.
+ * array_list()
  *
- * @param  array   $array
- * @param  string  $prop_name
- * @param  string  $index_by
+ * Re-key an objects collection or reduce the collection from a list of objects to a list of values or both.
+ *
+ * Examples:
+ * $collection = [{ id: 1, desc: 'item1', prop: 'somevalue1' }, { id: 2, 'desc': 'item2', 'prop': 'somevalue2' }]
+ *
+ * array_list($collection, null, 'id')
+ * Result:
+ * [
+ *    1 => { id: 1, desc: 'item1', prop: 'somevalue1' }
+ *    2 => { id: 2, 'desc': 'item2', 'prop': 'somevalue2' }
+ * ]
+ *
+ * array_list($collection, 'desc', 'id')
+ * Result:
+ * [
+ *    1 => 'item1',
+ *    2 => 'item2'
+ * ]
+ *
+ * array_list($collection, 'desc')
+ * Result:
+ * ['item1', 'item2']
+ *
+ * @param  array   $objList
+ * @param  string  $values_prop_name  If == NULL, out list's values will be the entire collection item instead of just the value of one item property
+ * @param  string  $keys_prop_name    If == NULL, our list's keys will be numbers [0..n] corresponding to the natural collection items order
  * @return array
  */
-function array_list($array = null, $prop_name = null, $index_by = null)
+function array_list($objList = null, $values_prop_name = null, $keys_prop_name = null)
 {
-  if ( ! ($array and $prop_name and is_array($array))) return array();
+  if ( ! ($objList and is_array($objList))) return array();
 
-  $itemsAreObjects = is_object(array_first($array));
+  if ( ! $values_prop_name and ! $keys_prop_name) return $objList; // No change!
 
-  if ( ! $index_by)
+  $itemsAreObjects = is_object(array_first($objList));
+
+  if ( ! $keys_prop_name)
   {
     return $itemsAreObjects
-      ? array_map(function($obj) use($prop_name) { return $obj->{$prop_name}; }, $array)
-      : array_map(function($arrItem) use($prop_name) { return $arrItem[$prop_name]; }, $array);
+      ? array_map(function($obj) use($values_prop_name) { return $obj->{$values_prop_name}; }, $objList)
+      : array_map(function($arrItem) use($values_prop_name) { return $arrItem[$values_prop_name]; }, $objList);
   }
 
   $list = [];
 
   if ($itemsAreObjects)
   {
-    foreach ($array as $obj)
+    foreach ($objList as $obj)
     {
-      if ($index_by) { $list[$obj->{$index_by}] = $obj->{$prop_name}; } else { $list[] = $obj->{$prop_name}; }
+      if ($values_prop_name) { $list[$obj->{$keys_prop_name}] = $obj->{$values_prop_name}; }
+      else { $list[$obj->{$keys_prop_name}] = $obj; }
     }
   }
   else
   {
-    foreach ($array as $arrItem)
+    foreach ($objList as $arrItem)
     {
-      if ($index_by) { $list[$arrItem[$index_by]] = $arrItem[$prop_name]; } else { $list[] = $arrItem[$prop_name]; }
+      if ($values_prop_name) { $list[$arrItem[$keys_prop_name]] = $arrItem[$values_prop_name]; }
+      else { $list[$arrItem[$keys_prop_name]] = $arrItem; }
     }
   }
 
