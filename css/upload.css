@@ -1,0 +1,41 @@
+.upload {
+  position: relative;
+}
+
+.upload__value {
+  text-align: left;
+}
+
+.upload__value:focus,
+.upload__value:focus-visible {
+  outline: 1px auto;
+}
+
+.upload__prompt {
+  background-color: whitesmoke;
+  border-radius: 0.25em;
+  border: 1px solid gainsboro;
+  padding: 2px 0.5em 3px;
+  margin-right: 0.67em;
+}
+
+.upload__clear {
+  position: absolute;
+  text-align: center;
+  font-size: 0.8em;
+  padding: 0 0.5em 1px;
+  top: calc(50% - 0.67em);
+  cursor: pointer;
+  opacity: 0.5;
+  right: 0.5em;
+  z-index: 1;
+}
+
+.upload__clear:hover {
+  opacity: 1;
+}
+
+.upload--large .upload__clear {
+  padding: 1px 0.5em 2px;
+  top: calc(50% - 0.74em);
+}

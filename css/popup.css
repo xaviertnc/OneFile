@@ -1,0 +1,232 @@
+/**
+ * popup.css
+ * 
+ * F1 Popup CSS - 03 Jul 2023
+ * 
+ * @author  C. Moller <xavier.tnc@gmail.com>
+ * 
+ * @version 2.0.0 - 28 Dec 2023
+ *   - Add support for new popup.js v2
+ *   - Add animation classes
+ */
+
+:root {
+  --popup-gap: 0.67rem;
+  --popup-padding: 0.8rem;
+  --popup-background: #fff;
+  --popup-border-radius: 0.25rem;
+  --popup-header-background: transparent;
+  --popup-title-font-size: 1.25rem;
+  --popup-header-color: #333;
+}
+
+.popup__backdrop {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgb(0,0,0);  /* Fallback color */
+  background-color: rgba(0,0,0,0.4);
+}
+
+.popup__backdrop--transparent {
+  background-color: transparent;
+}
+
+.popup {
+  display: flex;
+  position: absolute;
+  flex-direction: column;
+  background: var(--popup-background);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  border-radius: var(--popup-border-radius);
+  width: max-content;
+  max-height: 100%;
+  max-width: 100%;
+}
+
+.popup--small {
+  height: 180px;
+  width: 320px;
+}
+
+.popup--medium {
+  height: 200px;
+  width: 600px;
+}
+
+.popup--large {
+  height: 300px;
+  width: 800px;
+}
+
+.popup--center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.popup--top {
+  top: var(--popup-gap);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.popup--bottom {
+  bottom: var(--popup-gap);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.popup--bottom-right {
+  bottom: var(--popup-gap);
+  right: var(--popup-gap);
+  transform: none;
+}
+
+.popup--fade-in { animation: fadeIn 0.3s ease-in-out; }
+.popup--fade-out { animation: fadeOut 0.3s ease-in-out; }
+
+.popup--slide-in { animation: slideInDown 0.3s ease-in-out; }
+.popup--slide-out { animation: slideOutUp 0.3s ease-in-out; }
+
+.popup__header {
+  padding: 0.5rem 2rem var(--popup-padding) 0.5rem; 
+  background-color: var(--popup-header-background);
+  border-top-left-radius: var(--popup-border-radius);
+  border-top-right-radius: var(--popup-border-radius);
+  color: var(--popup-header-color);
+  border-bottom: 1px solid;
+}
+
+.popup__header--no-title {
+  border: none;
+  padding: 0;
+}
+
+.popup__title {
+  font-size: var(--popup-title-font-size);
+  user-select: none;
+}
+
+.popup__content {
+  padding: var(--popup-padding);
+  overflow: auto;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup__footer {
+  display: flex;
+  flex-direction: row;
+  padding: 0.5rem var(--popup-padding);
+  border-bottom-left-radius: var(--popup-border-radius);
+  border-bottom-right-radius: var(--popup-border-radius);
+  gap: var(--popup-gap);
+}
+
+.popup__footer--no-buttons {
+  display: none;
+}
+
+.popup__close {
+  position: absolute;
+  top: 0.1em;
+  right: 0.1em;
+  color: #aaaaaa;
+  cursor: pointer;
+  opacity: 0.5;
+  font-size: 28px;
+  font-weight: bold;
+  padding: 0.1em 0.3em;
+  user-select: none;
+  background: 0;
+  border: 0;
+  z-index: 1;
+}
+
+.popup__close:hover,
+.popup__close:focus {
+  color: #000;
+  text-decoration: none;
+  display: block;
+  cursor: pointer;
+}
+
+.popup__button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  background-color: #e6e6e6;
+  color: rgba(0, 0, 0, 0.8);
+  font-size: 0.875rem;
+  line-height: 1.15;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  transition: transform 0.25s ease-out;
+}
+
+.popup__button:hover,
+.popup__button:focus {
+  transform: scale(1.05);
+}
+
+.btn--ok {
+  background-color: #5cb85c;
+  border-color: #4cae4c;
+  color: #fff;
+}
+
+.btn--primary {
+  background-color: #00449e;
+  border-color: #00306d;
+  color: #fff;
+}
+
+.popup__toast {
+  position: fixed;
+  bottom: var(--popup-gap);
+  right: var(--popup-gap);
+}
+
+.popup__error .popup__header { color: crimson; }
+.popup__success .popup__header { color: seagreen; }
+
+.popup__toast.popup--slide-in { animation: slideInUp 0.3s ease-in-out; }
+.popup__toast.popup--slide-out { animation: slideOutDown 0.3s ease-in; }
+
+@keyframes slideInDown {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slideOutDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes slideOutUp {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
