@@ -9,21 +9,11 @@
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
    * 
-   * @version 2.0.0 - RC1 - 28 Dec 2023
-   *   - Complete re-factor to allow the use of existing
-   *     HTML instead of creating a new popup every time.
-   *     When we provide a popup element, we find and only
-   *     update the popup title and content.
-   *
-   *   - Add "newEl" method.
-   *   - Add Popup.nextId, Popup.nextZIndex and Popup.popups.
-   *   - Add "createElement" method. Extract from show().
-   *   - Add / remove / change default options.
-   *   - Rename handleEscapeKey() to handleKeyUp().
-   *   - Update how positioniong and size is handled.
-   *   - Start implementing show/close animation support.
-   *   - Use config.className, ${bcn}, as elements class prefix.
-   *   - Reduce ARIA attributes to the minimum.
+   * @version 2.1.0 - RC1 - 30 Dec 2023
+   *   - Add mount()
+   *   - Add dismount()
+   *   - Add config.anchor
+   *   - Add config.mountMethod
    *
    * TODO:
    *  - Finish support for animation: none, fade, slide
@@ -89,6 +79,7 @@
       return roles?.[popupType] || 'dialog';
     }
 
+
     createElement(config) {
       log('popup.createElement(), config =', config);
 
@@ -97,7 +88,7 @@
       const bcn = config.className;
       const typeClass = config.type ? ` ${bcn}__${config.type}` : '';
       const themeClass = config.theme ? ` ${bcn}__${config.theme}` : '';
-      const sizeClass = typeof config.size === 'string' ? ` ${bcn}--${config.size}` : '';
+      const sizeClass = config.size ? ` ${bcn}--${config.size}` : '';
       const positionClass = config.position ? ` ${bcn}--${config.position}` : '';
       const popupClass = bcn + typeClass + themeClass + positionClass + sizeClass;
       const popup = this.newEl('div', {id, className: popupClass});
@@ -166,53 +157,18 @@
     }
 
 
-    show(options = {}) {
-      log('popup.show(), options =', options);
-      if (this.config.beforeOpen(this, options) === 'abort') return;
-      Popup.popups.add(this);
-      const bcn = this.config.className;
-      const content = options.content || options.message;
-      const anim = this.config.animation || options.animation;
-      if (!this.title) this.title = this.element.querySelector(`.${bcn}__title`);
-      if (!this.content) this.content = this.element.querySelector(`.${bcn}__content`);
-      if (options.title && this.title) this.title.innerHTML = options.title;
-      if (content && this.content) {
-        this.content.innerHTML = '';
-        if (content instanceof HTMLElement) this.content.appendChild(content);
-        else this.content.innerHTML = content; }
-      if (anim) {
-        const animClass = `${bcn}--${anim}-in`;
-        this.popup.classList.add(animClass);
-        const showEnd = () => { this.element.classList.remove(animClass); };
-        this.popup.addEventListener('animationend', showEnd, {once: true}); }
-      document.body.appendChild(this.element);
-      document.addEventListener('keyup', this.handleKeyUp);
-      requestAnimationFrame(() => this.element.classList.add(`${bcn}--visible`));
-      if (this.config.timer) this.timer = setTimeout(() => this.close({src:'timer'}), this.config.timer);
-      if (this.config.trapFocus) this.trapFocus();
-      return this.config.afterOpen(this);
+
+    mount() {
+      const anchor = this.config.anchor || document.body;
+      const mountMethod = this.config.mountMethod || 'append';
+      anchor[mountMethod](this.element);
+      this.mounted = true;
     }
 
 
-    close(options = {}) {
-      log('popup.close(), options =', options);
-      if (!Popup.popups.has(this)) return log('popup.close(), already closed... ignore');
-      if (this.config.beforeClose(this, options) === 'abort') return;
-      document.removeEventListener('keyup', this.handleKeyUp);
-      if (this.timer) clearTimeout(this.timer);
-      Popup.popups.delete(this);
-      const bcn = this.config.className;
-      const anim = this.config.animation || options.animation;
-      const closeEnd = (animClass) => {
-        if (animClass) this.popup.classList.remove(animClass);
-        this.element.classList.remove(`${bcn}--visible`);
-        document.body.removeChild(this.element);
-        this.config.afterClose(this, options); };
-      if (anim) {
-        const animClass = `${bcn}--${anim}-out`;
-        this.popup.classList.add(animClass);
-        this.element.addEventListener('animationend', () => closeEnd(animClass), {once: true});
-      } else closeEnd();
+    dismount() {
+      this.element.remove();
+      this.mounted = false;
     }
 
 
@@ -248,6 +204,57 @@
         this.close({event, src: 'escape'});
       }
     }
+
+
+    show(options = {}) {
+      log('popup.show(), options =', options);
+      if (this.config.beforeOpen(this, options) === 'abort') return;
+      Popup.popups.add(this);
+      const bcn = this.config.className;
+      const content = options.content || options.message;
+      const anim = this.config.animation || options.animation;
+      if (!this.title) this.title = this.element.querySelector(`.${bcn}__title`);
+      if (!this.content) this.content = this.element.querySelector(`.${bcn}__content`);
+      if (options.title && this.title) this.title.innerHTML = options.title;
+      if (content && this.content) {
+        this.content.innerHTML = '';
+        if (content instanceof HTMLElement) this.content.appendChild(content);
+        else this.content.innerHTML = content; }
+      if (anim) {
+        const animClass = `${bcn}--${anim}-in`;
+        this.popup.classList.add(animClass);
+        const showEnd = () => { this.element.classList.remove(animClass); };
+        this.popup.addEventListener('animationend', showEnd, {once: true}); }
+      if (!this.mounted) this.mount();
+      document.addEventListener('keyup', this.handleKeyUp);
+      requestAnimationFrame(() => this.element.classList.add(`${bcn}--visible`));
+      if (this.config.timer) this.timer = setTimeout(() => this.close({src:'timer'}), this.config.timer);
+      if (this.config.trapFocus) this.trapFocus();
+      return this.config.afterOpen(this);
+    }
+
+
+    close(options = {}) {
+      log('popup.close(), options =', options);
+      if (!Popup.popups.has(this)) return log('popup.close(), already closed... ignore');
+      if (this.config.beforeClose(this, options) === 'abort') return;
+      document.removeEventListener('keyup', this.handleKeyUp);
+      if (this.timer) clearTimeout(this.timer);
+      Popup.popups.delete(this);
+      const bcn = this.config.className;
+      const anim = this.config.animation || options.animation;
+      const closeEnd = (animClass) => {
+        if (animClass) this.popup.classList.remove(animClass);
+        this.element.classList.remove(`${bcn}--visible`);
+        this.dismount();
+        this.config.afterClose(this, options); };
+      if (anim) {
+        const animClass = `${bcn}--${anim}-out`;
+        this.popup.classList.add(animClass);
+        this.element.addEventListener('animationend', () => closeEnd(animClass), {once: true});
+      } else closeEnd();
+    }
+
   }
 
   F1.lib = F1.lib || {};
