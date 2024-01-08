@@ -10,8 +10,8 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.8 - FT - 16 Dec 2023
- *   - Add safeRollback() method.
+ * @version 1.9 - FT - 08 Jan 2024
+ *   - Add support for the 'BETWEEN' condition operator.
  */
 
 class Database {
@@ -285,7 +285,13 @@ class Database {
       $placeholders = implode( ', ', array_fill( 0, count( $condition['value'] ), '?' ) );
       foreach ( $condition['value'] as $value ) $this->params[] = $value;
       return $logic . $condition['column'] . ' ' . $condition['operator'] . ' (' . $placeholders . ')';
-    } else {
+    } 
+    if ( $condition['operator'] === 'BETWEEN' && is_array( $condition['value'] ) ) {
+      $this->params[] = $condition['value'][0];
+      $this->params[] = $condition['value'][1];
+      return $logic . $condition['column'] . ' ' . $condition['operator'] . ' ? AND ?';
+    }
+    else {
       $this->params[] = $condition['value'];
       return $logic . $condition['column'] . ' ' . $condition['operator'] . ' ?';
     }
