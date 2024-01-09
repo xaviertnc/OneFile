@@ -8,51 +8,47 @@ use InvalidArgumentException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.2 - DEV - 08 Jan 2024
- *   - Make Config::get() more versatile.
- *      - Throw InvalidArgumentException if group not found.
- *      - Allow for default value if the key is not found.
+ * @version 2.0 - FT - 08 Jan 2024
+ *   - Major functionality change
+ *   - Add support to "lazy load" config groups.
+ *   - Add Config::loadGroup() method.
  */
 
 class Config {
 
-  private array $settings;
+  private $settings = [];
+  private $configDir;
 
 
-  /**
-   * Scan $configDir for config group files "[group].php"
-   * and store the arrays returned in $this->settings[group];
-   */
-  public function __construct( string $configDir ) {
-    $this->settings = [];
-    if ( ! is_dir( $configDir ) or ! is_readable( $configDir ) ) {
-      $message = 'Directory does not exist or is not readable: ' . $configDir;
-      throw new InvalidArgumentException( $message ); }
-    $files = scandir( $configDir );
-    foreach ( $files as $file ) {
-      if ( $file[0] === '.' ) continue;
-      $group = str_replace( '.php', '', $file );
-      $this->settings[$group] = require $configDir . DIRECTORY_SEPARATOR . $file;
-    }
+  public function __construct( $configDir ) {
+    if ( ! is_dir( $configDir ) || ! is_readable( $configDir ) )
+      throw new InvalidArgumentException( 'Directory does not exist' .
+        ' or is not readable: ' . $configDir );
+    $this->configDir = $configDir;
   }
 
 
-  public function get( string $group = null, string $key = null,  $default = null ) {
-    if ( $group === null )
-      return $this->settings;
-    if ( $key === null )
-      throw new InvalidArgumentException( 'Config::get, Key not specified: ' . $group );
-    if ( ! array_key_exists( $group, $this->settings ) )
-      throw new InvalidArgumentException( 'Config::get, Group not found: ' . $group );
-    if ( ! array_key_exists( $key, $this->settings[$group] ) )
-      return $default;
-    return $this->settings[$group];
+  private function loadGroup( $group ) {
+    $filePath = $this->configDir . DIRECTORY_SEPARATOR . $group . '.php';
+    if ( ! file_exists( $filePath ) )
+      throw new InvalidArgumentException( 'Config file not found' .
+      ' for group: ' . $group );
+    $this->settings[$group] = require $filePath;
+  }
+
+
+  public function get( $group = null, $key = null, $default = null ) {
+    if ( $group === null ) return $this->settings;
+    if ( ! array_key_exists( $group, $this->settings ) ) $this->loadGroup( $group );
+    if ( $key === null ) return $this->settings[$group];
+    return $this->settings[$group][$key] ?? $default;
   }
 
 
   public function set( string $group, string $key, $value ) {
     if ( ! array_key_exists( $group, $this->settings ) )
-      throw new InvalidArgumentException( 'Config::set, Group not found: ' . $group );
+      throw new InvalidArgumentException( 'Config::set, Group' .
+        ' not found: ' . $group );
     $this->settings[$group][$key] = $value;
   }
 
