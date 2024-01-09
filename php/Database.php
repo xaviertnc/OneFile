@@ -10,8 +10,8 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.9 - FT - 08 Jan 2024
- *   - Add support for the 'BETWEEN' condition operator.
+ * @version 1.10 - FIX - 09 Jan 2024
+ *   - Fix regression bug in getAll() method. $select param was not working as expected.
  */
 
 class Database {
@@ -44,7 +44,7 @@ class Database {
   }
 
   public function table( $tableName ) { $this->table = $tableName; return $this; }
-  public function select( $select = '*' ) { $this->select = $select; return $this; }
+  public function select( $select ) { $this->select = $select; return $this; }
   public function orderBy( $order ) { $this->orderBy = ' ORDER BY ' . $order; return $this; }
   public function limit( $limit ) { $this->limit = ' LIMIT ' . $limit; return $this; }
 
@@ -350,7 +350,7 @@ class Database {
   }
 
   public function getAll( $select = null ) {
-    return $this->select( $select ?: '*' )->query();
+    return $select ? $this->select( $select )->query() : $this->query();
   }
 
 }
