@@ -8,14 +8,14 @@
    * Utils Class - 01 Jun 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 2.0 - RC2 - 04 Dec 2023
-   *   - Add titleCase()
+   * @version 2.0 - RC3 - 11 Jan 2024
+   *   - Make className optional in getEl()
    */
 
   class Utils {
 
     static newEl(tag, className, attrs = {}) {
-      const el = document.createElement(tag); el.className = className;
+      const el = document.createElement(tag); if (className) el.className = className;
       Object.entries(attrs).forEach(([key, value]) => el[key] = value);
       return el;
     }

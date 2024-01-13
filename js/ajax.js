@@ -12,8 +12,9 @@
    * 
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 3.1 - FIX - 11 Dec 2023
-   *   - Prevent forcing FormData "fetch content type" to "urlencoded"
+   * @version 3.2 - FIX - 11 Jan 2024
+   *   - Return the response "as is" if we set the "ResponseType" to anything other 
+   *     than "json", "html" or "text". This allows us to use "await Ajax.fetch..."!
    * 
    * 
    * Method: fetch
@@ -86,7 +87,9 @@
       try {
         const response = await fetch(url, fetchOptions);
         if (!response.ok) throw new Error(`HTTP error: ${response.status}, message: ${response.statusText}`);
-        return responseType === 'json' ? await response.json() : await response.text();
+        if (responseType === 'json') return await response.json();
+        if ( responseType === 'html' || responseType === 'text' ) return await response.text();
+        return response;
       } catch (err) {
         if (err instanceof TypeError) err.message = `Network error or CORS issue: ${err.message}`;
         console.error(`ajax.${method}.error:`, err);
