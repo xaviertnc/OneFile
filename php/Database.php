@@ -172,12 +172,12 @@ class Database {
     if ( is_scalar( $autoStamp ) ) $autoStamp = [];
     $at = $operation . '_at';
     $now = date( 'Y-m-d H:i:s' );
-    debug_log( $at . ': ' . $now, 'db::autoStamp(), ', 2 );
+    debug_log( $at . ': ' . $now, 'db::autoStamp(), ', 3 );
     $data[$autoStamp[$at] ?? $at] = $now;
     $asUser = $options['user'] ?? null;
     if ( ! $asUser ) return $data;
     $by = $operation . '_by';
-    debug_log( $by . ': '. $asUser, 'db::autoStamp(), ', 2 );
+    debug_log( $by . ': '. $asUser, 'db::autoStamp(), ', 3 );
     $data[$autoStamp[$by] ?? $by] = $asUser;
     return $data;
   }
