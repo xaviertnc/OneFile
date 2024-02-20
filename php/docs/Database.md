@@ -101,7 +101,7 @@ $sql = $sql ?? 'SELECT * FROM users WHERE status = ?';
 $params = $params ?? ['active'];
 $users = $db->query( $sql, $params );
 $users = $db->query( 'SELECT * FROM users WHERE status = ?', ['active'] );
-$roles = $db->query( 'SELECT * FROM roles WHERE id = ?', [1], );
+$roles = $db->query( 'SELECT * FROM sys_roles WHERE id = ?', [1], );
 $allUsersCount = $db->query( 'SELECT COUNT(*) FROM users' );
 $countries = $db->query( 'SELECT * FROM countries' );
 ```

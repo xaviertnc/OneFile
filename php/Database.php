@@ -10,8 +10,8 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.10 - FIX - 09 Jan 2024
- *   - Fix regression bug in getAll() method. $select param was not working as expected.
+ * @version 1.11 - FIX - 20 Feb 2024
+ *   - Cast $existing to array before calling getChangedValues() in upsert().
  */
 
 class Database {
@@ -229,7 +229,7 @@ class Database {
       // Do we need to do this before checking for changed values?
       // $data = $this->filterAndTypeCorrectData( $data );
       $changedKeys = $options['onchange'];
-      $changed = $this->getChangedValues( $data, $existing, $pk, $changedKeys );
+      $changed = $this->getChangedValues( $data, (array) $existing, $pk, $changedKeys );
       if ( count( $changed ) === 0 ) return [ 'status' => 'unchanged', 'id' => $data[$pk], 'affected' => 0 ];
       debug_log( $changed, 'db::upsert(), Value changes detected: ', 2 );
     }
