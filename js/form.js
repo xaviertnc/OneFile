@@ -8,9 +8,8 @@
    * F1 Form - 07 Oct 2022
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 3.2 - FT - 13 Dec 2023
-   *   - Add isModified()
-   *   - Change bootstrap state from 'init' to 'init-bootstrap'
+   * @version 3.3 - FT - 23 Feb 2024
+   *   - Add validateOnSubmit()
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -19,6 +18,7 @@
 
     constructor(formElement, config = {}) {
       const defaultConfig = {
+        validateOnSubmit: function() { return true; },
         customValidations: {},
         customFieldTypes: {},
         stopOnInvalid: false,
@@ -60,14 +60,16 @@
       log('handleSubmit', { form: this, event: e });
       if (this.onBeforeSubmit?.(e) === false) return;
       let firstInvalidField = null, formValid = true;
-      for (const field of Object.values(this.fields)) {
-        const isValid = field.validate();
-        log('sumitting field', { field: field.name, isValid });
-        field.updateValidationUi(isValid);
-        if (isValid) continue;
-        formValid = false;
-        if (!firstInvalidField) firstInvalidField = field;
-        if (this.stopOnInvalid) break;
+      if (this.validateOnSubmit()) {
+        for (const field of Object.values(this.fields)) {
+          const isValid = field.validate();
+          log('sumitting field', { field: field.name, isValid });
+          field.updateValidationUi(isValid);
+          if (isValid) continue;
+          formValid = false;
+          if (!firstInvalidField) firstInvalidField = field;
+          if (this.stopOnInvalid) break;
+        }
       }
       if (this.onSubmit?.(e, formValid, firstInvalidField) === false) return;
       if (!formValid) return firstInvalidField && this.gotoField(firstInvalidField);
