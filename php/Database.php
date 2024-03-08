@@ -10,8 +10,9 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.11 - FIX - 20 Feb 2024
- *   - Cast $existing to array before calling getChangedValues() in upsert().
+ * @version 1.12 - DEV - 27 Feb 2024
+ *   - Add "NOT IN" support to the "where" method.
+ *   - Improve debug log quality on Database::upsert().
  */
 
 class Database {
@@ -139,9 +140,9 @@ class Database {
       $dateTime = DateTime::createFromFormat( $asDateOnly ? 'd/m/Y' : 'd/m/Y H:i:s' , $dateTimeInput );
       if ( $dateTime !== false ) return $dateTime->format( 'Y-m-d' . ( $asDateOnly ? '' : ' H:i:s' ) );
     }
-    $timestamp = strtotime($dateTimeInput);
+    $timestamp = strtotime( $dateTimeInput );
     if ( $timestamp === false ) return null;
-    return date('Y-m-d' . ($asDateOnly ? '' : ' H:i:s'), $timestamp);
+    return date( 'Y-m-d' . ( $asDateOnly ? '' : ' H:i:s' ), $timestamp );
   }
 
   // Remove data keys that don't match table column names and correct data value types if possible.
@@ -214,13 +215,14 @@ class Database {
       'affected' => $affectedRows ] : null;
   }
 
-  public function upsert( array $data, $upsertOn, $options = [] ) {
-    debug_log( $upsertOn, 'db::upsert(), on ', 2 );
-    debug_log( $options, 'db::upsert(), options: ', 3 );
-    debug_log( $data, 'db::upsert(), data: ', 3 );
+  public function upsert( array $data, $upsertOn, $options = [] ) {  
     if ( ! array_key_exists( $upsertOn, $data ) )
       throw new Exception( "Upsert key '$upsertOn' not found in data." );
-    $existing = $this->where( $upsertOn, '=', $data[$upsertOn] )->getFirst();
+    $upsertKeyValue = $data[$upsertOn];
+    debug_log( "$upsertOn = $upsertKeyValue", 'db::upsert() ', 2 );
+    debug_log( $options, 'db::upsert(), options: ', 3 );
+    debug_log( $data, 'db::upsert(), data: ', 3 );
+    $existing = $this->where( $upsertOn, '=', $upsertKeyValue )->getFirst();
     if ( empty( $existing ) ) return $this->insert( $data, $options );
     // else: update existing.
     $pk = $this->primaryKey;
@@ -281,7 +283,8 @@ class Database {
   }
 
   private function buildConditionClause( $condition, $logic ) {
-    if ( $condition['operator'] === 'IN' && is_array( $condition['value'] ) ) {
+    if ( ( $condition['operator'] === 'IN' or $condition['operator'] === 'NOT IN' )
+     && is_array( $condition['value'] ) ) {
       $placeholders = implode( ', ', array_fill( 0, count( $condition['value'] ), '?' ) );
       foreach ( $condition['value'] as $value ) $this->params[] = $value;
       return $logic . $condition['column'] . ' ' . $condition['operator'] . ' (' . $placeholders . ')';
