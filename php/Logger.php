@@ -5,23 +5,23 @@
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.1 - DEV - 09 Dec 2023
- *   - Reorganize code.
+ * @version 2.2 - DEV - 28 Feb 2024
+ *   - Make class properties public.
+ *   - Add Logger::setPath()
  */
 
 class Logger {
 
-  protected $path;
-  protected $file;
-  protected $fileName;
-  protected $disabled;
-  protected $logLevel;
+  public $path;
+  public $file;
+  public $fileName;
+  public $disabled;
+  public $logLevel;
 
 
   public function __construct( $logPath = __DIR__, $fileName = null, $logLevel = 0 ) {
-    $this->path = $logPath;
+    $this->setPath( $logPath );
     $this->fileName = $fileName;
-    if ( ! is_dir( $this->path ) ) mkdir( $this->path, 0777, true );    
     $this->file = $this->path . DIRECTORY_SEPARATOR . ( $fileName ?: 'log-' . date( 'Y-m-d' ) . '.txt' );
     $this->disabled = ! $logLevel;
     $this->logLevel = $logLevel;
@@ -44,6 +44,18 @@ class Logger {
     if ( $this->disabled ) return;
     $formattedMessage = $this->formatLog( $message, $type );
     file_put_contents( $this->file, $formattedMessage, FILE_APPEND | LOCK_EX );
+  }
+
+
+  public function setPath( $path, $mkdir = true ) {
+    if ( $mkdir and ( ! is_dir( $path ) ) ) { mkdir( $path, 0777, true ); }
+    $this->path = $path;
+  }
+
+
+  public function setFileName( $fileName ) {
+    $this->fileName = $fileName;
+    $this->file = $this->path . DIRECTORY_SEPARATOR . $fileName;
   }
 
 
