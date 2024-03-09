@@ -10,9 +10,11 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.12 - DEV - 27 Feb 2024
- *   - Add "NOT IN" support to the "where" method.
- *   - Improve debug log quality on Database::upsert().
+ * @version 1.13 - DEV - 09 Mar 2024
+ *   - Always return an array from insert(), update() and upsert().
+ *     If we encouter a problem, throw an exception!
+ *     NOTE: Update can return 0 affected if the rec didn't change, so
+ *     using the Affected Rows to determine success is not good!
  */
 
 class Database {
@@ -194,8 +196,8 @@ class Database {
     $this->sql = "INSERT INTO `{$this->table}` ( $columnsStr ) VALUES ( $placeholders )";
     $this->params = array_values( $data );
     $affectedRows = $this->execute();
-    return $affectedRows ? [ 'status' => 'inserted', 'id' => $this->pdo->lastInsertId(),
-      'affected' => $affectedRows ] : null;
+    return [ 'status' => 'inserted', 'id' => $this->pdo->lastInsertId(), 
+      'affected' => $affectedRows ];
   }
 
   public function update( array $data, $options = [] ) {
@@ -211,8 +213,8 @@ class Database {
     $this->sql = "UPDATE `{$this->table}` SET $assignmentsStr WHERE `{$this->primaryKey}` = ?";
     $this->params = array_values($data); $this->params[] = $pkValue;
     $affectedRows = $this->execute();
-    return $affectedRows ? [ 'status' => 'updated', 'id' => $pkValue,
-      'affected' => $affectedRows ] : null;
+    return [ 'status' => 'updated', 'id' => $pkValue,
+      'affected' => $affectedRows ];
   }
 
   public function upsert( array $data, $upsertOn, $options = [] ) {  
