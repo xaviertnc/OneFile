@@ -2,7 +2,7 @@
 
 ### Initialize
 ```javascript
-const ajax = new F1.modules.Ajax();
+const ajax = new F1.lib.Ajax();
 ```
 
 ### GET Request

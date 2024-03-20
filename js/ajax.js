@@ -49,9 +49,9 @@
    *  Check the response for soft error info like { error: 'error message' }
    * 
    * Usage:
-   * const data = await F1.Ajax.fetch('https://example.com/api', { method: 'POST', data: { name: 'John' } });
-   * const data = await F1.Ajax.post('https://example.com/api', { id: 99 }, { responseType: 'text/html' });
-   * const data = await F1.Ajax.submit(document.querySelector('form#myForm'));
+   * const data = await F1.lib.Ajax.fetch('https://example.com/api', { method: 'POST', data: { name: 'John' } });
+   * const data = await F1.lib.Ajax.post('https://example.com/api', { id: 99 }, { responseType: 'text/html' });
+   * const data = await F1.lib.Ajax.submit(document.querySelector('form#myForm'));
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }

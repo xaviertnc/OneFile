@@ -17,8 +17,9 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.7 - DEV - 09 Dec 2023
- *   - Move destory code out of logout() and into destorySession()
+ * @version 1.8 - DEV - 19 Mar 2024
+ *   - Change login HTML slightly. Apply a "busy" class
+ *     to the <body> tag, instead of the <form> tag on submit.
  * 
  */
 
@@ -188,7 +189,7 @@ class Security
 
 
   public function renderLogin( $feedback = null ) {
-    echo '<form method="POST" onsubmit="this.className=\'busy\'">';
+    echo '<form method="POST" onsubmit="document.body.className=\'busy\'">';
     if ( $feedback ) echo '<p id="generalFeedback" class="feedback">' . $feedback . '</p>';
     echo '<label for="username">Username:</label>';
     echo '<input type="text" id="username" name="username" placeholder="Username" required>';
