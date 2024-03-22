@@ -1,6 +1,6 @@
 <?php namespace F1;
 
-use FPDF;
+use FPDF\FPDF;
 
 /**
  * F1 PDF Class - 15 Mar 2011
@@ -10,65 +10,40 @@ use FPDF;
  * @version 2.0 - UPD - 1 May 2013
  *   - Refactor for Laravel 4
  * 
- * @version 3.0 - UPD - 19 Mar 2024
- *   - Adapt for use in F1 Framework
+ * @version 3.0 - UPD - 20 Mar 2024
+ *   - Adapt for use with F1 Framework, FPDF 1.86 and PHP 8+
+ *   - Change all `var` declarations to `protected`.
+ *   - Change use FPDF to use FPDF\FPDF.
+ *   - Add PDF::getMargin() and PDF::setMargin().
+ *   - Improve PDF::TextBoxSL to allow rendering URLS and cell padding.
+ *   - Revert _parsepng and _parsejpg overrides.
+ *   - Remove custom Georgia font. Was used for KD app.
+ *   - Remove PDF::PutLink().
  */
 
 class PDF extends FPDF
 {
-  var $FONT;
-  var $SIZE;
-  var $COLOUR;
-  var $DECOR;
-  var $PREV_FONT;
-  var $PREV_SIZE;
-  var $PREV_COLOUR;
-  var $PREV_DECOR;
-  var $LINE_HEIGHT;
-  var $LINE_SPACING = 3; // In Pt's
-  var $HREF;
-  var $wc; // width of center part of page (i.e. PageWidth - Margins)
-  var $FillColorHex;
-  var $DrawColorHex;
-  var $ShowHeader;
-  var $ShowFooter;
+  protected $FONT;
+  protected $SIZE;
+  protected $COLOUR;
+  protected $DECOR;
+  protected $PREV_FONT;
+  protected $PREV_SIZE;
+  protected $PREV_COLOUR;
+  protected $PREV_DECOR;
+  protected $LINE_HEIGHT;
+  protected $LINE_SPACING = 3; // In Pt's
+  protected $HREF;
+  protected $wc; // width of center part of page (i.e. PageWidth - Margins)
+  protected $FillColorHex;
+  protected $DrawColorHex;
+  protected $ShowHeader;
+  protected $ShowFooter;
 
 
   private function _getLineHeight($fspt)
   {
     return ($fspt + $this->LINE_SPACING)/$this->k;
-  }
-    
-  function _parsepng($file)
-  {
-    $a = getimagesize($file);
-    if($a) 
-    {
-      if($a[2]==2) {
-        //$file = str_replace('.png', '.jpg', $file);
-        return $this->_parsejpg($file,$a); 
-      }
-    }
-    return parent::_parsepng($file);
-  }
-
-  function _parsejpg($file,&$info=null)
-  {
-    // Extract info from a JPEG file
-    if (isset($info)) $a = &$info; else $a = getimagesize($file);
-    if(!$a)
-      $this->Error('Missing or incorrect image file: '.$file);
-    if($a[2]!=2)
-      $this->Error('Not a JPEG file: '.$file);
-    if(!isset($a['channels']) || $a['channels']==3)
-      $colspace = 'DeviceRGB';
-    elseif($a['channels']==4)
-      $colspace = 'DeviceCMYK';
-    else
-      $colspace = 'DeviceGray';
-    $bpc = isset($a['bits']) ? $a['bits'] : 8;
-    $data = file_get_contents($file);
-    return array('w'=>$a[0], 'h'=>$a[1], 'cs'=>$colspace, 'bpc'=>$bpc, 'f'=>'DCTDecode', 'data'=>$data);  
   }
     
   function __construct($orientation='', $unit='', $pagesize='', $font='', $fontsize='', $fontcolour='', $margins='')
@@ -97,9 +72,14 @@ class PDF extends FPDF
     $this->SetDrawColor(0,0,255);
     $this->SetFillColor(200,200,200);
     $this->SetX($this->lMargin);
-    $this->AddFont('georgia','IB','georgiaib.php');
+    // $this->AddFont('georgia','IB','georgiaib.php');
     $this->ShowHeader = true;
     $this->ShowFooter = true;
+  }
+
+  function Init($orientation='P', $unit='mm', $size='A4')
+  {
+    parent::__construct($orientation, $unit, $size);
   }
 
   //If x = -1 and w = 0 then w = page/line width , x = left margin. (Full Line Box)
@@ -108,7 +88,9 @@ class PDF extends FPDF
   //if x = -2 and w = 0 then w = text width + margin*2, x = Last X. (Auto Width Box Starting at Last X)
   //If x >= 0 and w > 0 then w = w + margin*2 , x = unchanged. (Fixed Width Box Starting at X)
   //If x >= 0 and w = 0 then w = text width + margin*2, x = unchanged (Auto Width Box Starting at X)
-  function TextBoxSL($x=0, $dy=0, $w=0, $txt='', $align='', $next_item='', $fontsize='', $fontcolour='', $fontdecor='', $font='', $border='', $bgcolour='', $margin=0)
+  function TextBoxSL($x=0, $dy=0, $w=0, $txt='', $align='', $next_item='', 
+            $fontsize='', $fontcolour='', $fontdecor='', $font='', 
+            $border='', $bgcolour='', $margin=0, $padding=0, $url = '')
   {
     $txt = utf8_decode($txt);
     $PREV_FONT = $this->FONT;
@@ -179,8 +161,14 @@ class PDF extends FPDF
       default:
         $nl = 1; //Moves XY pointer to next line instead of end of block if = 1;
     }
+
+    if ($url) {
+      $url = trim($url); //Avoid buggy PDF links
+      //Special requirement for HP security error... NM 14 Feb 2012
+      if ($url and strpos('/?', $url) === false) $url = str_replace ('?', '/?', $url);
+    }
     
-    $this->Cell($w, $LINE_HEIGHT, $txt, $border, $nl, $align, !empty($bgcolour));
+    $this->Cell($w, $LINE_HEIGHT + $padding, $txt, $border, $nl, $align, !empty($bgcolour), $url);
     
     $this->FONT = $PREV_FONT;
     $this->SIZE = $PREV_SIZE;
@@ -190,7 +178,7 @@ class PDF extends FPDF
     if ($next_item == 'next-newline') $this->x = $this->lMargin;
   }
 
-  function TextBoxML( $x=0, $dy=0, $w=0, $txt='', $align='', $next_item='', 
+  function TextBoxML($x=0, $dy=0, $w=0, $txt='', $align='', $next_item='', 
             $fontsize='', $fontcolour='', $fontdecor='', $font='', 
             $border='', $fillcolour='', $margin=0)
   {
@@ -393,26 +381,27 @@ class PDF extends FPDF
     $this->SetDrawColorHex($PREV_DRAWCOL);
   }
 
-  function PutLink($dx, $dy, $w, $URL, $txt, $next_item = 'next-newline', $align='L', $font_size=9)
+  function GetMargin($side='left')
   {
-    // Put a hyperlink
-    $this->x += $dx;
-    $this->y += $dy;
-    switch ($next_item)
+    switch ($side)
     {
-      case 'next-inline': $nl = 0; break;
-      case 'next-under': $nl = 2; break;
-      case 'next-newline':
-      default: $nl = 1;
+      case 'left': return $this->lMargin;
+      case 'right': return $this->rMargin;
+      case 'top': return $this->tMargin;
+      case 'bottom': return $this->bMargin;
     }
-    $this->SetTextColor(0,0,255);
-    $this->SetFont('', 'U', $font_size);
-    if (!$w) $w = $this->GetStringWidth($txt)+2;
-    $URL = trim($URL); //Also remove spaces before/after link to avoid errors on PDF report
-    if (strpos('/?', $URL) === false) $URL = str_replace ('?', '/?', $URL); //Special requirement for HP security error... NM 14 Feb 2012
-    $this->Cell($w, $this->LINE_HEIGHT, $txt, 0, $nl, $align, 0, $URL);
-    $this->SetFont('', $this->DECOR);
-    $this->SetTextColorHex($this->COLOUR);
+  }
+
+  function SetMargin($side='left', $margin=0)
+  {
+    switch ($side)
+    {
+      case 'left': $this->lMargin = $margin; break;
+      case 'right': $this->rMargin = $margin; break;
+      case 'top': $this->tMargin = $margin; break;
+      case 'bottom': $this->bMargin = $margin; break;
+    }
+    $this->wc = $this->w - $this->lMargin - $this->rMargin;
   }
 
   function SetMargins($left=null, $top=null, $right=null)
@@ -696,6 +685,6 @@ class PDF extends FPDF
       case 'next-inline' : $this->y = $y + $h; break;
     }
 
-  }
+  } // MarkupLine
 
-} //end: PDF Class
+} // PDF
