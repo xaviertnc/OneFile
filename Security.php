@@ -17,9 +17,14 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.8 - DEV - 19 Mar 2024
- *   - Change login HTML slightly. Apply a "busy" class
- *     to the <body> tag, instead of the <form> tag on submit.
+ * @version 2.0 - FT - 07 Apr 2024
+ *   - Add constructor arguments `$encryptedToken` and `$startSession` to
+ *     allow instantiating a Security instance without starting a session.
+ *     This is useful for API endpoints that just need to validate tokens.
+ *   - Add $encryptedToken and $token properties.
+ *   - Add setToken(), encryptToken(), getTokenFromCookie()
+ *   - Add validateToken(), tokenExpired() methods to check token format and expiry.
+ *   - Update encypt() and decrypt() methods to use an optional secret key argument.
  * 
  */
 
@@ -28,46 +33,29 @@ class Security
   const TOKEN_LIFE_SPAN = 3600;  // 1 hour in seconds
   const TOKEN_EXTEND_THRESHOLD = 300;  // 5 minutes in seconds
 
-  private $user = null;
+  /**
+   * The current auth user object
+   * @var array|null e.g. [ 'id' => $userId, 'username' => $username, 'role' => $role ]
+   */
+  private $user;
+
+  /**
+   * The decrypted token
+   * u = user object, t = (int) timestamp
+   * @var array|null e.g. [ 'u' => [ 'id' => $userId, ... ], 't' => $timestamp ]
+   */
+  private $token;
+
+  private $secretKey = null;
+  private $encryptedToken = null;
   private $loggedIn = false;
-  private $secretKey;
 
 
-  public function __construct( $secretKey ) {
+  public function __construct( $secretKey = null, $encryptedToken = null, $startSession = true ) {
     $this->secretKey = $secretKey;
-    $this->startSessionFromToken( $this->getToken() );
-  }
-
-
-  public function encrypt( $inputString, $secretKey ) {
-    $encrypted = [];
-    $keyLength = strlen( $secretKey );
-    for ( $i = 0; $i < strlen( $inputString ); $i++ ) {
-      $char = ord( $inputString[$i] ) - 32;
-      $keyChar = ord( $secretKey[$i % $keyLength] ) - 32;
-      $encryptedChar = chr( ( ( ( $char + $keyChar ) % 95 ) + 32 ) );
-      $encrypted[] = $encryptedChar;
-    }
-    return implode( '', $encrypted );
-  }
-
-
-  public function decrypt( $encryptedString, $secretKey ) {
-    $decrypted = [];
-    $keyLength = strlen( $secretKey );
-    for ( $i = 0; $i < strlen( $encryptedString ); $i++ ) {
-      $char = ord( $encryptedString[$i] ) - 32;
-      $keyChar = ord( $secretKey[$i % $keyLength] ) - 32;
-      $decryptedChar = chr( ( ( ( $char - $keyChar + 95 ) % 95 ) + 32 ) );
-      $decrypted[] = $decryptedChar;
-    }
-    return implode( '', $decrypted );
-  }
-
-
-  public function getToken() {
-    debug_log( json_encode( $_COOKIE ), 'Security::getToken(), $_COOKIE: ', 3 );
-    return $_COOKIE['token'] ?? '';
+    $this->encryptedToken = $encryptedToken ?? $this->getTokenFromCookie();
+    $this->setToken( $this->encryptedToken, true );
+    if ( $startSession ) $this->startSessionFromToken( $this->token );
   }
 
 
@@ -99,6 +87,70 @@ class Security
   }
 
 
+  public function encrypt( $inputString, $secretKey = null ) {
+    $secretKey = $secretKey ?: $this->secretKey;
+    $encrypted = []; $keyLength = strlen( $secretKey );
+    for ( $i = 0; $i < strlen( $inputString ); $i++ ) {
+      $char = ord( $inputString[$i] ) - 32;
+      $keyChar = ord( $secretKey[$i % $keyLength] ) - 32;
+      $encryptedChar = chr( ( ( ( $char + $keyChar ) % 95 ) + 32 ) );
+      $encrypted[] = $encryptedChar;
+    }
+    return implode( '', $encrypted );
+  }
+
+
+  public function decrypt( $encryptedString, $secretKey = null ) {
+    $secretKey = $secretKey ?: $this->secretKey;
+    $decrypted = []; $keyLength = strlen( $secretKey );
+    for ( $i = 0; $i < strlen( $encryptedString ); $i++ ) {
+      $char = ord( $encryptedString[$i] ) - 32;
+      $keyChar = ord( $secretKey[$i % $keyLength] ) - 32;
+      $decryptedChar = chr( ( ( ( $char - $keyChar + 95 ) % 95 ) + 32 ) );
+      $decrypted[] = $decryptedChar;
+    }
+    return implode( '', $decrypted );
+  }
+
+
+  public function getToken() { return $this->token; }
+
+
+  public function setToken( $token, $decrypt = false ) {
+    $this->token = ( $decrypt and $token ) ? $this->decryptToken( $token ) : $token;
+  }
+
+
+  public function encryptToken( $token, $secret = null ) {
+    return $token ? $this->encrypt( json_encode( $token ), $secret ) : null;
+  }
+
+
+  public function decryptToken( $encryptedToken, $secret = null ) {
+    return $encryptedToken ? json_decode( $this->decrypt( $encryptedToken, $secret ), true ) : null;
+  }
+
+
+  public function tokenExpired( array $token ) {
+    $timeElapsed = time() - $token['t'];
+    debug_log( $timeElapsed . ', max: ' . self::TOKEN_LIFE_SPAN, 
+      'Security::tokenExpired(), token age: ', 3, 'security' );
+    return $timeElapsed > self::TOKEN_LIFE_SPAN;
+  }
+
+
+  public function validateToken( $token ) {
+    $logType = 'security';
+    $logPrefix = 'Security::validateToken(), ';
+    debug_log( $logPrefix . 'Says Hi!', '', 2, $logType );
+    debug_log( $token, $logPrefix . 'token: ', 5, $logType );
+    $formatValid = $token and isset( $token['u'], $token['t'] );
+    if ( ! $formatValid ) return debug_log( 'Token Invalid', $logPrefix, 2, $logType );
+    if ( $this->tokenExpired( $token ) ) return debug_log( 'Token Expired', $logPrefix, 2, $logType );
+    return true;
+  }
+
+
   public function setTokenCookie( $encryptedToken ) {
     setcookie( 'token', $encryptedToken, [
       'httponly' => true,
@@ -106,6 +158,29 @@ class Security
       'secure' => true,
       'path' => '/',
     ] );
+  }
+
+
+  public function getTokenFromCookie() {
+    debug_log( json_encode( $_COOKIE ), 'Security::getTokenFromCookie(), $_COOKIE: ', 3 );
+    return $_COOKIE['token'] ?? '';
+  }
+
+
+  public function startSessionFromToken( $token = null ) {
+    debug_log( 'Security::startSessionFromToken(), Says Hi!', '', 3, 'security' );
+    if ( ! $this->validateToken( $token ) ) return $this->logout();
+    $tokenUser = $token['u'];
+    $timeElapsed = time() - $token['t'];
+    $refreshToken = $timeElapsed < self::TOKEN_EXTEND_THRESHOLD;
+    // NOTE: Session will fail if the `token user` does not match the `session user`!
+    $this->loggedIn = $this->startUserSession( $tokenUser );
+    if ( $refreshToken and $this->loggedIn ) {
+      $newToken = [ 'u' => $tokenUser, 't' => time() ];
+      $this->setTokenCookie( $this->encryptToken( $newToken ) );
+    }
+    debug_log( $this->loggedIn ? 'Yes' : 'No', 'Security::startSessionFromToken(), loggedIn: ', 2, 'security' );
+    return $this->loggedIn;    
   }
 
 
@@ -124,40 +199,6 @@ class Security
     debug_log( $sessionUserId, $logPrefix .'sessionUserId: ', 3, $logType );
     debug_log( $asUserId, $logPrefix . 'loginAsUserId: ', 3, $logType );
     return $sessionUserId === $asUserId;
-  }
-
-
-  public function startSessionFromToken( $encryptedToken ) {
-    if ( ! $encryptedToken ) return false;
-    $logType = 'security';
-    $logPrefix = 'Security::startSessionFromToken(), ';
-    $tokenJson = $this->decrypt( $encryptedToken, $this->secretKey );
-    debug_log( $tokenJson, $logPrefix . 'Token: ', 3, $logType );
-    $token = json_decode( $tokenJson, true );
-    // u = user object, t = timestamp
-    if ( $token and isset( $token['u'], $token['t'] ) ) {
-      $timeElapsed = time() - $token['t'];
-      debug_log( $timeElapsed, $logPrefix . 'timeElapsed: ', 3, $logType );
-      if ( $timeElapsed < self::TOKEN_LIFE_SPAN ) { // Token valid
-        // Login will fail if the token user does not match the session user!
-        $this->loggedIn = $this->startUserSession( $token['u'] );
-        if ( $this->loggedIn and $timeElapsed > self::TOKEN_EXTEND_THRESHOLD ) {
-          $token['t'] = time();
-          $newToken = $this->encrypt( json_encode( $token ), $this->secretKey );
-          $this->setTokenCookie( $newToken );
-        }
-      } else {
-        debug_log( 'Token expired', $logPrefix, 2, $logType );
-        $this->logout();
-        return false;
-      }
-    } else {
-      debug_log( 'Invalid token', $logPrefix, 2, $logType );
-      $this->logout();
-      return false;
-    }
-    debug_log( $this->loggedIn ? 'Yes' : 'No', $logPrefix . 'loggedIn: ', 2, $logType );
-    return $this->loggedIn;
   }
 
 
@@ -229,7 +270,7 @@ class Security
 
       debug_log( $tokenJson, 'Security::login(), Token: ', 3, 'security' );
 
-      $newEncryptedToken = $this->encrypt( $tokenJson, $this->secretKey );
+      $newEncryptedToken = $this->encrypt( $tokenJson );
       $this->setTokenCookie( $newEncryptedToken );
     }
     else
