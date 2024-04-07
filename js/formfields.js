@@ -6,6 +6,9 @@
 
   /**
    * F1 Form - Custom Field Types - 03 Dec 2023
+   * @version 1.1 - DEV -  25 Mar 2024
+   *   - Change the utilBarContent in selectCtrlConfig to include "Edit" and "Delete" buttons.
+   *   - Remove the "Manage Options" button from the utilBarContent in selectCtrlConfig.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }  
@@ -38,8 +41,10 @@
     utilBarContent:
       '<button class="select__add" type="button" onclick="F1.app.addSelectOption(event)">' +
       '<i class="fa fa-plus-circle"></i> Add option</button>' +
-      '<button class="select__manage" type="button" onclick="F1.app.manageSelectOptions(event)">' +
-      '<i class="fa fa-edit"></i> Manage options</button>' +
+      '<button class="select__edit" type="button" onclick="F1.app.editSelectOption(event)">' +
+      '<i class="fa fa-pencil"></i> Edit</button>' +
+      '<button class="select__delete" type="button" onclick="F1.app.deleteSelectOption(event)">' +
+      '<i class="fa fa-times"></i> Delete</button>' +
       '<p>- no results -</p>'
   };
 
@@ -57,8 +62,11 @@
 
     getFieldElement(stdSelectEl) {
       const selectCtrl = new F1.lib.Select(stdSelectEl, selectCtrlConfig);
-      if (stdSelectEl.dataset?.addOption === 'off') selectCtrl.utilBar.firstElementChild.hidden = true;
-      if (stdSelectEl.dataset?.manageOptions === 'off') selectCtrl.utilBar.children[1].hidden = true;
+      if (stdSelectEl.dataset?.manageOptions !== 'on') {
+        if (stdSelectEl.dataset?.addOption !== 'on') selectCtrl.utilBar.children[0].hidden = true;
+        if (stdSelectEl.dataset?.editOption !== 'on') selectCtrl.utilBar.children[1].hidden = true;
+        if (stdSelectEl.dataset?.deleteOption !== 'on') selectCtrl.utilBar.children[2].hidden = true;        
+      }
       return selectCtrl?.element;
     }
 
