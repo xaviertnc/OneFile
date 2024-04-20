@@ -89,8 +89,8 @@
   transform: none;
 }
 
-.popup--fade-in { animation: fadeIn 0.3s ease-in-out; }
-.popup--fade-out { animation: fadeOut 0.15s ease-in; }
+.popup--fade-in { animation: fadeIn 0.5s; }
+.popup--fade-out { animation: fadeOut 0.3s; }
 
 .popup--slide-in { animation: slideInDown 0.3s ease-in-out; }
 .popup--slide-out { animation: slideOutUp 0.3s ease-in-out; }

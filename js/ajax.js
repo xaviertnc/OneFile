@@ -12,9 +12,8 @@
    * 
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 3.2 - FIX - 11 Jan 2024
-   *   - Return the response "as is" if we set the "ResponseType" to anything other 
-   *     than "json", "html" or "text". This allows us to use "await Ajax.fetch..."!
+   * @version 3.3 - DEV - 20 Apr 2024
+   *   - Simplify the gereric HTTP response error message template on line 88.
    * 
    * 
    * Method: fetch
@@ -86,7 +85,7 @@
       if (fetchOptions.method !== 'GET' && fetchOptions.method !== 'HEAD') fetchOptions.body = body;
       try {
         const response = await fetch(url, fetchOptions);
-        if (!response.ok) throw new Error(`HTTP error: ${response.status}, message: ${response.statusText}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}, ${response.statusText}`);
         if (responseType === 'json') return await response.json();
         if ( responseType === 'html' || responseType === 'text' ) return await response.text();
         return response;

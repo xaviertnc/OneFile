@@ -9,11 +9,9 @@
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
    * 
-   * @version 2.1.0 - RC1 - 30 Dec 2023
-   *   - Add mount()
-   *   - Add dismount()
-   *   - Add config.anchor
-   *   - Add config.mountMethod
+   * @version 2.2.0 - DEV - 20 Apr 2024
+   *   - Change where we add the "amination" class for show/close effects.
+   *     Change animClass element from `this.popup` to `this.element`
    *
    * TODO:
    *  - Finish support for animation: none, fade, slide
@@ -106,7 +104,7 @@
         this.title = popupTitle;
       } else headerClass += ` ${bcn}__header--no-title`;
       if (config.closeX) {
-        const closeX = this.newEl('a', {href: 'javascript:void(0);', 
+        const closeX = this.newEl('button', {type: 'button', 
           className: `${bcn}__close`, innerHTML: '&times;'});
         closeX.addEventListener('click', (e) => this.close({event: e, src: 'closeX'}));
         this.closeX = closeX; }
@@ -222,7 +220,7 @@
         else this.content.innerHTML = content; }
       if (anim) {
         const animClass = `${bcn}--${anim}-in`;
-        this.popup.classList.add(animClass);
+        this.element.classList.add(animClass);
         const showEnd = () => { this.element.classList.remove(animClass); };
         this.popup.addEventListener('animationend', showEnd, {once: true}); }
       if (!this.mounted) this.mount();
@@ -250,7 +248,7 @@
         this.config.afterClose(this, options); };
       if (anim) {
         const animClass = `${bcn}--${anim}-out`;
-        this.popup.classList.add(animClass);
+        this.element.classList.add(animClass);
         this.element.addEventListener('animationend', () => closeEnd(animClass), {once: true});
       } else closeEnd();
     }
