@@ -9,9 +9,9 @@
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
    * 
-   * @version 2.2.0 - DEV - 20 Apr 2024
-   *   - Change where we add the "amination" class for show/close effects.
-   *     Change animClass element from `this.popup` to `this.element`
+   * @version 2.3.0 - DEV - 01 May 2024
+   *   - Improve handling of the config.closeX option to allow setting
+   *     a custom "CloseX" string or boolean "true" to use the default.
    *
    * TODO:
    *  - Finish support for animation: none, fade, slide
@@ -105,7 +105,7 @@
       } else headerClass += ` ${bcn}__header--no-title`;
       if (config.closeX) {
         const closeX = this.newEl('button', {type: 'button', 
-          className: `${bcn}__close`, innerHTML: '&times;'});
+          className: `${bcn}__close`, innerHTML: config.closeX === true ? '&times;' : config.closeX });
         closeX.addEventListener('click', (e) => this.close({event: e, src: 'closeX'}));
         this.closeX = closeX; }
       const popupHeader = this.newEl('div', { className: headerClass });
