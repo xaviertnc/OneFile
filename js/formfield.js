@@ -8,8 +8,9 @@
    * F1 Form Field Base - 14 Nov 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 2.2 - DEV - 16 Dec 2023
-   *   - Fix issue with getValue() and radio groups.
+   * 
+   * @version 2.3 - FT - 02 May 2024
+   *   - Add `customValidationMessage` option to updateValidationUi()
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -25,13 +26,14 @@
       this.inputs = [ input ];
     }
 
-    updateValidationUi(valid) {
+    updateValidationUi(valid = false, customValidationMessage = null) {
       const input = this.inputs[0];
       const feedbackElement = document.getElementById(`${this.name}Feedback`);
-      if (feedbackElement) feedbackElement.textContent = !valid ? input.validationMessage : '';
+      const validationMessage = customValidationMessage || input.validationMessage;
+      if (feedbackElement) feedbackElement.textContent = !valid ? validationMessage : '';
       this.element.classList.toggle('is-invalid', !valid);
       this.element.classList.toggle('is-valid', valid);
-      return valid;
+      return feedbackElement;
     }
 
     clearValidationUi() {
