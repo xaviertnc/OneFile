@@ -12,8 +12,8 @@ use Exception;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 3.1.0 - DEV - 09 Dec 2023
- *   - Update code style. Particulary {} use.
+ * @version 3.1.1 - FIX - 05 May 2024
+ *   - Fix broken setupFlash() and flash()
  *
  */
 
@@ -53,11 +53,14 @@ class Session {
   }
 
 
-  public function setupFlash( $scope ) {
-    $this->flashed = ( $scope && isset( $_SESSION[ $scope ][ self::FLASH ] ) )
-      ? $_SESSION[ $scope ][ self::FLASH ] : ( $_SESSION[ self::FLASH ] ?? [] );
-    if ( $scope && ! isset( $_SESSION[ $scope ][ self::FLASH ] ) ) $_SESSION[ $scope ][ self::FLASH ] = [];
-    else if ( ! isset( $_SESSION[ self::FLASH ] ) ) $_SESSION[ self::FLASH ] = [];
+  public function setupFlash( $scope = null ) {
+    if ( $scope ) {
+      $this->flashed = $_SESSION[ $scope ][ self::FLASH ] ?? [];
+      if ( empty( $this->flashed ) ) $_SESSION[ $scope ][ self::FLASH ] = [];
+    } else {
+      $this->flashed = $_SESSION[ self::FLASH ] ?? [];
+      if ( empty( $this->flashed ) ) $_SESSION[ self::FLASH ] = [];
+    }
   }
 
 
@@ -85,11 +88,16 @@ class Session {
     else $_SESSION = [];
   }
 
+  public function flash( $key, $value ) {
+    if ( $this->scope ) $_SESSION[ $this->scope ][ self::FLASH ][ $key ] = $value;
+    else $_SESSION[ self::FLASH ][ $key ] = $value;
+  }
+
+  public function getFlash( $key, $default = null ) { return $this->flashed[ $key ] ?? $default; }
 
   public function destroy() { if ( session_status() != PHP_SESSION_NONE ) session_destroy(); }
-  public function getFlash( $key, $default = null ) { return $this->flashed[ $key ] ?? $default; }
-  public function flash( $key, $value ) { $this->put( $key, $value ); }
   public function close() { session_write_close(); }
+  
   public function getId() { return $this->id; }
 
 }
