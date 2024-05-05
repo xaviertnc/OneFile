@@ -17,21 +17,16 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.0 - FT - 07 Apr 2024
- *   - Add constructor arguments `$encryptedToken` and `$startSession` to
- *     allow instantiating a Security instance without starting a session.
- *     This is useful for API endpoints that just need to validate tokens.
- *   - Add $encryptedToken and $token properties.
- *   - Add setToken(), encryptToken(), getTokenFromCookie()
- *   - Add validateToken(), tokenExpired() methods to check token format and expiry.
- *   - Update encypt() and decrypt() methods to use an optional secret key argument.
+ * @version 2.1 - FIX - 05 May 2024
+ *   - Fix regression in session extension logic
+ *   - Increase token extend threshold from 5 to 10 minutes
  * 
  */
 
 class Security
 {
   const TOKEN_LIFE_SPAN = 3600;  // 1 hour in seconds
-  const TOKEN_EXTEND_THRESHOLD = 300;  // 5 minutes in seconds
+  const TOKEN_EXTEND_THRESHOLD = 600;  // 10 minutes
 
   /**
    * The current auth user object
@@ -172,7 +167,7 @@ class Security
     if ( ! $this->validateToken( $token ) ) return $this->logout();
     $tokenUser = $token['u'];
     $timeElapsed = time() - $token['t'];
-    $refreshToken = $timeElapsed < self::TOKEN_EXTEND_THRESHOLD;
+    $refreshToken = $timeElapsed > self::TOKEN_EXTEND_THRESHOLD;
     // NOTE: Session will fail if the `token user` does not match the `session user`!
     $this->loggedIn = $this->startUserSession( $tokenUser );
     if ( $refreshToken and $this->loggedIn ) {
