@@ -10,11 +10,8 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.13 - DEV - 09 Mar 2024
- *   - Always return an array from insert(), update() and upsert().
- *     If we encouter a problem, throw an exception!
- *     NOTE: Update can return 0 affected if the rec didn't change, so
- *     using the Affected Rows to determine success is not good!
+ * @version 1.14 - FT - 13 May 2024
+ *   - Upgrade / fix count() to work with where clauses.
  */
 
 class Database {
@@ -95,7 +92,8 @@ class Database {
   }
 
   public function count() {
-    $this->sql = 'SELECT COUNT(*) FROM ' . $this->table;
+    if ( $this->whereClauses ) { $this->select = 'COUNT(*)'; $this->buildQuery(); }
+    else { $this->sql = 'SELECT COUNT(*) FROM ' . $this->table; }
     return $this->query()[0]->{'COUNT(*)'};
   }
 
