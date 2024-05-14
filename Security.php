@@ -17,9 +17,9 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.1 - FIX - 05 May 2024
- *   - Fix regression in session extension logic
- *   - Increase token extend threshold from 5 to 10 minutes
+ * @version 2.2 - FT - 13 May 2024
+ *   - Improve decryptToken() method to handle both JSON and string tokens
+ *     i.e. It now returns the decrypted string if json_decode fails.
  * 
  */
 
@@ -122,7 +122,10 @@ class Security
 
 
   public function decryptToken( $encryptedToken, $secret = null ) {
-    return $encryptedToken ? json_decode( $this->decrypt( $encryptedToken, $secret ), true ) : null;
+    if ( ! $encryptedToken ) return;
+    $decryptedTokenStr = $this->decrypt( $encryptedToken, $secret );
+    $tokenObj = json_decode( $decryptedTokenStr, true ); // Returns null on error
+    return $tokenObj ?: $decryptedTokenStr;
   }
 
 
