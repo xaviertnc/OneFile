@@ -19,6 +19,11 @@ use FPDF\FPDF;
  *   - Revert _parsepng and _parsejpg overrides.
  *   - Remove custom Georgia font. Was used for KD app.
  *   - Remove PDF::PutLink().
+ * 
+ * @version 3.1 - FIX - 21 May 2024
+ *   - Fix TextBoxML issue with $lines == null.
+ *   - Replace utf8_decode() with mb_convert_encoding().
+ *   - Restore removed PDF::PutLink() method since it is still in use!
  */
 
 class PDF extends FPDF
@@ -92,7 +97,7 @@ class PDF extends FPDF
             $fontsize='', $fontcolour='', $fontdecor='', $font='', 
             $border='', $bgcolour='', $margin=0, $padding=0, $url = '')
   {
-    $txt = utf8_decode($txt);
+    $txt = mb_convert_encoding($txt, 'ISO-8859-1', 'UTF-8');
     $PREV_FONT = $this->FONT;
     $PREV_SIZE = $this->SIZE;
     $PREV_COLOUR = $this->COLOUR;
@@ -182,7 +187,7 @@ class PDF extends FPDF
             $fontsize='', $fontcolour='', $fontdecor='', $font='', 
             $border='', $fillcolour='', $margin=0)
   {
-    $txt = utf8_decode($txt);
+    $txt = mb_convert_encoding($txt, 'ISO-8859-1', 'UTF-8');
     $left = $this->x;
     $top = $this->y;
     $PREV_FONT = $this->FONT;
@@ -238,7 +243,7 @@ class PDF extends FPDF
       }
     }
     
-    $lines = $this->MultiCell($w, $LINE_HEIGHT, $txt, $border, $align, !empty($fillcolour));
+    $this->MultiCell($w, $LINE_HEIGHT, $txt, $border, $align, !empty($fillcolour));
     
     $this->FONT = $PREV_FONT;
     $this->SIZE = $PREV_SIZE;
@@ -261,7 +266,6 @@ class PDF extends FPDF
         break;
     }
 
-    return $lines*$LINE_HEIGHT; //Box Height;
   }
 
   function TextLine($txt, $dy=0, $align='', $nl='', $fontsize='', $fontcolour='', $fontdecor='', $font='', $border='', $bgcolour='', $margin=0)
@@ -511,6 +515,28 @@ class PDF extends FPDF
       case 'A': $this->HREF = ''; break;
     }
   }
+
+  function PutLink($URL, $txt, $dx=0, $dy=0, $w=0, $next_item = 'next-newline', $align='L', $font_size=9)
+  {
+    // Put a hyperlink
+    $this->x += $dx;
+    $this->y += $dy;
+    switch ($next_item)
+    {
+      case 'next-inline': $nl = 0; break;
+      case 'next-under': $nl = 2; break;
+      case 'next-newline':
+      default: $nl = 1;
+    }
+    $this->SetTextColor(0,0,255);
+    $this->SetFont('', 'U', $font_size);
+    if (!$w) $w = $this->GetStringWidth($txt)+2;
+    $URL = trim($URL); //Also remove spaces before/after link to avoid errors on PDF report
+    if (strpos('/?', $URL) === false) $URL = str_replace ('?', '/?', $URL); //Special requirement for HP security error... NM 14 Feb 2012
+    $this->Cell($w, $this->LINE_HEIGHT, $txt, 0, $nl, $align, 0, $URL);
+    $this->SetFont('', $this->DECOR);
+    $this->SetTextColorHex($this->COLOUR);
+  }  
 
   function WriteMarkup($x=0, $y=0, $w=0, $markup_text='', $align='L')
   {
