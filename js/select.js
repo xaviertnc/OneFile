@@ -8,8 +8,8 @@
    * F1 Custom Select - 17 Nov 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 1.1 - RC10 - 01 Dec 2023
-   *   - Add Drop Up support
+   * @version 1.2 - FIX - 16 May 2024
+   *   - Fix issue with selectOption() not matching the value correctly. === vs. ==
    * 
    */
 
@@ -136,7 +136,7 @@
 
     selectOption(value, init) {
       // log('selectOption:', { value, init });
-      const selOpt = Array.from(this.select.options).find(option => option.value === value);
+      const selOpt = Array.from(this.select.options).find(option => option.value == value); // == Important!
       this.select.value = value; if (selOpt) selOpt.selected = true; this.clearX.hidden = !this.config.clearPrompt || !value;
       this.valueDisplay.firstElementChild.innerHTML = selOpt ? selOpt.title || selOpt.text : this.selectPrompt;
       this.options.forEach(li => li.setAttribute('aria-selected', li.dataset.value == value));
