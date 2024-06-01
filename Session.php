@@ -12,8 +12,8 @@ use Exception;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 3.1.1 - FIX - 05 May 2024
- *   - Fix broken setupFlash() and flash()
+ * @version 3.1.2 - DEV - 28 May 2024
+ *   - Declare $sessionName property
  *
  */
 
@@ -21,7 +21,9 @@ class Session {
 
   private $id;
   private $scope;
+  private $sessionName;
   private $flashed = [];
+
 
   const FLASH = '__FLASH__';
 
