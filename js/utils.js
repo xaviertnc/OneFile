@@ -14,6 +14,10 @@
 
   class Utils {
 
+    static hide(el) { el.style.display = 'none'; }
+
+    static show(el, disp = 'inline-block') { el.style.display = disp; }
+
     static newEl(tag, className, attrs = {}) {
       const el = document.createElement(tag); if (className) el.className = className;
       Object.entries(attrs).forEach(([key, value]) => el[key] = value);
@@ -21,10 +25,6 @@
     }
 
     static getEl(id) { return document.getElementById(id);  }
-
-    static show(el, disp = 'inline-block') { el.style.display = disp; }
-
-    static hide(el) { el.style.display = 'none'; }
 
     static removeFrom(el, selector) {
       Array.from(el.querySelectorAll(selector)).forEach(found => found.remove());
@@ -51,6 +51,12 @@
       for (let i = rem; i < len; i += grpSize) { if (i !== rem) fmtNum += sep; fmtNum += intPart.slice(i, i + grpSize); }
       return symbol + fmtNum + decPart;
     }
+
+    static clone(obj) {
+      if (obj === null || typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(Utils.clone);
+      return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Utils.clone(value)]));
+    } 
  
   }
 
