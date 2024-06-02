@@ -155,7 +155,6 @@
     }
 
 
-
     mount() {
       const anchor = this.config.anchor || document.body;
       const mountMethod = this.config.mountMethod || 'append';

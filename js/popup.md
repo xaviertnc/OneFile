@@ -26,7 +26,7 @@ To use the F1 Popup, include the `popup.js` script in your HTML document:
 
 ## Basic Usage
 
-To initialize a popup, include an HTML element for the popup and initialize it with JavaScript:
+To initialize a popup using existing HTML, include the popup element when calling the constructor:
 
 ```html
 <div id="myPopup" class="popup">
@@ -45,28 +45,30 @@ The popup can be configured with the following options:
 
 | Option          | Type        | Default    | Description |
 |-----------------|-------------|------------|-------------|
+| `el`            | HTMLElement | `null`     | Existing HTML element to use as the popup. |
+| `anchor`        | HTMLElement | `null`     | Anchor element realtive to which the popup is positioned. |
 | `type`          | String      | `null`     | Type of popup: `'modal'`, `'notification'`, `'tooltip'`, `'dropdown'`. |
+| `size`          | String      | `null`     | Size of the popup: `'small'`, `'medium'`, `'large'`. |
+| `timer`         | Number      | `null`     | Auto-close timer in milliseconds. |
 | `title`         | String      | `null`     | Popup header title text. |
-| `theme`         | String      | `null`     | Theme for the popup (CSS customizable). |
-| `modal`         | Boolean     | `false`    | Whether the popup is modal. |
+| `theme`         | String      | `null`     | Theme for the popup (CSS customizable). Adds CSS class `${bcn}__${config.theme}`. 
 | `content`       | String      | `null`     | Content to display inside the popup. |
+| `backdrop`      | String      | `null`     | Backdrop type: `'transparent'`, `'dim'`, `'opaque'`. |
+| `position`      | String      | `null`     | Position of the popup: `'center'`, `'top'`, `'bottom'`, `'bottom-right'`. |
+| `animation`     | String      | `null`     | Animation for opening/closing: `'none'`, `'fade'`, `'slide'`. |
 | `className`     | String      | `'popup'`  | CSS class name(s) for the popup element. |
-| `escapeKeyClose`| Boolean     | `false`    | Closes the popup when the escape key is pressed. |
+| `mountMethod`   | String      | `'append'` | Method to mount the popup: `'append'`, `'prepend'`, `'after'`, `'before'`. |
+| `closeX`        | String|Bool | `true`     | Enables the default or a custom close (`x`) style button top-right. |
+| `trapFocus`     | Boolean     | `true`     | Traps TAB focus within the popup when opened. |
+| `draggable`     | Boolean     | `false`    | Whether the popup is draggable. |
 | `clickAwayClose`| Boolean     | `false`    | Closes the popup when clicking outside of it. |
+| `escapeKeyClose`| Boolean     | `false`    | Closes the popup when the escape key is pressed. |
+| `modal`         | Boolean     | `false`    | Whether the popup is modal. |
+| `buttons`       | Array       | `[]`       | Array of button objects to display in the popup footer. |
 | `beforeClose`   | Function    | `() => {}` | Function to call before the popup closes. |
 | `afterClose`    | Function    | `() => {}` | Function to call after the popup closes. |
 | `beforeOpen`    | Function    | `() => {}` | Function to call before the popup opens. |
 | `afterOpen`     | Function    | `() => {}` | Function to call after the popup opens. |
-| `animation`     | String      | `null`     | Animation for opening/closing: `'none'`, `'fade'`, `'slide'`. |
-| `backdrop`      | String      | `null`     | Backdrop type: `'transparent'`, `'dim'`, `'opaque'`. |
-| `position`      | String      | `null`     | Position of the popup: `'center'`, `'top'`, `'bottom'`, `'bottom-right'`. |
-| `size`          | String      | `null`     | Size of the popup: `'small'`, `'medium'`, `'large'`. |
-| `draggable`     | Boolean     | `false`    | Whether the popup is draggable. |
-| `trapFocus`     | Boolean     | `true`     | Traps focus within the popup when opened. |
-| `closeX`        | Boolean     | `true`     | Displays a close button (`×`). |
-| `buttons`       | Array       | `[]`       | Array of button objects to display in the popup footer. Each object can have `text`, `className`, and `onClick` properties. |
-| `timer`         | Number      | `null`     | Auto-close timer in milliseconds. |
-| `el`            | HTMLElement | `null`     | Existing HTML element to use as the popup. |
 
 ### Buttons Configuration
 
@@ -216,6 +218,7 @@ var tooltip = new F1.lib.Popup({
   content: 'This is a tooltip.',
   position: 'bottom-right',
   animation: 'fade'
+  anchor: document.getElementById('myButton')
 });
 tooltip.show();
 ```
@@ -226,8 +229,8 @@ var dropdown = new F1.lib.Popup({
   type: 'dropdown',
   content: 'This is a dropdown.',
   position: 'bottom',
-  animation: 'fade',
-  anchor: document.getElementById('dropdownButton')
+  animation: 'slide',
+  anchor: document.getElementById('toggleDropdown'),
 });
 dropdown.show();
 ```
@@ -237,7 +240,7 @@ dropdown.show();
 var customClose = new F1.lib.Popup({
   title: 'Custom Close Button',
   content: 'This popup has a custom close button.',
-  closeX: 'Close Me'
+  closeX: '<span>&times;</span>',
 });
 customClose.show();
 ```
@@ -250,4 +253,26 @@ var dynamic = new F1.lib.Popup({
 });
 dynamic.show();
 dynamic.show({ content: 'Updated content.' });
+```
+
+### HTML Element as Content
+```javascript
+  const Popup = F1.lib.Popup;
+  const Utils = F1.lib.Utils;
+
+  app.el.form = Utils.getEl('changePasswordForm');
+
+  app.showChangePasswordForm = function() {
+    app.el.form.reset();
+    app.modal = new Popup({
+      modal: true,
+      backdrop: 'dim',
+      animation: 'fade',
+      content: app.el.form,
+      anchor: app.currentPage.el,
+      position: 'center',
+      // size: 'large',
+    });
+    app.modal.show();
+  };
 ```
