@@ -155,9 +155,14 @@ The `buttons` property can be used to add interactive buttons to the popup. Here
 
 #### Overview
 
-1. **Backdrop Creation**: The backdrop is created if the popup is configured as a modal or if the `backdrop` property is set. The type of backdrop (e.g., `transparent`, `dim`, `opaque`) is determined by the `backdrop` configuration property.
-2. **Appending Popup to Backdrop**: The popup element is appended as a child of the backdrop element. This ensures that the backdrop covers the entire screen while the popup is displayed on top of it.
-3. **Event Handling for Backdrop**: The backdrop element has an event listener for click events. If the `clickAwayClose` configuration is enabled and the user clicks on the backdrop (not the popup itself), the popup will close.
+1. **Backdrop Creation**: The backdrop is created if the popup is configured as a modal or if the `backdrop` property is set. 
+   The type of backdrop (e.g., `transparent`, `dim`, `opaque`) is determined by the `backdrop` configuration property.
+
+2. **Appending Popup to Backdrop**: The popup element is appended as a child of the backdrop element. 
+   This ensures that the backdrop covers the entire screen while the popup is displayed on top of it.
+
+3. **Event Handling for Backdrop**: The backdrop element has an event listener for click events. 
+   If the `clickAwayClose` configuration is enabled and the user clicks on the backdrop (not the popup itself), the popup will close.
 
 #### Example
 
@@ -248,7 +253,7 @@ var tooltip = new F1.lib.Popup({
   type: 'tooltip',
   content: 'This is a tooltip.',
   position: 'bottom-right',
-  animation: 'fade'
+  animation: 'fade',
   anchor: document.getElementById('myButton')
 });
 tooltip.show();
@@ -375,3 +380,16 @@ To initialize a popup using an existing element, pass the element to the `el` pr
   p2.show({ content: '<span class="warning">Are you sure?</span>' });
 </script>
 ```
+---
+
+### TODO
+
+- [ ] Highlight the typical implementation modes of the Popup component under "Overview". e.g `JS Only`, `Hybrid`, `HTML Only`.
+- [ ] Upgrade "Including Popup.js" to showing a full Hybrid HTML + JS example.
+- [ ] Rename "Including Popup.js" to "Getting Started".
+- [ ] Add a section for the Popup component's CSS styles and classes.
+- [ ] Add a section for the Popup component's event handling and callbacks.
+- [ ] Add a section for the Popup component's animations and transitions.
+- [ ] Add a section for the Popup component's positioning and alignment.
+- [ ] Add a section for the Popup component's accessibility features.
+- [ ] Add a section for the Popup component's custom themes and styles.
