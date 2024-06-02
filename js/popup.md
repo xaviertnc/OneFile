@@ -1,99 +1,253 @@
 # F1 Popup User Guide
 
 ## Overview
-F1 Popup is a flexible and easy-to-use JavaScript library for creating various types of popups. It supports a wide range of features including modals, tooltips, notifications, and more. This guide covers the setup, usage, and customization of popups using F1 Popup.
 
-## Setup
-To use F1 Popup, include the `popup.js` file in your HTML file:
+The F1 Popup is a versatile and customizable popup solution.  
+It supports various configurations and can be used for modals, notifications, tooltips, and more.
+
+## Including Popup.js
+
+To use the F1 Popup, include the `popup.js` script in your HTML document:
 
 ```html
-<script src="path/to/popup.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>F1 Popup Example</title>
+  <link rel="stylesheet" href="path/to/popup.css"> <!-- Optional, for custom styling -->
+  <script src="path/to/popup.js"></script>
+</head>
+<body>
+  <!-- Your content here -->
+</body>
+</html>
 ```
 
 ## Basic Usage
-To create and display a popup, instantiate a new `Popup` object with a configuration object:
 
-```javascript
-var myPopup = new F1.lib.Popup({
-  title: 'My Popup Title',
-  content: 'Here is my popup content!',
-  modal: true
-});
-myPopup.show();
+To initialize a popup, include an HTML element for the popup and initialize it with JavaScript:
+
+```html
+<div id="myPopup" class="popup">
+  <h2>Popup Title</h2>
+  <p>This is a popup content.</p>
+</div>
+<script>
+  var myPopup = new F1.lib.Popup({ el: document.getElementById('myPopup') });
+  myPopup.show();
+</script>
 ```
 
 ## Configuration Options
-When creating a new popup, you can specify the following options in the configuration object:
 
-- `type`: Type of popup (`modal`, `dropdown`, `alert`, `toast`, `notification`, `tooltip`). Default is `null`.
-- `title`: Title of the popup. Default is `null`.
-- `theme`: Theme of the popup for styling. Default is `null`.
-- `modal`: Whether the popup is modal. Default is `false`.
-- `content`: Content of the popup. Can be a string or an HTMLElement. Default is `null`.
-- `className`: Base CSS class name used for styling. Default is `'popup'`.
-- `escapeKeyClose`: Allows closing the popup by pressing the Escape key. Default is `false`.
-- `clickAwayClose`: Allows closing the popup by clicking outside of it. Default is `false`.
-- `beforeClose`: Function to call before closing the popup. Default is a noop function.
-- `afterClose`: Function to call after closing the popup. Default is a noop function.
-- `beforeOpen`: Function to call before opening the popup. Default is a noop function.
-- `afterOpen`: Function to call after opening the popup. Default is a noop function.
-- `animation`: Animation effect for opening and closing (`fade`, `slide`). Default is `null`.
-- `backdrop`: Backdrop effect (`transparent`, `dim`, `opaque`). Default is `null`.
-- `position`: Position of the popup (`center`, `top`, `bottom`, `bottom-right`). Default is `null`.
-- `size`: Size of the popup (`small`, `medium`, `large`). Default is `null`.
-- `draggable`: Whether the popup is draggable. Default is `false`.
-- `trapFocus`: Traps focus within the popup when opened. Default is `true`.
-- `closeX`: Shows a close button (`×`) inside the popup. Default is `true`.
-- `buttons`: Array of button objects to display in the popup footer. Each object can have `text`, `className`, and `onClick` properties. Default is an empty array.
-- `timer`: Auto-close timer in milliseconds. Default is `null`.
-- `el`: Existing HTML element to use as the popup. Default is `null`.
+The popup can be configured with the following options:
+
+| Option          | Type        | Default    | Description |
+|-----------------|-------------|------------|-------------|
+| `type`          | String      | `null`     | Type of popup: `'modal'`, `'notification'`, `'tooltip'`, `'dropdown'`. |
+| `title`         | String      | `null`     | Popup header title text. |
+| `theme`         | String      | `null`     | Theme for the popup (CSS customizable). |
+| `modal`         | Boolean     | `false`    | Whether the popup is modal. |
+| `content`       | String      | `null`     | Content to display inside the popup. |
+| `className`     | String      | `'popup'`  | CSS class name(s) for the popup element. |
+| `escapeKeyClose`| Boolean     | `false`    | Closes the popup when the escape key is pressed. |
+| `clickAwayClose`| Boolean     | `false`    | Closes the popup when clicking outside of it. |
+| `beforeClose`   | Function    | `() => {}` | Function to call before the popup closes. |
+| `afterClose`    | Function    | `() => {}` | Function to call after the popup closes. |
+| `beforeOpen`    | Function    | `() => {}` | Function to call before the popup opens. |
+| `afterOpen`     | Function    | `() => {}` | Function to call after the popup opens. |
+| `animation`     | String      | `null`     | Animation for opening/closing: `'none'`, `'fade'`, `'slide'`. |
+| `backdrop`      | String      | `null`     | Backdrop type: `'transparent'`, `'dim'`, `'opaque'`. |
+| `position`      | String      | `null`     | Position of the popup: `'center'`, `'top'`, `'bottom'`, `'bottom-right'`. |
+| `size`          | String      | `null`     | Size of the popup: `'small'`, `'medium'`, `'large'`. |
+| `draggable`     | Boolean     | `false`    | Whether the popup is draggable. |
+| `trapFocus`     | Boolean     | `true`     | Traps focus within the popup when opened. |
+| `closeX`        | Boolean     | `true`     | Displays a close button (`×`). |
+| `buttons`       | Array       | `[]`       | Array of button objects to display in the popup footer. Each object can have `text`, `className`, and `onClick` properties. |
+| `timer`         | Number      | `null`     | Auto-close timer in milliseconds. |
+| `el`            | HTMLElement | `null`     | Existing HTML element to use as the popup. |
+
+### Buttons Configuration
+
+The `buttons` property can be used to add interactive buttons to the popup. Here are various ways to use it:
+
+1. **Simple OK and Cancel Buttons:**
+
+    ```javascript
+    var simpleButtons = new F1.lib.Popup({
+      title: 'Simple Buttons',
+      content: 'This popup has simple OK and Cancel buttons.',
+      buttons: [
+        { text: 'OK', onClick: function() { alert('OK clicked'); } },
+        { text: 'Cancel', onClick: function() { simpleButtons.close(); } }
+      ]
+    });
+    simpleButtons.show();
+    ```
+
+2. **Custom Styled Buttons:**
+
+    ```javascript
+    var styledButtons = new F1.lib.Popup({
+      title: 'Styled Buttons',
+      content: 'This popup has custom styled buttons.',
+      buttons: [
+        { text: 'Confirm', className: 'btn-confirm', onClick: function() { alert('Confirmed!'); } },
+        { text: 'Dismiss', className: 'btn-dismiss', onClick: function() { styledButtons.close(); } }
+      ]
+    });
+    styledButtons.show();
+    ```
+
+3. **Buttons with Dynamic Content:**
+
+    ```javascript
+    var dynamicContentPopup = new F1.lib.Popup({
+      title: 'Dynamic Content',
+      content: 'Initial content.',
+      buttons: [
+        { text: 'Update Content', onClick: function() {
+            dynamicContentPopup.show({ content: 'Updated content.' });
+          }
+        },
+        { text: 'Close', onClick: function() { dynamicContentPopup.close(); } }
+      ]
+    });
+    dynamicContentPopup.show();
+    ```
+
+4. **Form Submission Button:**
+
+    ```javascript
+    var formPopup = new F1.lib.Popup({
+      title: 'Form Submission',
+      content: `
+        <form id="popupForm">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name"><br><br>
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email"><br><br>
+          <input type="submit" value="Submit">
+        </form>
+      `,
+      buttons: [
+        { text: 'Submit', onClick: function() {
+            var form = document.getElementById('popupForm');
+            alert('Form submitted: ' + form.name.value + ', ' + form.email.value);
+          }
+        },
+        { text: 'Close', onClick: function() { formPopup.close(); } }
+      ]
+    });
+    formPopup.show();
+    ```
+
+---
 
 ## Methods
-### `show(options = {})`
-Displays the popup. Optional `options` can override `content`, `title`, and `animation` settings for this specific instance.
 
-### `close(options = {})`
-Closes the popup. Optional `options` can specify `animation` settings for closing.
+The popup provides the following methods:
 
-### `mount()`
-Mounts the popup element to the DOM. Typically called internally by `show()`.
+| Method             | Description |
+|--------------------|-------------|
+| `show(options = {})`  | Displays the popup. Optional `options` can override `content`, `title`, and `animation`. |
+| `close(options = {})` | Closes the popup. Optional `options` can specify `animation`. |
+| `mount()`          | Mounts the popup element to the DOM. Typically called internally by `show()`. |
+| `dismount()`       | Removes the popup element from the DOM. Typically called internally by `close()`. |
 
-### `dismount()`
-Removes the popup element from the DOM. Typically called internally by `close()`.
-
-## Advanced Features
-### Custom Animations
-You can define custom animations using CSS and specify the animation names in the `animation` configuration option.
-
-### Custom Themes
-Create custom themes by defining CSS styles for your theme and specifying the theme name in the `theme` configuration option.
-
-### Dynamic Content
-Popups can be dynamically updated by passing new content or titles to the `show()` method.
-
-## Event Hooks
-F1 Popup provides `beforeOpen`, `afterOpen`, `beforeClose`, and `afterClose` hooks for running custom code at different stages of the popup lifecycle.
+---
 
 ## Examples
-### Creating a Modal Popup
+
+### Draggable Modal Popup
 ```javascript
-var modalPopup = new F1.lib.Popup({
+var modal = new F1.lib.Popup({
+  type: 'modal',
   title: 'Modal Title',
-  content: 'This is a modal popup.',
+  content: 'This is a draggable modal popup.',
   modal: true,
+  draggable: true,
   escapeKeyClose: true
 });
-modalPopup.show();
+modal.show();
 ```
 
-### Creating a Notification
+### Alert Popup
+```javascript
+var alertPopup = new F1.lib.Popup({
+  type: 'alert',
+  title: 'Alert!',
+  content: 'This is an alert popup.',
+  animation: 'slide',
+  backdrop: 'dim'
+});
+alertPopup.show();
+```
+
+### Toast Popup
+```javascript
+var toast = new F1.lib.Popup({
+  type: 'toast',
+  content: 'This is a toast message.',
+  position: 'bottom-right',
+  animation: 'slide'
+  timer: 3000
+});
+toast.show();
+```
+
+### Notification Popup
 ```javascript
 var notification = new F1.lib.Popup({
   type: 'notification',
   content: 'This is a notification message.',
   position: 'top',
-  animation: 'slide',
+  animation: 'fade',
   timer: 3000
 });
 notification.show();
+```
+
+### Tooltip Popup
+```javascript
+var tooltip = new F1.lib.Popup({
+  type: 'tooltip',
+  content: 'This is a tooltip.',
+  position: 'bottom-right',
+  animation: 'fade'
+});
+tooltip.show();
+```
+
+### Dropdown Popup
+```javascript
+var dropdown = new F1.lib.Popup({
+  type: 'dropdown',
+  content: 'This is a dropdown.',
+  position: 'bottom',
+  animation: 'fade',
+  anchor: document.getElementById('dropdownButton')
+});
+dropdown.show();
+```
+
+### Custom Close Button
+```javascript
+var customClose = new F1.lib.Popup({
+  title: 'Custom Close Button',
+  content: 'This popup has a custom close button.',
+  closeX: 'Close Me'
+});
+customClose.show();
+```
+
+### Dynamic Content
+```javascript
+var dynamic = new F1.lib.Popup({
+  title: 'Dynamic Content',
+  content: 'Initial content.'
+});
+dynamic.show();
+dynamic.show({ content: 'Updated content.' });
 ```

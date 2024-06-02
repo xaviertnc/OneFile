@@ -9,9 +9,9 @@
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
    * 
-   * @version 2.3.0 - DEV - 01 May 2024
-   *   - Improve handling of the config.closeX option to allow setting
-   *     a custom "CloseX" string or boolean "true" to use the default.
+   * @version 2.3.1 - DEV - 02 Jun 2024
+   *   - Add popup types comment.
+   *   - Update and improve Popup documentation. i.e. popup.md
    *
    * TODO:
    *  - Finish support for animation: none, fade, slide
@@ -30,7 +30,7 @@
     constructor(config = {}) {
 
       const defaultConfig = {
-        type: null,
+        type: null, // 'modal', 'dropdown', 'alert', 'toast', 'notification', 'tooltip'
         title: null,
         theme: null,
         modal: false,
