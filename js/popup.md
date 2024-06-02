@@ -53,6 +53,7 @@ To use the F1 Popup, include the `popup.js` script in your HTML document:
       type: 'alert',
       theme: 'warning',
       title: 'Alert',
+      timer: 3000, // 3s auto close delay
       message: 'This is an alert message',
       buttons: [
         { text: 'OK', onClick: () => alertPopup.close() }
