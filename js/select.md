@@ -4,14 +4,6 @@
 
 F1 Custom Select is a custom UI component that replaces the native select dropdown with a customizable, styleable dropdown component. It enhances form UI by providing support for features like searching, clearing selection, and custom styling.
 
-## Version
-
-- **Author**: C. Moller <xavier.tnc@gmail.com>
-- **Version**: 1.1 - RC10
-- **Release Date**: 01 Dec 2023
-- **Features Added**:
-  - Drop Up support for dropdowns with insufficient space below.
-
 ## Setup
 
 To use the F1 Custom Select component, include the `select.js` script in your HTML document and initialize it with the global `F1` namespace.
@@ -60,10 +52,6 @@ Custom Select listens and reacts to various events, including keydown for naviga
 ## Styling
 
 Custom Select can be styled via CSS. It supports custom class names and comes with modifiers like `--large` for size and `--open` for the open state. Utilize the provided structure and class names for deep customization.
-
-## License
-
-F1 Custom Select is licensed under [LICENSE_NAME]. For more information, contact the author at xavier.tnc@gmail.com.
 
 ---
 
@@ -164,8 +152,3 @@ After initialization, F1 Custom Select generates a structured HTML setup for sty
 ```
 
 This structure is dynamically created based on the initial select element and the configuration provided. Customize it through CSS or adjust the configuration to fit your design needs.
-
----
-
-With these examples, you should have a comprehensive understanding of how to set up and use F1 Custom Select to enhance your web forms.
-```
