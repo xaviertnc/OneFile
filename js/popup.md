@@ -5,6 +5,8 @@
 The F1 Popup is a versatile and customizable popup solution.  
 It supports various configurations and can be used for modals, notifications, tooltips, and more.  
 F1 Popup automatically handles proper stacking order of popups and backdrops.
+Popup elements are hidden by default and can be shown using the `show()` method.
+
 
 Typical implementation modes include:
 
@@ -28,7 +30,7 @@ Show the popup using the `show` method.
 Let the popup class generate the structural HTML, but set the content using an HTML string or an HTML element reference on initialization.
 If the `content` option is an HTML element, the element will be appended (i.e. moved) to the popup content container.
 The popup will by default be added to the DOM as a direct child of the document body unless the `anchor` option is set.
-Show the popup using the `show` method. Show options will override defaults.
+Show the popup using the `show` method. Show options will override defaults if defined.
 
 
 ## Getting Started

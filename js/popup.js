@@ -134,7 +134,7 @@
       this.footer = popupFooter;
 
       /** Popup Backdrop **/
-      if ( this.config.modal || this.config.backdrop ) {
+      if (this.config.modal || this.config.backdrop) {
         const backdropType = this.config.backdrop || 'transparent';
         const backdrop = this.newEl('div', { className: `${bcn}__backdrop` });
         if (backdropType) backdrop.classList.add(`${bcn}__backdrop--${backdropType}`);
