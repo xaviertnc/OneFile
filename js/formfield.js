@@ -9,8 +9,8 @@
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
    * 
-   * @version 2.3 - FT - 02 May 2024
-   *   - Add `customValidationMessage` option to updateValidationUi()
+   * @version 2.3.1 - FIX - 06 Jun 2024
+   *   - Add missing semicolon in constructor.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -20,7 +20,7 @@
 
     constructor(form, input) {
       this.form = form;
-      this.name = input.name
+      this.name = input.name;
       this.type = form.getInputCustomType(input) || input.type;
       this.element = this.getFieldElement(input);
       this.inputs = [ input ];
