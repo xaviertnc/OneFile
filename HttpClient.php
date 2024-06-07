@@ -5,8 +5,8 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.1 - DEV - 09 Dec 2023
- *   - Update code style.
+ * @version 1.2 - DEV - 07 Jun 2024
+ *   - Add CURLOPT_FOLLOWLOCATION to get() method
  *
  */
 
@@ -16,6 +16,7 @@ class HttpClient {
     $ch = curl_init();
     curl_setopt( $ch, CURLOPT_URL, $url );
     curl_setopt( $ch, CURLOPT_HTTPHEADER, $this->prepareHeaders( $headers ) );
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Follow redirects
     curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1 );
     $response = curl_exec( $ch );
     curl_close( $ch );
