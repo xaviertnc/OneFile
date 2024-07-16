@@ -11,6 +11,10 @@
   outline: 1px auto;
 }
 
+.upload__value.highlight {
+  background-color: lightgoldenrodyellow;
+}
+
 .upload__prompt {
   background-color: whitesmoke;
   border-radius: 0.25em;

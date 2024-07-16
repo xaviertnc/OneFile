@@ -8,9 +8,9 @@
    * F1 Custom File Upload - 11 Dec 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 1.2 - DEV - 14 Dec 2023
-   *   - Fix clearX initial hidden state
-   *   - Handle "required" state if we have an initial value.
+   * @version 2.0 - FT - 16 Jul 2024
+   *   - Add support for drag and drop onto the upload component
+   *   - Early MimeType validation and feedback.
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -25,7 +25,13 @@
       this.input = input;
       this.name = input.name;
       this.required = this.input.hasAttribute('required');
-      this.input.hidden = true;
+
+      this.extensionToMimeType = {
+        '.pdf': 'application/pdf',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg'
+      };
 
       this.config = Object.assign({}, input.dataset, config);
 
@@ -33,10 +39,49 @@
 
       this.element.CONTROLLER = this;
 
+      input.hidden = true;
       input.name = this.name + '_file';
       input.focus = () => this.valueDisplay.focus();
       input.onchange = (e) => this.update(e, input.files[0]?.name || '', 'focus');
       input.after(this.element);
+    }
+
+
+    preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+
+    validateMimeType(file, allowedTypes) {
+      const allowed = allowedTypes.split(',');
+      if (allowed.includes(file.type)) return true;
+      alert(`Invalid file type! Please select a ${allowedTypes} file.`);
+      return false;
+    }
+
+
+    extractAcceptedMimeTypestoValidate(inputAcceptString) {
+      const defaultType = 'application/pdf';
+      if (!inputAcceptString) return defaultType;
+      return inputAcceptString.split(/[ ,]+/)
+        .map(type => type.startsWith('.') ? this.extensionToMimeType[type] : type)
+        .filter(type => type && (type.startsWith('application/') || type.startsWith('image/')))
+        .join(',') || defaultType;
+    }
+
+
+    handleDrop(e) {
+      this.preventDefaults(e);
+      const inputAccept = this.input.accept || '';
+      // log('inputAccept:', inputAccept);
+      let allowedTypes = this.extractAcceptedMimeTypestoValidate(inputAccept);
+      log('allowedTypes:', allowedTypes);
+      if (!allowedTypes) allowedTypes = this.config.allowedTypes || 'application/pdf';
+      if (!this.validateMimeType(e.dataTransfer.files[0], allowedTypes)) return;
+      const dt = e.dataTransfer;
+      this.input.files = dt.files;
+      this.update(e, dt.files[0]?.name || '', 'focus');
     }
 
 
@@ -54,6 +99,13 @@
         innerHTML: this.config.clearPrompt || 'x', tabIndex: '0', hidden: value === '' });
       this.element = newEl('div', { className, 'ariaLabel': `${this.input.id || this.input.name}_${bcn}_ui` });
       this.element.append(this.valueInput, this.valueDisplay, this.clearX);
+      ['dragenter', 'dragover', 'dragleave'].forEach(eventName => {
+        this.valueDisplay.addEventListener(eventName, this.preventDefaults, false); });
+      ['dragenter', 'dragover'].forEach(eventName => {
+        this.valueDisplay.addEventListener(eventName, () => this.valueDisplay.classList.add('highlight'), false); });
+      ['dragleave', 'drop'].forEach(eventName => {
+        this.valueDisplay.addEventListener(eventName, () => this.valueDisplay.classList.remove('highlight'), false); });
+      this.valueDisplay.addEventListener('drop', this.handleDrop.bind(this), false);
     }
 
 
@@ -66,7 +118,7 @@
     update(event, value, focus) {
       const isActionKey = event.code === 'Enter' || event.code === 'Space';
       if (event.type === 'keydown' && !isActionKey) return;
-      event.preventDefault(); event.stopPropagation();
+      this.preventDefaults(event);
       this.valueInput.value = value;
       if (!value) this.input.required = this.required;
       this.valueDisplay.innerHTML = this.getValueHtml(value);
