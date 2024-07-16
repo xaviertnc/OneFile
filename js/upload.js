@@ -8,9 +8,9 @@
    * F1 Custom File Upload - 11 Dec 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 2.0 - FT - 16 Jul 2024
-   *   - Add support for drag and drop onto the upload component
-   *   - Early MimeType validation and feedback.
+   * @version 2.1 - FT - 16 Jul 2024
+   *   - Improve file type validation logic.
+   *   - Also validate file type on file change event.
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -26,13 +26,6 @@
       this.name = input.name;
       this.required = this.input.hasAttribute('required');
 
-      this.extensionToMimeType = {
-        '.pdf': 'application/pdf',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg'
-      };
-
       this.config = Object.assign({}, input.dataset, config);
 
       this.createElement();
@@ -42,7 +35,7 @@
       input.hidden = true;
       input.name = this.name + '_file';
       input.focus = () => this.valueDisplay.focus();
-      input.onchange = (e) => this.update(e, input.files[0]?.name || '', 'focus');
+      input.onchange = (e) => this.handleFileChange(e);
       input.after(this.element);
     }
 
@@ -53,35 +46,66 @@
     }
 
 
-    validateMimeType(file, allowedTypes) {
-      const allowed = allowedTypes.split(',');
-      if (allowed.includes(file.type)) return true;
-      alert(`Invalid file type! Please select a ${allowedTypes} file.`);
-      return false;
+    parseAcceptAttribute(accept) {
+      const extensionToMimeType = {
+        '.pdf': 'application/pdf',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+      };
+      const mimeTypes = accept.split(/[ ,]+/).map(type => {
+        if (type.startsWith('.')) {
+          return extensionToMimeType[type.toLowerCase()] || null;
+        }
+        if (type.endsWith('/*')) {
+          const mainType = type.slice(0, -1);
+          return `${mainType}*`;
+        }
+        return type;
+      }).filter(Boolean);
+
+      return mimeTypes;
     }
 
 
-    extractAcceptedMimeTypestoValidate(inputAcceptString) {
-      const defaultType = 'application/pdf';
-      if (!inputAcceptString) return defaultType;
-      return inputAcceptString.split(/[ ,]+/)
-        .map(type => type.startsWith('.') ? this.extensionToMimeType[type] : type)
-        .filter(type => type && (type.startsWith('application/') || type.startsWith('image/')))
-        .join(',') || defaultType;
+    isValidFileType(file, accept) {
+      if (!accept) return true;
+      const allowedMimeTypes = this.parseAcceptAttribute(accept);
+      log('allowedMimeTypes:', allowedMimeTypes);
+      log('file.type:', file.type);
+      return allowedMimeTypes.some(mimeType => {
+        if (mimeType.endsWith('/*')) {
+          return file.type.startsWith(mimeType.slice(0, -1));
+        }
+        return file.type === mimeType;
+      });
     }
 
 
     handleDrop(e) {
       this.preventDefaults(e);
-      const inputAccept = this.input.accept || '';
-      // log('inputAccept:', inputAccept);
-      let allowedTypes = this.extractAcceptedMimeTypestoValidate(inputAccept);
-      log('allowedTypes:', allowedTypes);
-      if (!allowedTypes) allowedTypes = this.config.allowedTypes || 'application/pdf';
-      if (!this.validateMimeType(e.dataTransfer.files[0], allowedTypes)) return;
+      const inputAccept = this.input.accept || this.config.accept || '';
+      const file = e.dataTransfer.files[0];
+      if (!this.isValidFileType(file, inputAccept)) {
+        alert(`Invalid file type! Please select a ${inputAccept} file.`);
+        return;
+      }
       const dt = e.dataTransfer;
       this.input.files = dt.files;
       this.update(e, dt.files[0]?.name || '', 'focus');
+    }
+
+
+    handleFileChange(e) {
+      const file = this.input.files[0];
+      const inputAccept = this.input.accept || this.config.accept || '';
+      if (!this.isValidFileType(file, inputAccept)) {
+        alert(`Invalid file type! Please select a ${inputAccept} file.`);
+        this.input.value = '';  // Clear the input
+        return;
+      }
+      this.update(e, file.name || '', 'focus');
     }
 
 
