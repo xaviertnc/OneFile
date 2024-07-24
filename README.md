@@ -10,3 +10,5 @@ making it easy to locate, understand and use.
 ## Modular
 Files are generally stand-alone and can be used in any project.  
 Include only the files you need.
+
+For more visit [F1 Documentation](https://xaviertnc.github.io/OneFile/)
