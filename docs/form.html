@@ -546,7 +546,23 @@ After this you need to initialize and load the dependencies in your Js file and 
  });
  </pre></td></tr></table></div>
  <br>
- <h4 class="display-4">Explanation</h4>
+ <h4 class="display-4 pt-2">Explanation</h4>
+ <ol type="1">
+    <li class="text-dark lead pt-2">"<b b class="fw-bold">validatable</b>" function:</li>
+    <ul>
+      <li class="text-dark lead pt-2">Checks if an element should be validated.</li>
+    </ul>
+    <li class="text-dark lead pt-2">"<b b class="fw-bold">initializeFormValidation</b>" function:</li>
+    <ul>
+      <li class="text-dark lead pt-2">Iterates over form elements.</li>
+      <li class="text-dark lead pt-2">Adds an event listener for validatable elements to perform validation on change.</li>
+    </ul>
+    <li class="text-dark lead pt-2">"<b b class="fw-bold">DOMContentLoaded</b>" event listener:</li>
+    <ul>
+      <li class="text-dark lead pt-2">Runs when the DOM is fully loaded.</li>
+      <li class="text-dark lead pt-2">Selects the form by its ID and initializes validation.</li>
+    </ul>
+ </ol>
 <br>
 
 
