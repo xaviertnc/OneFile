@@ -1,14 +1,726 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>One File</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="vendor/css/style.css">
+    <link rel="stylesheet" href="vendor/css/popup.css">
+    <link rel="stylesheet" href="vendor/css/modal.css">
+    <link rel="stylesheet" href="vendor/css/popup.css">
+    <title>F1 Library</title>
 </head>
 <body>
 
-  <h1>F1 Library</h1>
-  <p>More code, more problems! F1 is minimal, fast, and maintainable.</p>
+    <!-- Navbar -->
+    <header>
+        <nav class="header__nav">
+            <div class="header__logo">
+                <h4>F1</h4>
+            </div>
 
+            <ul class="header__menu">
+                <li class="nav-item">
+                    <a href="#popupjs">Popup.JS</a>
+                </li>
+            </ul>                                                         
+
+            <div class="header__icon">
+                <div>
+                    <button id="theme-toggle" class="dropdown-toggle">
+                        <span id="theme-icon"><ion-icon name="sunny-outline"></ion-icon></span>
+                    </button>
+                    <div id="dropdown-menu" class="dropdown-menu">
+                        <div class="dropdown-item" data-theme="light">
+                            <span><ion-icon name="sunny-outline"></ion-icon></span>
+                        </div>
+                        <div class="dropdown-item" data-theme="dark">
+                            <span><ion-icon name="moon-outline"></ion-icon></span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <ion-icon name="logo-github"></ion-icon>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero__section">
+        <div class="hero__title">
+            <h1 class="hero__text">
+                Customize a modern websites with F1 Library.
+            </h1>
+            <p class="hero__description">
+                A utility Javascript library that can be used for modals, notifications, tooltips, and more.
+            </p>
+
+            <a href="docs.html" class="hero__button">
+                Get Started
+            </a>
+
+        </div>
+    </section>
+
+
+    <section class="popup__section">
+        <div class="popup__container">
+            <div class="popup__upper">
+                <h1 id="popupjs" class="popup__head">
+                    Popup.js
+                </h1>
+                <p class="popup__description">
+                    The F1 Popup component allows for multiple popups to be displayed simultaneously and automatically manages the `z-index` of the popups to ensure proper stacking order.
+                </p>
+            </div>
+
+            <!-- JS and CSS script file -->
+            <div class="popup__started">
+                <h1 class="popup__subhead">
+                    Getting Started
+                </h1>
+                <p class="popup__subdescription">
+                    To use the F1 Popup, download and include the <a href="../vendor/js/popup.js" download>`popup.js`</a> and <a href="../vendor/js/popup.css" download>`popup.css`</a> script in your HTML document:
+                </p>
+
+                <deckgo-highlight-code>
+                    <code slot="code">
+
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup__subdescription">
+                    The F1 Popup component allows for multiple popups to be displayed simultaneously and automatically manages the `z-index` of the popups to ensure proper stacking order.
+                </p>
+
+                <p class="popup__subdescription">
+                    The minimum required anatomy of a Popup's HTML should include an HTML element with class `popup` (or your custom base class) and at least one child element with class `popup__content`. 
+Other component elements like `popup__title` are optional.
+                </p>
+
+                <h1 class="popup__subhead">
+                    Configuration Options
+                </h1>
+
+                <p class="popup__subdescription">
+                    The popup can be configured with the following options:
+                </p>
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>Option</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>`el`</td>
+                            <td>HTMLElement</td>
+                            <td>`null`</td>
+                            <td>Existing HTML element to use as the popup.</td>
+                        </tr>
+                        <tr>
+                            <td>`anchor`</td>
+                            <td>HTMLElement</td>
+                            <td>`null`</td>
+                            <td>Anchor element relative to which the popup is positioned.</td>
+                        </tr>
+                        <tr>
+                            <td>`mountMethod`</td>
+                            <td>String</td>
+                            <td>`'append'`</td>
+                            <td>Method to mount the popup: `'append'`, `'prepend'`, `'after'`, `'before'`.</td>
+                        </tr>
+                        <tr>
+                            <td>`className`</td>
+                            <td>String</td>
+                            <td>`'popup'`</td>
+                            <td>The base CSS class name(s) for the popup element. `{bcn}`</td>
+                        </tr>
+                        <tr>
+                            <td>`theme`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Adds a theme-specific `${bcn}__${theme}` CSS class to the popup element.</td>
+                        </tr>
+                        <tr>
+                            <td>`type`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Type of popup: `'modal'`, `'alert'`, `'toast'`, `'notification'`, `'tooltip'`, `'dropdown'`.</td>
+                        </tr>
+                        <tr>
+                            <td>`size`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Size of the popup: `'small'`, `'medium'`, `'large'`.</td>
+                        </tr>
+                        <tr>
+                            <td>`modal`</td>
+                            <td>Boolean</td>
+                            <td>`false`</td>
+                            <td>Whether the popup is modal.</td>
+                        </tr>
+                        <tr>
+                            <td>`title`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Popup header title text.</td>
+                        </tr>
+                        <tr>
+                            <td>`message`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Popup message text.</td>
+                        </tr>
+                        <tr>
+                            <td>`content`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Content to display inside the popup.</td>
+                        </tr>
+                        <tr>
+                            <td>`buttons`</td>
+                            <td>Array</td>
+                            <td>`[]`</td>
+                            <td>Array of button objects to display in the popup footer.</td>
+                        </tr>
+                        <tr>
+                            <td>`timer`</td>
+                            <td>Number</td>
+                            <td>`null`</td>
+                            <td>Auto-close timer in milliseconds.</td>
+                        </tr>
+                        <tr>
+                            <td>`backdrop`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Backdrop type: `'transparent'`, `'dim'`, `'opaque'`.</td>
+                        </tr>
+                        <tr>
+                            <td>`position`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Position of the popup: `'center'`, `'top'`, `'bottom'`, `'bottom-right'`.</td>
+                        </tr>
+                        <tr>
+                            <td>`animation`</td>
+                            <td>String</td>
+                            <td>`null`</td>
+                            <td>Animation for opening/closing: `'none'`, `'fade'`, `'slide'`.</td>
+                        </tr>
+                        <tr>
+                            <td>`closeX`</td>
+                            <td>String/Bool</td>
+                            <td>`true`</td>
+                            <td>Enables the default or a custom close (`x`) style button top-right.</td>
+                        </tr>
+                        <tr>
+                            <td>`draggable`</td>
+                            <td>Boolean</td>
+                            <td>`false`</td>
+                            <td>Whether the popup is draggable.</td>
+                        </tr>
+                        <tr>
+                            <td>`clickAwayClose`</td>
+                            <td>Boolean</td>
+                            <td>`false`</td>
+                            <td>Closes the popup when clicking outside of it.</td>
+                        </tr>
+                        <tr>
+                            <td>`escapeKeyClose`</td>
+                            <td>Boolean</td>
+                            <td>`false`</td>
+                            <td>Closes the popup when the escape key is pressed.</td>
+                        </tr>
+                        <tr>
+                            <td>`trapFocus`</td>
+                            <td>Boolean</td>
+                            <td>`true`</td>
+                            <td>Traps TAB focus within the popup when opened.</td>
+                        </tr>
+                        <tr>
+                            <td>`beforeClose`</td>
+                            <td>Function</td>
+                            <td>`() => {}`</td>
+                            <td>Function to call before the popup closes.</td>
+                        </tr>
+                        <tr>
+                            <td>`afterClose`</td>
+                            <td>Function</td>
+                            <td>`() => {}`</td>
+                            <td>Function to call after the popup closes.</td>
+                        </tr>
+                        <tr>
+                            <td>`beforeOpen`</td>
+                            <td>Function</td>
+                            <td>`() => {}`</td>
+                            <td>Function to call before the popup opens.</td>
+                        </tr>
+                        <tr>
+                            <td>`afterOpen`</td>
+                            <td>Function</td>
+                            <td>`() => {}`</td>
+                            <td>Function to call after the popup opens.</td>
+                        </tr>
+                    </table>
+                    
+                </div>
+
+                <h1 class="popup__subhead">
+                    CSS Classes
+                </h1>
+
+                <p class="popup__subdescription">
+                    The F1 Popup component comes with a set of CSS styles and classes that can be used to customize its appearance. 
+The default base class name is `popup`, but you can change it via the `className` constructor option if it clashes with other components. 
+                </p>
+
+                <p class="popup__subdescription">
+                    Here are some of the key classes, with `{bcn}` representing the base class name:
+                </p>
+
+                <ul>
+                    <li>
+                        `{bcn}`: Base class for the popup.
+                    </li>
+                    <li>`{bcn}__header`: Container for the popup header.</li>
+                    <li>`{bcn}__title`: Title of the popup.</li>
+                    <li>`{bcn}__close`: Button to close the popup.</li>
+                    <li>`{bcn}__content`: Container for the main content of the popup.</li>
+                    <li>`{bcn}__footer`: Container for the footer buttons.</li>
+                    <li>`{bcn}__button`: Styles for buttons within the popup.</li>
+                    <li>`{bcn}--small`, `{bcn}--medium`, `{bcn}--large`: Size modifiers for the popup.</li>
+                    <li>`{bcn}--center`, `{bcn}--top`, `{bcn}--bottom`, `{bcn}--bottom-right`: Position modifiers for the popup. </li>
+                </ul>
+
+                <h1 class="popup__subhead">
+                    Methods
+                </h1>
+
+                <div class="method_table">
+                    <table>
+                        <tr>
+                            <th>Method</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>`show(options = {})`</td>
+                            <td>Displays the popup. Optional `options` can override `content`, `title`, and `animation`.</td>
+                        </tr>
+                        <tr>
+                            <td>`close(options = {})`</td>
+                            <td>Closes the popup. Optional `options` can specify `animation`.</td>
+                        </tr>
+                        <tr>
+                            <td>`mount()`</td>
+                            <td>Mounts the popup element to the DOM. Typically called internally by `show()`.</td>
+                        </tr>
+                        <tr>
+                            <td>`dismount()`</td>
+                            <td>Removes the popup element from the DOM. Typically called internally by `close()`.</td>
+                        </tr>
+                    </table>
+                    
+                </div>
+            </div>
+
+            <div>
+                <h1 class="popup__head">
+                    Components
+                </h1>
+            </div>
+
+            <!-- Simple OK and Cancel Buttons -->
+            <div class="popup-sample-button">
+                <h1 class="popup__subhead">
+                    Buttons
+                </h1>
+
+                <p class="popup__subdescription">
+                    The `buttons` property can be used to add interactive buttons to the popup. Here are various ways to use it:
+                </p>
+
+                <p class="popup-example">
+                    Simple OK and Cancel Buttons:
+                </p>
+
+                <deckgo-highlight-code>
+                    <code slot="code">
+var simpleButtons = new F1.lib.Popup({
+    title: 'Simple Buttons',
+    content: 'This popup has simple OK and Cancel buttons.',
+    buttons: [
+        { text: 'OK', onClick: function() { alert('OK clicked'); } },
+        { text: 'Cancel', onClick: function() { simpleButtons.close(); } }
+    ]
+});
+simpleButtons.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-output">
+                    <button id="open-popup-button" class="popup-button">Open popup</button>
+                </div>
+            </div>
+
+            <!-- Custom Styled Buttons -->
+            <div class="popup-styled-button">
+                <h1 class="popup__subhead">
+                    Custom Styled Button
+                </h1>
+                
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var styledButtons = new F1.lib.Popup({
+        title: 'Styled Buttons',
+        content: 'This popup has custom styled buttons.',
+        buttons: [
+            { text: 'Confirm', className: 'btn-confirm', onClick: function() { alert('Confirmed!'); } },
+            { text: 'Dismiss', className: 'btn-dismiss', onClick: function() { styledButtons.close(); } }
+        ]
+    });
+    styledButtons.show();
+                    </code>
+                </deckgo-highlight-code>
+    
+                <p class="popup-example">
+                    Output:
+                </p>
+    
+                <div class="popup-styled">
+                    <button id="open-popup-styled" class="popup-button">Styled Button</button>
+                </div>
+            </div>
+
+            <!-- Buttons with Dynamic Content -->
+            <div class="popup-dynamic-content">
+                <h1 class="popup__subhead">
+                    Buttons with Dynamic Content
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var dynamicContentPopup = new F1.lib.Popup({
+        title: 'Dynamic Content',
+        content: 'Initial content.',
+        buttons: [
+            { text: 'Update Content', onClick: function() {
+                dynamicContentPopup.show({ content: 'Updated content.' });
+            }
+            },
+            { text: 'Close', onClick: function() { dynamicContentPopup.close(); } }
+        ]
+    });
+    dynamicContentPopup.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-dynamic">
+                    <button id="open-popup-dynamic" class="popup-button">Dynamic Content</button>
+                </div>
+            </div>
+
+            <!-- Form Submission Button -->    
+            <div class="popup-submission-button">
+                <h1 class="popup__subhead">
+                    Form Submission Button
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var formPopup = new F1.lib.Popup({
+        title: 'Form Submission',
+        content: `
+            <form id="popupForm">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name"><br><br>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email"><br><br>
+            <input type="submit" value="Submit">
+            </form>
+        `,
+        buttons: [
+            { text: 'Submit', onClick: function() {
+                var form = document.getElementById('popupForm');
+                alert('Form submitted: ' + form.name.value + ', ' + form.email.value);
+                }
+            },
+            { text: 'Close', onClick: function() { formPopup.close(); } }
+        ]
+    });
+    formPopup.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-form">
+                    <button id="open-popup-form" class="popup-button-form">Form Submission</button>
+                </div>
+            </div>
+
+            <div class="popup-types">
+                <h1 class="popup-type-text">
+                    Popup Types
+                </h1>
+            </div>
+
+            <!-- Alert -->   
+            <div class="popup-alert">
+                <h1 class="popup__subhead">
+                    Alert
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var alertPopup = new F1.lib.Popup({
+        theme: 'danger',
+        type: 'alert',
+        backdrop: 'dim',
+        title: 'Alert!',
+        animation: 'fade',
+        content: 'This is an alert popup.',
+    });
+    alertPopup.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-alert-button">
+                    <button id="open-popup-alert" class="popup-button">Alert Button</button>
+                </div>
+            </div>
+
+            <!-- Toast -->   
+            <div class="popup-alert">
+                <h1 class="popup__subhead">
+                    Toast
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var toast = new F1.lib.Popup({
+        type: 'toast',
+        timer: 3000, // Close delay
+        position: 'bottom-right',
+        animation: 'slide-up',
+        content: 'This is a toast message.',
+    });
+    toast.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-toast-button">
+                    <button id="open-popup-toast" class="popup-button">Toast Button</button>
+                </div>
+            </div>
+
+            <!-- Notification -->   
+            <div class="popup-alert">
+                <h1 class="popup__subhead">
+                    Notification
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var notification = new F1.lib.Popup({
+        theme: 'info',
+        type: 'notification',
+        position: 'top',
+        content: 'This is a notification message.',
+    });
+    notification.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-notification-button">
+                    <button id="open-popup-notification" class="popup-button">Notification Button</button>
+                </div>
+            </div>
+
+            <!-- Tooltip -->   
+            <div class="popup-alert">
+                <h1 class="popup__subhead">
+                    Tooltip
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var tooltip = new F1.lib.Popup({
+        type: 'tooltip',
+        position: 'top',
+        content: 'This is a tooltip.',
+        anchor: document.getElementById('myButton'),
+    });
+    tooltip.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-tooltip-button">
+                    <button id="open-popup-tooltip" class="popup-button">Tooltip Button</button>
+                </div>
+            </div>
+
+            <!-- Dropdown --> 
+            <div class="popup-alert">
+                <h1 class="popup__subhead">
+                    Dropdown
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    var dropdown = new F1.lib.Popup({
+        type: 'dropdown',
+        position: 'bottom',
+        animation: 'slide-down',
+        content: 'This is a dropdown.',
+        anchor: document.getElementById('ddToggle'),
+    });
+    dropdown.show();
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-dropdown-button">
+                    <button id="open-popup-dropdown" class="popup-button">Dropdown Button</button>
+                </div>
+            </div>
+
+            <!-- Draggable Modal --> 
+            <div class="popup-alert">
+                <h1 class="popup__subhead">
+                    Draggable Modal
+                </h1>
+    
+                <deckgo-highlight-code>
+                    <code slot="code">
+    const modal = new Modal({
+        elm: document.getElementById('myModal')
+    });
+            
+    document.getElementById('openModal').addEventListener('click', () => {
+        modal.show({
+            title: 'My Draggable Modal',
+            body: 'This is the draggable modal content.',
+            footer: 'This is the footer content.'
+        });
+    });
+                    </code>
+                </deckgo-highlight-code>
+
+                <p class="popup-example">
+                    Output:
+                </p>
+
+                <div class="popup-draggable-button">
+                    <div class="modal" id="myModal">
+                        <div class="modal-inner">
+                            <header class="modal-header">
+                                <span class="modal-title">Modal Title</span>
+                                <button class="modal-close">X</button>
+                            </header>
+                            <div class="modal-body">This is the modal body content.</div>
+                            <footer class="modal-footer">Modal Footer</footer>
+                        </div>
+                    </div>
+                    <button id="openModal" class="popup-button">Open Modal</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="popup-footer">
+        <p class="footer-title">@Author C. Moller | All Rights Reserved.</p>
+        <p class="footer-subtitle">Version 2.3.1</p>
+    </footer>
+
+    <script>
+            document.addEventListener("DOMContentLoaded", () => {
+    const themeToggle = document.getElementById("theme-toggle");
+    const dropdownMenu = document.getElementById("dropdown-menu");
+    const themeIcon = document.getElementById("theme-icon");
+    
+    themeToggle.addEventListener("click", () => {
+        dropdownMenu.classList.toggle("show");
+    });
+
+    document.querySelectorAll(".dropdown-item").forEach(item => {
+        item.addEventListener("click", (event) => {
+            const selectedTheme = event.currentTarget.getAttribute("data-theme");
+            if (selectedTheme === "light") {
+                themeIcon.innerHTML = "<ion-icon name='sunny-outline'></ion-icon>";
+                document.body.classList.remove("dark-mode");
+                document.body.classList.add("light-mode");
+            } else if (selectedTheme === "dark") {
+                themeIcon.innerHTML = "<ion-icon name='moon-outline'></ion-icon>";
+                document.body.classList.remove("light-mode");
+                document.body.classList.add("dark-mode");
+            }
+            dropdownMenu.classList.remove("show");
+        });
+    });
+    
+    document.addEventListener("click", (event) => {
+        if (!themeToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.remove("show");
+        }
+    });
+});
+
+    </script>
+    <script type="module">
+        import Modal from '../vendor/js/modal.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = new Modal({
+                elm: document.getElementById('myModal')
+            });
+
+            document.getElementById('openModal').addEventListener('click', () => {
+                modal.show({
+                    title: 'My Draggable Modal',
+                    body: 'This is the draggable modal content.',
+                    footer: 'This is the footer content.'
+                });
+            });
+        });
+    </script>
+        <script src="vendors/F1/js/popup.js"></script>
+    <script src="vendor/js/popup.js"></script>
+    <script src="vendor/js/modal.js"></script>
+    <script src="vendor/js/function.js"></script>
+    <script type="module" src="https://unpkg.com/@deckdeckgo/highlight-code@latest/dist/deckdeckgo-highlight-code/deckdeckgo-highlight-code.esm.js"></script>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </body>
 </html>
