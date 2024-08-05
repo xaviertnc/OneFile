@@ -1,21 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
 
 :root {
-  --base-color: white;
+  --base-color: #EAECFF;
   --base-variant: #e8e9ed;
   --box-items: #1a1a1a;
   --text-color: #020305;
-  --secondary-text: #ffffff;
-  --accent-color: #0d6efd;
+  --secondary-text: #EAECFF;
+  --accent-color: #1E90FF
+  ;
 }
 
 .darkmode {
   --base-color: #1a1a1a;
   --base-variant: #e8e9ed;
-  --box-items: #ffffff;
-  --text-color: #ffffff;
+  --box-items: #EAECFF;
+  --text-color: #EAECFF;
   --secondary-text: #020305;
-  --accent-color: #0d6efd;
+  --accent-color: #1E90FF
+  ;
 }
 
 body {
