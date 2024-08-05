@@ -2,12 +2,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
 
 :root {
-  --base-color: white;
+  --base-color: #EAECFF;
   --hover-color: #1a1a1a;
   --base-variant: #e8e9ed;
   --box-items: #1a1a1a;
   --text-color: #1a1a1a;
-  --secondary-text: #ffffff;
+  --secondary-text: #EAECFF;
   --accent-color: #0d6efd;
 }
 
@@ -15,7 +15,7 @@
   --base-color: #1a1a1a;
   --hover-color: #1a1a1a;
   --base-variant: #e8e9ed;
-  --box-items: #ffffff;
+  --box-items: #EAECFF;
   --text-color: rgba(255, 255, 255, .87);;
   --secondary-text: #1a1a1a;
   --third-text: #6a737d;
