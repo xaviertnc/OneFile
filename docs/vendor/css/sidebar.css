@@ -162,6 +162,34 @@ header {
   flex: 1;
 }
 
+.accordion__content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+  list-style-type: none;
+  padding-left: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.accordion__header {
+  cursor: pointer;
+  padding: 10px;
+  /* background-color: #f1f1f1;
+  border: 1px solid #ccc; */
+}
+
+.accordion__header:hover {
+
+}
+
+.accordion__header.active + .accordion__content {
+  max-height: 500px; /* Adjust this value based on your content's max height */
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+
 @media only screen and (max-width: 1074px){
   body {
     margin: 0 0;

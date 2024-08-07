@@ -11,3 +11,23 @@ document.addEventListener('click', function (e) {
         sidebar.classList.remove('active');
     }
 });
+
+document.addEventListener('DOMContentLoaded', function () {
+    var accHeaders = document.querySelectorAll('.accordion__header');
+
+    accHeaders.forEach(function (header) {
+        header.addEventListener('click', function () {
+            this.classList.toggle('active');
+            var content = this.nextElementSibling;
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+                content.style.paddingTop = '0';
+                content.style.paddingBottom = '0';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                content.style.paddingTop = '10px';
+                content.style.paddingBottom = '10px';
+            }
+        });
+    });
+});

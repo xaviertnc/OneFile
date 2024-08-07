@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   
+
+    <link rel="stylesheet" href="../vendor/css/sidebar.css">
+    <link rel="stylesheet" href="../vendor/css/popup.css">
+    <link rel="stylesheet" href="../vendor/css/modal.css">
+    <link rel="stylesheet" href="../vendor/css/popup.css">
+    <link rel="stylesheet" href="../vendor/css/forms.css">
+
+    <title>F1 Library</title>
+</head>
+<body>
+    <header>
+        <div class="hamburger-menu" id="hamburger-menu">
+            &#9776; <!-- This is the hamburger icon -->
+        </div>
+    </header>
+    <nav class="sidebar" id="sidebar">
+        <a href="../home.html" class="sidebar__logo">
+            <img style="height: 24px; height: 24px;" src="../vendor/img/Logo.png" alt="">
+            <p style="margin: 0; padding: 0;">Library</p>
+        </a>
+        <ul>
+            <li class="accordion">
+                <p class="accordion__header">Getting Started</p>
+                <ul class="accordion__content">
+                    <li><a href="components/installation.html">Installation</a></li>
+                    <li><a href="components/configuration.html">Configuration Options</a></li>
+                    <li><a href="components/css-classes.html">CSS Classes</a></li>
+                    <li class="last__item"><a href="components/methods.html">Methods</a></li>
+                </ul>
+            </li>
+            <li class="accordion">
+                <p class="accordion__header">Popup.js</p>
+                <ul class="accordion__content">
+                    <li><a href="../components/popup.html">Quick Start</a></li>
+            <li><a href="">Buttons</a></li>
+            <li><a href="">Custom Styled</a></li>
+            <li><a href="">Dynamic Content</a></li>
+            <li class="last__item"><a href="">Draggable Modal</a></li>
+                </ul>
+            </li>
+
+            <li class="accordion">
+                <p class="accordion__header">Form.js</p>
+                <ul class="accordion__content">
+                    <li><a href="components/popup.html">Quick Start</a></li>
+            <li><a href="">Buttons</a></li>
+            <li><a href="">Custom Styled</a></li>
+            <li><a href="">Dynamic Content</a></li>
+            <li class="last__item"><a href="">Draggable Modal</a></li>
+                </ul>
+            </li>
+
+            <li class="accordion">
+                <p class="accordion__header">Select.js</p>
+                <ul class="accordion__content">
+                    <li><a href="components/popup.html">Quick Start</a></li>
+            <li><a href="">Buttons</a></li>
+            <li><a href="">Custom Styled</a></li>
+            <li><a href="">Dynamic Content</a></li>
+            <li class="last__item"><a href="">Draggable Modal</a></li>
+                </ul>
+            </li>
+
+        
+            <!-- <li>
+                <p>Select.js</p>
+            </li>
+            <li>
+                <p>Form.js</p>
+            </li>
+            <li>
+                <p>Formfield.js</p>
+            </li>
+
+            <li>
+                <p>Upload.js</p>
+            </li>
+
+            <li>
+                <p>Database.js</p>
+            </li>
+
+            <li>
+                <p>Other Utils</p>
+            </li> -->
+
+        </ul>
+    </nav>
+    <div class="content" id="content">
+        <div class="darkmode__button">
+            <button id="theme-switch">
+                <svg class="dark__button" xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="24px"><path d="M480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80ZM440-760v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-97 57-59 96 100-52 56Zm492 496-97-101 53-55 101 97-57 59Zm-98-550 97-101 59 57-100 96-56-52ZM154-212l101-97 55 53-97 101-59-57Z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="24px"><path d="M480-120q-150 0-255-105T120-480q0-150 105-255t255-105q14 0 27.5 1t26.5 3q-41 29-65.5 75.5T444-660q0 90 63 153t153 63q55 0 101-24.5t75-65.5q2 13 3 26.5t1 27.5q0 150-105 255T480-120Z"/></svg>
+            </button>
+        </div>
+
+        <div id="overlay"></div>
+        <div id="popup">
+            <b><p id="popupMessage"></p></b>
+            <button id="closePopup">Close</button>
+        </div>
+        <div>
+            
+            <h1 id="formjs">Form.js</h1>
+            <p>
+                <!-- The Form class provides a comprehensive framework for managing form interactions, including:
+                <ul id="form-list">
+                    <li>Initialization and configuration.</li>
+                    <li>Field validation and submission handling.</li>
+                    <li>vent listeners for form events (submit, change, keydown).</li>
+                    <li>Utility methods for field value management and UI updates.</li>
+                </ul> -->
+            </p>
+        </div>
+
+        <div class="sections">
+            <h2 id="methodName">validatable()</h2>
+            <div class="description">
+                <p>
+                    Filters elements to include only validatable form fields (inputs, selects, textareas).
+                </p>
+            </div>
+            <div>
+                <img src="../vendor/img/formCodes/validatable.png">
+            </div>
+
+        </div>
+
+        <div class="sections">
+            <h2 id="methodName">getFields()</h2>
+            <div class="description">
+                <p>
+                    The method processes form input elements, organizes them into fields, and returns an object with these fields.
+                </p>
+            </div>
+            <div>
+                <img src="../vendor/img/formCodes/getFields.png">
+            </div>
+            <h3>Example:</h3>
+            <div class="sample1">
+                
+                <form id="exampleForm1">
+                    <div class="formField">
+                        <label>Username</label><br>
+                        <input type="text" name="USERNAME">
+                    </div>
+                    <div class="formField">
+                        <label>Password</label><br>
+                        <input type="password" name="PASSWORD">
+                    </div>
+                    <div class="formField">
+                        <label>Country</label><br>
+                    <select name="COUNTRY">
+                        <option value="USA">USA</option>
+                        <option value="Canada">Canada</option>
+                    </select>
+                    </div>
+                    <div class="formField">
+                        <label>Bio</label><br>
+                        <textarea name="BIO" ></textarea>
+                    </div>
+                    <div class="formField">
+                      
+                    <button id="submitBtn" type="button" name="button">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+
+
+        <!-- <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p>
+
+        <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p>
+
+        <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p>
+
+        <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p>
+
+        <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p>
+
+        <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p>
+
+        <h1>Welcome to Our Website</h1>
+        <p>This is the main content area.</p> -->
+    </div>
+
+
+    <script type="text/javascript" src="../vendor/js/darkmode.js"></script>
+    <script type="text/javascript" src="../vendor/js/sidebar.js"></script>
+    <script type="text/javascript" src="../vendor/js/form.js"></script>
+</body>
+</html>
