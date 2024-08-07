@@ -31,3 +31,14 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
+
+
+//scroll for JS add class="scroll-link" to menu
+document.querySelectorAll('.scroll-link').forEach(anchor => {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      document.querySelector(this.getAttribute('href')).scrollIntoView({
+        behavior: 'smooth'
+      });
+    });
+  });

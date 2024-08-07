@@ -19,7 +19,7 @@
       constructor(formElement, config = {}) {
         const defaultConfig = {
           validateOnSubmit: function() { return true; },
-          customValidations: {},z
+          customValidations: {},
           customFieldTypes: {},
           stopOnInvalid: false,
           checkModified: true,

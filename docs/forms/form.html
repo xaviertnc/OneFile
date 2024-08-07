@@ -48,11 +48,17 @@
             <li class="accordion">
                 <p class="accordion__header">Form.js</p>
                 <ul class="accordion__content">
-                    <li><a href="components/popup.html">Quick Start</a></li>
-            <li><a href="">Buttons</a></li>
-            <li><a href="">Custom Styled</a></li>
-            <li><a href="">Dynamic Content</a></li>
-            <li class="last__item"><a href="">Draggable Modal</a></li>
+                    <li><a href="#validatable" class="scroll-link">validatable()</a></li>
+            <li><a href="#getFields" class="scroll-link">getFields()</a></li>
+            <li><a href="#handleSubmit" class="scroll-link">handleSubmit()</a></li>
+            <li><a href="#gotoField" class="scroll-link">gotoField()</a></li>
+            <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
+            <li><a href="#gotoFirstField" class="scroll-link">gotoFirstField()</a></li>
+            <!-- <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li> -->
+            <!-- <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
+            <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
+            <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li> -->
+            <!-- <li class="last__item"><a href="">Draggable Modal</a></li> -->
                 </ul>
             </li>
 
@@ -100,11 +106,11 @@
             </button>
         </div>
 
-        <div id="overlay"></div>
+        <!-- <div id="overlay"></div>
         <div id="popup">
             <b><p id="popupMessage"></p></b>
             <button id="closePopup">Close</button>
-        </div>
+        </div> -->
         <div>
             
             <h1 id="formjs">Form.js</h1>
@@ -120,7 +126,7 @@
         </div>
 
         <div class="sections">
-            <h2 id="methodName">validatable()</h2>
+            <h2 id="validatable">validatable()</h2>
             <div class="description">
                 <p>
                     Filters elements to include only validatable form fields (inputs, selects, textareas).
@@ -133,7 +139,8 @@
         </div>
 
         <div class="sections">
-            <h2 id="methodName">getFields()</h2>
+            
+            <h2 id="getFields">getFields()</h2>
             <div class="description">
                 <p>
                     The method processes form input elements, organizes them into fields, and returns an object with these fields.
@@ -144,34 +151,200 @@
             </div>
             <h3>Example:</h3>
             <div class="sample1">
-                
                 <form id="exampleForm1">
                     <div class="formField">
                         <label>Username</label><br>
-                        <input type="text" name="USERNAME">
+                        <input type="text" name="USERNAME" autocomplete="off">
                     </div>
                     <div class="formField">
                         <label>Password</label><br>
-                        <input type="password" name="PASSWORD">
+                        <input type="password" name="PASSWORD" autocomplete="off">
                     </div>
                     <div class="formField">
                         <label>Country</label><br>
-                    <select name="COUNTRY">
-                        <option value="USA">USA</option>
-                        <option value="Canada">Canada</option>
-                    </select>
+                        <select name="COUNTRY" autocomplete="off">
+                            <option value="" hidden>Select</option>
+                            <option value="USA">USA</option>
+                            <option value="Canada">Canada</option>
+                        </select>
                     </div>
                     <div class="formField">
                         <label>Bio</label><br>
-                        <textarea name="BIO" ></textarea>
+                        <textarea name="BIO" autocomplete="off"></textarea>
                     </div>
                     <div class="formField">
-                      
-                    <button id="submitBtn" type="button" name="button">Submit</button>
+                        <button id="submitBtn" type="submit" name="button">Submit</button>
                     </div>
                 </form>
+                
+                <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);"></div>
+                <div id="popup" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:20px; box-shadow:0 0 10px rgba(0,0,0,0.5);">
+                    <b><p id="popupMessage"></p></b>
+                    <button id="closePopup">Close</button>
+                </div>
+                
             </div>
         </div>
+
+        <div class="sections">
+            
+            <h2 id="handleSubmit">handleSubmit()</h2>
+            <div class="description">
+                <p>
+                    This method is designed to handle form submissions, ensuring proper validation and triggering any necessary actions before and after submission.
+                </p>
+            </div>
+            <div>
+                <img src="../vendor/img/formCodes/handleSubmit.png">
+            </div>
+            <h3>Example:</h3>
+            <div class="sample1">
+                <form id="exampleForm2">
+                    <div  class="formField">
+                      <label for="name">Name:</label><br>
+                      <input type="text" id="name" name="name" autocomplete="off">
+                      <span class="error-message"></span>
+                    </div>
+                    <div  class="formField">
+                      <label for="email">Email:</label><br>
+                      <input type="email" id="email" name="email" autocomplete="off">
+                      <span class="error-message"></span>
+                    </div>
+                    <div class="formField">
+                         <button id="submitBtn" type="submit">Submit</button>
+                    </div>
+                   
+                  </form>
+                
+                <!-- Popup -->
+                <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5);">
+                    <div id="popup" style="background:white; padding:20px; margin:50px auto; width:300px;">
+                    <p id="popupMessage"></p>
+                    <button id="closePopup">Close</button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="sections">
+            
+            <h2 id="gotoField">gotoField()</h2>
+            <div class="description">
+                <p>
+                    method is used to bring a specific form field into view and make it ready for user interaction.
+                </p>
+            </div>
+            <div>
+                <img src="../vendor/img/formCodes/gotoField.png">
+            </div>
+             <h3>Example:</h3>
+            <div class="sample1">
+                <form id="myForm">
+                    <div class="form-field">
+                        <label for="field1">Field 1:</label>
+                        <input type="text" id="field1" class="scroll-to" name="field1">
+                    </div>
+                    <div class="form-field">
+                        <label for="field2">Field 2:</label>
+                        <input type="text" id="field2" class="scroll-to" name="field2">
+                    </div>
+                    <div class="form-field">
+                        <label for="field3">Field 3:</label>
+                        <input type="text" id="field3" class="scroll-to" name="field3">
+                    </div>
+                    <button type="button" id="gotoFieldButton">Go to Next Field</button>
+                </form>
+                
+                <!-- Popup Elements -->
+             <div id="overlay"></div>
+                <div id="popup">
+                    <span id="popupMessage"></span><br>
+                    <button id="closePopup">Close</button>
+                </div>
+                </div> 
+                
+            </div>
+
+            <div class="sections">
+            
+                <h2 id="focusNextField">focusNextField()</h2>
+                <div class="description">
+                    <p>
+                        This method is useful for creating a smooth and intuitive user experience, particularly in forms where you want to automatically move the user's focus to the next input field, for instance, when pressing the "Tab" key or completing an input.
+                    </p>
+                </div>
+                <div>
+                    <img src="../vendor/img/formCodes/focusNextField.png">
+                </div>
+                 <h3>Example:</h3>
+                <div class="sample1">
+                    <form id="myForm">
+                        <div class="form-field">
+                            <input type="text" id="input1" name="input1" placeholder="Input 1">
+                            <input type="text" id="input2" name="input2" placeholder="Input 2">
+
+                            <input type="text" id="input3" name="input3" placeholder="Input 3">
+                        </div>
+                        <div>
+                            <button type="button" id="submitBtn" onclick="focusField('input1')">Focus Input 1</button>
+                            <button type="button" id="submitBtn" onclick="focusField('input2')">Focus Input 2</button>
+                            <button type="button" id="submitBtn" onclick="focusField('input3')">Focus Input 3</button>
+                        </div>
+                        
+                    </form>
+                    
+                    <!-- Popup Elements -->
+                 <div id="overlay"></div>
+                    <div id="popup">
+                        <span id="popupMessage"></span><br>
+                        <button id="closePopup">Close</button>
+                    </div>
+                    </div> 
+                    
+                </div>
+
+                <div class="sections">
+            
+                    <h2 id="gotoFirstField">gotoFirstField()</h2>
+                    <div class="description">
+                        <p>
+                            method sets the focus to the first field in a predefined sequence of fields.
+                        </p>
+                    </div>
+                    <div>
+                        <img src="../vendor/img/formCodes/gotoFirstField.png">
+                    </div>
+                     <h3>Example:</h3>
+                    <div class="sample1">
+                        <p style="color: rgb(166, 165, 165);"> * select on the other fields and click the button to focus on the first field</p>
+                        <form id="myForm">
+                            <div class="form-field">
+                                <input type="text" id="first" name="input1" placeholder="first field">
+
+                                <input type="text" id="second" name="input2" placeholder="second field">
+
+                                <input type="text" id="third" name="input3" placeholder="third field" >
+                            </div>
+                            <div class="form-field">
+                                <button type="button" id="submitBtn" onclick="gotoFirstField()">Go to First Field</button>
+                            </div>
+                            
+                        </form>
+                        
+                        <!-- Popup Elements -->
+                     <div id="overlay"></div>
+                        <div id="popup">
+                            <span id="popupMessage"></span><br>
+                            <button id="closePopup">Close</button>
+                        </div>
+                        </div> 
+                        
+                    </div>
+
+        </div>
+
+        
 
 
 
@@ -202,5 +375,6 @@
     <script type="text/javascript" src="../vendor/js/darkmode.js"></script>
     <script type="text/javascript" src="../vendor/js/sidebar.js"></script>
     <script type="text/javascript" src="../vendor/js/form.js"></script>
+    <script type="text/javascript" src="../vendor/js/formexample.js"></script>
 </body>
 </html>
