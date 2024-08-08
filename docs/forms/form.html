@@ -54,9 +54,9 @@
             <li><a href="#gotoField" class="scroll-link">gotoField()</a></li>
             <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
             <li><a href="#gotoFirstField" class="scroll-link">gotoFirstField()</a></li>
-            <!-- <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li> -->
-            <!-- <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
-            <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
+            <li><a href="#handleKeyDown" class="scroll-link">handleKeyDown()</a></li>
+             <li><a href="#setValues" class="scroll-link">setValues()</a></li>
+            <!--<li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
             <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li> -->
             <!-- <li class="last__item"><a href="">Draggable Modal</a></li> -->
                 </ul>
@@ -195,7 +195,7 @@
                 </p>
             </div>
             <div>
-                <img src="../vendor/img/formCodes/handleSubmit.png">
+                <img src="../vendor/img/formCodes/handleSubmit.png" style="border-radius: 10px;">
             </div>
             <h3>Example:</h3>
             <div class="sample1">
@@ -342,7 +342,69 @@
                         
                     </div>
 
+                    <div class="sections">
+            
+                        <h2 id="handleKeyDown">handleKeyDown()</h2>
+                        <div class="description">
+                            <p>
+                                function is designed to handle keyboard events within a form. Specifically, it listens for keydown events and takes action when the Enter key is pressed.
+                            </p>
+                        </div>
+                        <div>
+                            <img src="../vendor/img/formCodes/handleKeyDown.png">
+                        </div>
+                        <h3>Example:</h3>
+                        <div class="sample1">
+                            <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p>
+                            <form id="Form">
+                                <button type="button" onclick="handleKeyDown()" id="submitBtn" autofocus selected>Press Enter key</button>
+                            </form>
+                            
+                            <!-- Popup Elements -->
+                            <div id="overlay"></div>
+                            <div id="popup">
+                                <span id="popupMessage"></span><br>
+                                <button id="closePopup">Close</button>
+                            </div>
+                            
+                        </div>
+
         </div>
+
+        <div class="sections">
+            
+            <h2 id="setValues">setValues()</h2>
+            <div class="description">
+                <p>
+                    This method is designed to set values for multiple fields within an object. 
+                </p>
+            </div>
+            <div>
+                <img src="../vendor/img/formCodes/setValues.png">
+            </div>
+            <h3>Example:</h3>
+            <div class="sample1">
+                <!-- <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p> -->
+                <form id="exampleForm5">
+                    <label>Name: <input type="text" name="name"></label>
+                    <br>
+                    <label>Email: <input type="email" name="email"></label>
+                    <br>
+                    <label>Age: <input type="number" name="age"></label>
+                    <br>
+                    <button type="button" id="setValuesButton">Set Values</button>
+                </form>
+                <!-- Popup Elements -->
+                <div id="overlay"></div>
+                <div id="popup">
+                    <span id="popupMessage"></span><br>
+                    <button id="closePopup">Close</button>
+                </div>
+
+                
+            </div>
+
+</div>
 
         
 

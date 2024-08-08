@@ -50,9 +50,9 @@ form#exampleForm1 {
   }
 #closePopup{
     float: left;
-    padding:4px;
-    color: rgb(255, 255, 255);
-    background-color: royalblue;
+
+    background-color: #EAECFF;
+    color: #3E2549
 }
 
 .sections .sample1{
@@ -66,7 +66,8 @@ form#exampleForm1 {
     margin: 0 auto;
 }
 
-.sections .sample1 input[type="text"], input[type="password"], input[type="email"], select, textarea{
+.sections .sample1 input[type="text"], input[type="password"],
+ input[type="email"], input[type="number"] , select, textarea{
     padding: 5px;
     border: rgb(174, 173, 173) 1px solid;
     border-radius: 3px;
@@ -80,7 +81,7 @@ select{
     padding: 5px;
 }
 
-#submitBtn , #gotoFieldButton{
+#submitBtn , #gotoFieldButton, #populateBtn{
     background-color: #EAECFF;
     color: #3E2549
 

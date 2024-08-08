@@ -227,3 +227,61 @@ class FormHandler {
             console.log('going to first field');
             gotoField(firstField);
         }
+
+    // Function to show the popup
+    function showPopup(message) {
+      document.getElementById('popupMessage').textContent = message;
+      document.getElementById('overlay').style.display = 'block';
+      document.getElementById('popup').style.display = 'block';
+  }
+
+  // Function to hide the popup
+  function hidePopup() {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('popup').style.display = 'none';
+  }
+
+  // Handle keydown event
+  function handleKeyDown(e) {
+      console.log('Form: handleKeyDown', e.target.name, e.target, e);
+      if (e.key !== 'Enter') return;
+      e.preventDefault(); 
+      showPopup('Enter key has been pressed');
+  }
+
+  // Attach event listeners
+  document.getElementById('Form').addEventListener('keydown', handleKeyDown);
+  document.getElementById('closePopup').addEventListener('click', hidePopup);
+
+
+
+  //setValues
+
+//   class FormHandler {
+//     constructor(formId) {
+//         this.form = document.getElementById('exampleForm5');
+//         this.fields = Array.from(this.form.elements).reduce((acc, el) => {
+//             if (el.name) acc[el.name] = el;
+//             return acc;
+//         }, {});
+//     }
+
+//     setValues(values) {
+//         console.log('setValues', values);
+//         Object.keys(values).forEach(name => {
+//             if (this.fields[name]) this.fields[name].value = values[name];
+//         });
+//     }
+// }
+
+// const formHandler = new FormHandler('exampleForm5');
+
+// document.getElementById('setValuesButton').addEventListener('click', () => {
+//     formHandler.setValues({
+//         name: 'John Doe',
+//         email: 'john.doe@example.com',
+//         age: '30'
+//     });
+// });
+
+  
