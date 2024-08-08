@@ -81,7 +81,7 @@ select{
     padding: 5px;
 }
 
-#submitBtn , #gotoFieldButton, #populateBtn{
+#submitBtn , #gotoFieldButton, #populateBtn, #setValuesButton{
     background-color: #EAECFF;
     color: #3E2549
 

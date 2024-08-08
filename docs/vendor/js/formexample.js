@@ -14,6 +14,13 @@ class FormHandler {
         el.tagName === 'TEXTAREA'
       );
     }
+
+    setValues(values) {
+      console.log('setValues', values);
+      Object.keys(values).forEach(name => {
+          if (this.fields[name]) this.fields[name].value = values[name];
+      });
+  }
   
     getInputCustomType(input) {
       // Define custom logic for determining input type, if any. For simplicity, return null.
@@ -256,32 +263,21 @@ class FormHandler {
 
 
   //setValues
+  function setValues(values) {
+    console.log('setValues', values);
+    const form = document.getElementById('exampleForm');
+    Object.keys(values).forEach(name => {
+        const field = form.elements[name];
+        if (field) field.value = values[name];
+    });
+}
 
-//   class FormHandler {
-//     constructor(formId) {
-//         this.form = document.getElementById('exampleForm5');
-//         this.fields = Array.from(this.form.elements).reduce((acc, el) => {
-//             if (el.name) acc[el.name] = el;
-//             return acc;
-//         }, {});
-//     }
-
-//     setValues(values) {
-//         console.log('setValues', values);
-//         Object.keys(values).forEach(name => {
-//             if (this.fields[name]) this.fields[name].value = values[name];
-//         });
-//     }
-// }
-
-// const formHandler = new FormHandler('exampleForm5');
-
-// document.getElementById('setValuesButton').addEventListener('click', () => {
-//     formHandler.setValues({
-//         name: 'John Doe',
-//         email: 'john.doe@example.com',
-//         age: '30'
-//     });
-// });
+document.getElementById('setValuesButton').addEventListener('click', () => {
+    setValues({
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        age: '30'
+    });
+});
 
   
