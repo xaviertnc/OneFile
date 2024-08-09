@@ -280,4 +280,129 @@ document.getElementById('setValuesButton').addEventListener('click', () => {
     });
 });
 
-  
+//getValues
+        // Function to get values from form fields
+        function getValues(fieldNames) {
+          const values = {};
+          fieldNames.forEach(name => {
+              const field = document.getElementById(name);
+              values[name] = field.value;
+          });
+          return values;
+      }
+
+      // Event listener for the Submit button
+      document.getElementById('submitBtn1').addEventListener('click', function() {
+          const fieldNames = ['name1', 'age1'];
+          const values = getValues(fieldNames);
+
+          let message = 'You entered the following details:\n';
+          message += `Name: ${values.name1}\nAge: ${values.age1}`;
+
+          document.getElementById('popupMessage').textContent = message;
+          document.getElementById('popup').style.display = 'block';
+      });
+
+      // Event listener for the Close button in the popup
+      document.getElementById('closePopupBtn').addEventListener('click', function() {
+          document.getElementById('popup').style.display = 'none';
+      });
+
+
+      //isModified
+              // JavaScript to detect changes
+              document.addEventListener('DOMContentLoaded', () => {
+                const input = document.getElementById('myInput');
+                const message = document.getElementById('message');
+                const initialValue = input.value;
+    
+                input.addEventListener('input', () => {
+                    const currentValue = input.value;
+                    if (currentValue !== initialValue) {
+                        message.textContent = `Value has changed from "${initialValue}" to "${currentValue}"`;
+                    } else {
+                        message.textContent = ''; // Clear message if reverted to original value
+                    }
+                });
+            });
+
+
+            //restart()
+            // const formElement = document.getElementById('exampleForm6');
+            // const fields4 = {
+            //     name: {
+            //         element: formElement.querySelector('[name="name"]'),
+            //         validationMessage: formElement.querySelector('#nameError')
+            //     },
+            //     email: {
+            //         element: formElement.querySelector('[name="email"]'),
+            //         validationMessage: formElement.querySelector('#emailError')
+            //     }
+            // };
+    
+            // const defaultValues = {
+            //     name: '',
+            //     email: ''
+            // };
+    
+            // function clearValidationUi(field) {
+            //     field.element.classList.remove('error');
+            //     field.validationMessage.style.display = 'none';
+            // }
+    
+            // function setValues(values, init = true) {
+            //     fields4.name.element.value = values.name;
+            //     fields4.email.element.value = values.email;
+    
+            //     if (init) {
+            //         // Add any additional initialization logic if needed
+            //     }
+            // }
+    
+            // function restartForm(initialValues = null, init = true) {
+            //     console.log('restart form:', initialValues);
+            //     Object.values(fields4).forEach(clearValidationUi);
+            //     setValues(initialValues || defaultValues, init);
+            // }
+    
+            // Simulate form submission and validation error
+            // fields.name.element.classList.add('error');
+            // fields.name.validationMessage.style.display = 'inline';
+    
+            // fields.email.element.classList.add('error');
+            // fields.email.validationMessage.style.display = 'inline';
+
+
+            //clear
+        // Object holding references to form fields
+        // Object holding references to form fields
+        const fields0 = {
+          name2: document.getElementById('name2'),
+          email2: document.getElementById('email2'),
+          password2: document.getElementById('password2')
+      };
+
+      // Function to clear the form fields
+      function clear() {
+          console.log('clear form');
+          Object.values(fields0).forEach(field => field.value = '');
+      }
+
+      // Function to clear a specific field
+      function clearField(fieldName) {
+          console.log(`clear ${fieldName}`);
+          fields0[fieldName].value = '';
+      }
+
+      // Event listeners for individual field clear buttons
+      document.getElementById('clearName').addEventListener('click', function() {
+          clearField('name2');
+      });
+
+      document.getElementById('clearEmail').addEventListener('click', function() {
+          clearField('email2');
+      });
+
+      document.getElementById('clearPassword').addEventListener('click', function() {
+          clearField('password2');
+      });

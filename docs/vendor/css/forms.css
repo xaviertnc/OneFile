@@ -45,6 +45,14 @@ form#exampleForm1 {
     left: 50%;
     transform: translate(-50%, -50%);
     padding: 20px;
+    background-color: #f8f9fa;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    z-index: 1000;    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
     background: white;
     z-index: 1001;
   }
@@ -81,7 +89,8 @@ select{
     padding: 5px;
 }
 
-#submitBtn , #gotoFieldButton, #populateBtn, #setValuesButton{
+#submitBtn , #gotoFieldButton, #populateBtn, #setValuesButton,#submitBtn1, #restartBtn, #clearEmail,
+#clearPassword, #clearName{
     background-color: #EAECFF;
     color: #3E2549
 
@@ -110,4 +119,12 @@ select{
 
 .form-group {
     margin-bottom: 15px;
+}
+
+.error {
+    border-color: red;
+}
+.validation-message {
+    color: red;
+    display: none;
 }

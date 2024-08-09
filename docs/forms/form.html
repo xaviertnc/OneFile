@@ -56,8 +56,9 @@
             <li><a href="#gotoFirstField" class="scroll-link">gotoFirstField()</a></li>
             <li><a href="#handleKeyDown" class="scroll-link">handleKeyDown()</a></li>
              <li><a href="#setValues" class="scroll-link">setValues()</a></li>
-            <!--<li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li>
-            <li><a href="#focusNextField" class="scroll-link">focusNextField()</a></li> -->
+            <li><a href="#getValues" class="scroll-link">getValues()</a></li>
+            <li><a href="#restart" class="scroll-link">restart()</a></li>
+            <li><a href="#clear" class="scroll-link">clear()</a></li>
             <!-- <li class="last__item"><a href="">Draggable Modal</a></li> -->
                 </ul>
             </li>
@@ -387,17 +388,15 @@
                 <!-- <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p> -->
                 <form id="exampleForm">
                     <div class="form-field">
-                        <div >
                         <label>Name:</label><br>
                         <input type="text" name="name">
                     </div>
                     <div class="form-field">
-                        <div >
+                    
                         <label>Email:</label><br>
                         <input type="email" name="email">
                     </div>
                     <div class="form-field">
-                        <div >
                         <label>Age: </label><br>
                         <input type="number" name="age">
                     </div>
@@ -412,13 +411,164 @@
                     <span id="popupMessage"></span><br>
                     <button id="closePopup">Close</button>
                 </div>
-
+            
                 
             </div>
 
 </div>
 
+
+<div class="sections">
+    <h2 id="getValues">getValues()</h2>
+    <div class="description">
+        <p>
+            method is designed to retrieve the current values of a set of fields in a form.
+        </p>
+    </div>
+    <div>
+        <img src="../vendor/img/formCodes/getValues.png">
+    </div>
+    <h3>Example:</h3>
+    <div class="sample1">
+        <!-- <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p> -->
+        <form id="simpleForm">
+            <div class="form-field">
+            <label for="name1">Name:</label><br>
+            <input type="text" id="name1" name="name1" required>
+            </div>
+            <div class="form-field">
+            <label for="age1">Age:</label><br>
+            <input type="text" id="age1" name="age1" required>
+            </div>
+            <div class="form-field">
+                <button type="button" id="submitBtn1">Submit</button>
+            </div>
+    
+
+    
+            
+        </form>
+    
+        <!-- Popup container -->
+        <div id="popup">
+            <p id="popupMessage"></p>
+            <button id="closePopupBtn">Close</button>
+        </div>
+
         
+    </div>
+</div>
+
+<div class="sections">
+    <h2 id="isModified">isModified()</h2>
+    <div class="description">
+        <p>
+            method checks whether any fields in an object have been modified.
+        </p>
+    </div>
+    <div>
+        <img src="../vendor/img/formCodes/isModified.png">
+    </div>
+    <h3>Example:</h3>
+    <div class="sample1">
+        <!-- <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p> -->
+        <form id="myForm"><br>
+            <p style="color: rgb(166, 165, 165);">*change the value in the textbox</p>
+            <label for="myInput">Input:</label>
+            <input type="text" id="myInput" value="TEST123ABC"><br><br>
+            <div class="message" id="message"></div>
+        </form>
+    
+        <!-- Popup container -->
+        <div id="popup">
+            <p id="popupMessage"></p>
+            <button id="closePopupBtn">Close</button>
+        </div>
+
+        
+    </div>
+</div>
+
+<div class="sections">
+    <h2 id="restart">restart()</h2>
+    <div class="description">
+        <p>
+            method checks whether any fields in an object have been modified.
+        </p>
+    </div>
+    <div>
+        <img src="../vendor/img/formCodes/restart.png">
+    </div>
+    <h3>Example:</h3>
+    <div class="sample1">
+        <!-- <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p> -->
+        <form id="exampleForm6">
+            <div class="form-field">
+                <label for="name">Name:</label><br>
+                <input type="text" id="name" name="name">
+                <span class="validation-message" id="nameError">Name is required</span>
+            </div>
+            <div class="form-field">
+                <label for="email">Email:</label><br>
+                <input type="email" id="email" name="email">
+                <span class="validation-message" id="emailError">Valid email is required</span>
+            </div>
+            <div class="form-field">
+                 <button type="button" id="restartBtn"  onclick="restartForm()">Restart Form</button>
+            </div>
+           
+        </form>
+    
+        <!-- Popup container -->
+        <div id="popup">
+            <p id="popupMessage"></p>
+            <button id="closePopupBtn">Close</button>
+        </div>
+
+        
+    </div>
+</div>
+
+<div class="sections">
+    <h2 id="clear">clear()</h2>
+    <div class="description">
+        <p>
+            method checks whether any fields in an object have been modified.
+        </p>
+    </div>
+    <div>
+        <img src="../vendor/img/formCodes/clear.png">
+    </div>
+    <h3>Example:</h3>
+    <div class="sample1">
+        <!-- <p style="color: rgb(166, 165, 165);"> * select the button and press Enter key</p> -->
+        <form id="exampleForm">
+            <label for="name">Name:</label>
+            <input type="text" id="name2" name="name2">
+            <button type="button" id="clearName">Clear Name</button><br><br>
+            
+            <label for="email">Email:</label>
+            <input type="email" id="email2" name="email2">
+            <button type="button" id="clearEmail">Clear Email</button><br><br>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password2" name="password2">
+            <button type="button" id="clearPassword">Clear Password</button><br><br>
+        </form>
+    
+        <!-- Popup container -->
+        <div id="popup">
+            <p id="popupMessage"></p>
+            <button id="closePopupBtn">Close</button>
+        </div>
+
+        
+    </div>
+</div>
+
+
+
+<!--  -->
 
 
 
