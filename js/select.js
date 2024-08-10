@@ -8,8 +8,8 @@
    * F1 Custom Select - 17 Nov 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 1.2 - FIX - 16 May 2024
-   *   - Fix issue with selectOption() not matching the value correctly. === vs. ==
+   * @version 1.3 - FT - 08 Aug 2024
+   *   - Add support for "readonly" attribute.
    * 
    */
 
@@ -37,7 +37,7 @@
       const className = bcn + extra + (this.config.size === 'large' ? ` ${bcn}--large` : '');
       this.element = this.newEl('div', { className, 'ariaLabel': `${this.select.id || this.select.name}_${bcn}_ui` });
       this.valueDisplay = this.newEl('button', { className: `${bcn}__value`, type: 'button', 'ariaHasPopup': 'combobox', 
-      'ariaExpanded': 'false', 'ariaDisabled': this.select.disabled, innerHTML: `<span>${this.selectPrompt}</span>` });
+      'ariaExpanded': 'false', 'ariaDisabled': this.select.disabled||this.select.hasAttribute('readonly'), innerHTML: `<span>${this.selectPrompt}</span>` });
       this.dropdown = this.newEl('div', { role: 'combobox', 'ariaLabel': 'Dropdown' });
       this.searchInput = this.newEl('input', { role: 'searchbox', placeholder: this.config.searchPrompt ?? 'Search...' });
       this.utilBar = this.newEl('div', { className: `${bcn}__utilbar`, innerHTML: this.config.utilBarContent ?? '<p>- no results -</p>' });
