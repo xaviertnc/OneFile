@@ -17,9 +17,8 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.2 - FT - 13 May 2024
- *   - Improve decryptToken() method to handle both JSON and string tokens
- *     i.e. It now returns the decrypted string if json_decode fails.
+ * @version 2.3 - FT - 09 Aug 2024
+ *   - Add generateOTP() method.
  * 
  */
 
@@ -79,6 +78,15 @@ class Security
     $this->setTokenCookie( '' );
     $this->writeToSession( [] );
     session_destroy();
+  }
+
+
+  // OTP: One Time Pin Number
+  public function generateOTP( $length = 6 )
+  {
+    $min = pow( 10, $length - 1 );   // e.g. for 6 digits, 100000
+    $max = pow( 10, $length ) - 1;   // e.g. for 6 digits, 999999
+    return random_int( $min, $max );
   }
 
 

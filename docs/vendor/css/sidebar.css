@@ -162,6 +162,7 @@ header {
   flex: 1;
 }
 
+/* animation for the sidebar */
 .accordion__content {
   max-height: 0;
   overflow: hidden;
@@ -175,20 +176,13 @@ header {
 .accordion__header {
   cursor: pointer;
   padding: 10px;
-  /* background-color: #f1f1f1;
-  border: 1px solid #ccc; */
-}
-
-.accordion__header:hover {
-
 }
 
 .accordion__header.active + .accordion__content {
-  max-height: 500px; /* Adjust this value based on your content's max height */
+  max-height: 500px; 
   padding-top: 10px;
   padding-bottom: 10px;
-}
-
+} /* animation for the sidebar */
 
 @media only screen and (max-width: 1074px){
   body {
