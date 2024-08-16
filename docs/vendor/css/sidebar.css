@@ -162,6 +162,7 @@ header {
   flex: 1;
 }
 
+/* animation for the sidebar */
 .accordion__content {
   max-height: 0;
   overflow: hidden;
@@ -181,8 +182,7 @@ header {
   max-height: 500px; 
   padding-top: 10px;
   padding-bottom: 10px;
-}
-
+} /* animation for the sidebar */
 
 @media only screen and (max-width: 1074px){
   body {

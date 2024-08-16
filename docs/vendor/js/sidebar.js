@@ -12,6 +12,7 @@ document.addEventListener('click', function (e) {
     }
 });
 
+/* js fort the accordion animation */
 document.addEventListener('DOMContentLoaded', function () {
     var accHeaders = document.querySelectorAll('.accordion__header');
 
