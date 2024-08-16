@@ -175,16 +175,10 @@ header {
 .accordion__header {
   cursor: pointer;
   padding: 10px;
-  /* background-color: #f1f1f1;
-  border: 1px solid #ccc; */
-}
-
-.accordion__header:hover {
-
 }
 
 .accordion__header.active + .accordion__content {
-  max-height: 500px; /* Adjust this value based on your content's max height */
+  max-height: 500px; 
   padding-top: 10px;
   padding-bottom: 10px;
 }
@@ -225,6 +219,6 @@ header {
   }
 
   .content {
-      margin-left: 0;
+      margin-left: 0; 
   }
 }
