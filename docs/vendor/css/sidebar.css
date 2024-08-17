@@ -162,6 +162,28 @@ header {
   flex: 1;
 }
 
+/* animation for the sidebar */
+.accordion__content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+  list-style-type: none;
+  padding-left: 20px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.accordion__header {
+  cursor: pointer;
+  padding: 10px;
+}
+
+.accordion__header.active + .accordion__content {
+  max-height: 500px; 
+  padding-top: 10px;
+  padding-bottom: 10px;
+} /* animation for the sidebar */
+
 @media only screen and (max-width: 1074px){
   body {
     margin: 0 0;
@@ -197,6 +219,6 @@ header {
   }
 
   .content {
-      margin-left: 0;
+      margin-left: 0; 
   }
 }
