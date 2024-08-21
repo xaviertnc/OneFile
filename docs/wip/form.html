@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+    <meta name="generator" content="Hugo 0.84.0">
+    <title>F1 Library -  Form.js</title>
+
+    <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/headers/">
+
+    
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <!-- Favicons -->
+    <link rel="icon" href="assets/faveicon/favicon.ico" type="image/x-icon">
+
+    <!-- JS scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js"></script>
+
+    <script src="form.js"></script>
+
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+
+    </style>
+
+    
+    <!-- Custom styles for this template -->
+    <!-- <link href="headers.css" rel="stylesheet"> -->
+  </head>
+  <body>
+    
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="bootstrap" viewBox="0 0 118 94">
+    <title>Bootstrap</title>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M24.509 0c-6.733 0-11.715 5.893-11.492 12.284.214 6.14-.064 14.092-2.066 20.577C8.943 39.365 5.547 43.485 0 44.014v5.972c5.547.529 8.943 4.649 10.951 11.153 2.002 6.485 2.28 14.437 2.066 20.577C12.794 88.106 17.776 94 24.51 94H93.5c6.733 0 11.714-5.893 11.491-12.284-.214-6.14.064-14.092 2.066-20.577 2.009-6.504 5.396-10.624 10.943-11.153v-5.972c-5.547-.529-8.934-4.649-10.943-11.153-2.002-6.484-2.28-14.437-2.066-20.577C105.214 5.894 100.233 0 93.5 0H24.508zM80 57.863C80 66.663 73.436 72 62.543 72H44a2 2 0 01-2-2V24a2 2 0 012-2h18.437c9.083 0 15.044 4.92 15.044 12.474 0 5.302-4.01 10.049-9.119 10.88v.277C75.317 46.394 80 51.21 80 57.863zM60.521 28.34H49.948v14.934h8.905c6.884 0 10.68-2.772 10.68-7.727 0-4.643-3.264-7.207-9.012-7.207zM49.948 49.2v16.458H60.91c7.167 0 10.964-2.876 10.964-8.281 0-5.406-3.903-8.178-11.425-8.178H49.948z"></path>
+  </symbol>
+  <symbol id="home" viewBox="0 0 16 16">
+    <path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4.5a.5.5 0 0 0 .5-.5v-4h2v4a.5.5 0 0 0 .5.5H14a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146zM2.5 14V7.707l5.5-5.5 5.5 5.5V14H10v-4a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5v4H2.5z"/>
+  </symbol>
+  <symbol id="speedometer2" viewBox="0 0 16 16">
+    <path d="M8 4a.5.5 0 0 1 .5.5V6a.5.5 0 0 1-1 0V4.5A.5.5 0 0 1 8 4zM3.732 5.732a.5.5 0 0 1 .707 0l.915.914a.5.5 0 1 1-.708.708l-.914-.915a.5.5 0 0 1 0-.707zM2 10a.5.5 0 0 1 .5-.5h1.586a.5.5 0 0 1 0 1H2.5A.5.5 0 0 1 2 10zm9.5 0a.5.5 0 0 1 .5-.5h1.5a.5.5 0 0 1 0 1H12a.5.5 0 0 1-.5-.5zm.754-4.246a.389.389 0 0 0-.527-.02L7.547 9.31a.91.91 0 1 0 1.302 1.258l3.434-4.297a.389.389 0 0 0-.029-.518z"/>
+    <path fill-rule="evenodd" d="M0 10a8 8 0 1 1 15.547 2.661c-.442 1.253-1.845 1.602-2.932 1.25C11.309 13.488 9.475 13 8 13c-1.474 0-3.31.488-4.615.911-1.087.352-2.49.003-2.932-1.25A7.988 7.988 0 0 1 0 10zm8-7a7 7 0 0 0-6.603 9.329c.203.575.923.876 1.68.63C4.397 12.533 6.358 12 8 12s3.604.532 4.923.96c.757.245 1.477-.056 1.68-.631A7 7 0 0 0 8 3z"/>
+  </symbol>
+  <symbol id="table" viewBox="0 0 16 16">
+    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2zm15 2h-4v3h4V4zm0 4h-4v3h4V8zm0 4h-4v3h3a1 1 0 0 0 1-1v-2zm-5 3v-3H6v3h4zm-5 0v-3H1v2a1 1 0 0 0 1 1h3zm-4-4h4V8H1v3zm0-4h4V4H1v3zm5-3v3h4V4H6zm4 4H6v3h4V8z"/>
+  </symbol>
+  <symbol id="people-circle" viewBox="0 0 16 16">
+    <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+    <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+  </symbol>
+  <symbol id="grid" viewBox="0 0 16 16">
+    <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/>
+  </symbol>
+</svg>
+
+<main>
+  <h1 class="visually-hidden">Headers examples</h1>
+
+  <div class="container">
+    <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
+      <a href="index.html" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
+        <!-- <svg class="bi me-2" width="40" height="32"><img src=""></svg> -->
+         <img class="bi me-2" width="40" height="32" src="assets/faveicon/favicon.ico">
+        <span class="fs-4">Library</span>
+      </a>
+
+      <ul class="nav nav-pills">
+        <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+        <!-- <li class="nav-item"><a href="usage.html" class="nav-link active" aria-current="page">Usage</a></li> -->
+        <li class="nav-item dropdown">
+          <a href="#" class="nav-link dropdown-toggle active" id="methodsDropdown" data-bs-toggle="dropdown" aria-expanded="false">F1 Library Files</a>
+          <ul class="dropdown-menu" aria-labelledby="methodsDropdown">
+            <li><a class="dropdown-item active" href="form.html">Form.js</a></li>
+            <li><a class="dropdown-item" href="method2.html">Popup.js</a></li>
+            <li><a class="dropdown-item" href="method3.html">Select.js</a></li>
+            <li><a class="dropdown-item" href="method3.html">Formfield.js</a></li>
+          </ul>
+        </li>
+        <li class="nav-item"><a href="documentation.html" class="nav-link">Documentation</a></li>
+        <li class="nav-item"><a href="https://github.com/xaviertnc/OneFile" class="nav-link">Download</a></li>
+        <!-- <li class="nav-item"><a href="#" class="nav-link">About</a></li> -->
+      </ul>
+    </header>
+
+    <!-- <h1 class="text-dark display-4">F1 Library Files</h1> 
+    <p class="h4 text-dark lead">
+      The Fi library contains different Javascript files and has different usage these files are:
+      <ul class="pt-2">
+        <li class="text-dark lead">Form.js</li>
+        <li class="text-dark lead">Formfield.js</li>
+        <li class="text-dark lead">Popups.js</li>
+        <li class="text-dark lead">Select.js</li>
+      </ul>
+    </p>
+      <br> -->
+      <h1 class="text-dark display-3">How to use Form.js</h1> 
+
+      <!-- <h1 class="text-dark display-6">Form.js</h1>  -->
+      <p class="h4 text-dark lead justify-content-center pb-2">
+        The provided form.js script defines a Form class and integrates it into a global namespace F1.lib. This Form class encapsulates all the necessary functionality to handle form interactions, validations, and event handling in a structured manner.
+      </p>
+      <!-- HTML generated using hilite.me --><div style="background: #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1
+2
+3</pre></td><td><pre style="margin: 0; line-height: 125%">(<span style="color: #008800; font-weight: bold">function</span>(F1) {
+  <span style="color: #888888">// Form class definition and other functions here</span>
+})(<span style="color: #007020">window</span>.F1 <span style="color: #333333">=</span> <span style="color: #007020">window</span>.F1 <span style="color: #333333">||</span> {});
+</pre></td></tr></table></div>
+<p class="h4 text-dark lead justify-content-center pt-2">
+  <ul class="pt-2">
+    <li class="text-dark lead">The script is wrapped in an IIFE to create a private scope and avoid polluting the global namespace.</li>
+    <li class="text-dark lead">It accepts F1 as a parameter, ensuring that if F1 already exists, it will be used; otherwise, a new object will be created.</li>
+  </ul>
+<br>
+<!-- <h1 class="text-dark display-6">Form class</h1>  -->
+    <p class="h4 text-dark lead pb-3">
+      To use the methods from your F1 library classes within your js file, you need to create an instance of the Form class and call the method on that instance. Here's how you can do it, Add this function to the F1.deferred array to initialize the form when the app is ready
+      </p>
+      <!-- HTML generated using hilite.me --><div style="background: #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.1em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1
+2
+3</pre></td><td><pre style="margin: 0; line-height: 125%">F1.deferred.push(<span style="color: #008800; font-weight: bold">function</span> customFunctionName(app) {
+  <span style="color: #888888">//methods here</span>
+}
+</pre></td></tr></table>
+</div>
+<p class="h4 text-dark lead pt-3 pb-2">
+After this you need to initialize and load the dependencies in your Js file and use the needed file from the library. for example we are going to use the Form.js
+
+<!-- HTML generated using hilite.me --><div style="background: #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.1em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">
+1
+2
+3
+4
+5
+6</pre></td><td><pre style="margin: 0; line-height: 104%">F1.deferred.push(<span style="color: #008800; font-weight: bold">function</span> customFunctionName(app) {
+    
+    <span style="color: #008800; font-weight: bold">const</span> Form <span style="color: #333333">=</span> F1.lib.Form;
+  
+    <span style="color: #888888">//methods here</span>
+  }
+  </pre></td></tr></table></div>
+  
+
+</p>
+<br
+ 
+  <h1 class="text-dark display-6 pt-2">Form class</h1> 
+    <p class="h4 text-dark lead pb-2">
+      The Form class encapsulates all the logic related to form handling.
+      <!-- HTML generated using hilite.me --><div style="background:  #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1
+2
+3
+4
+5
+6</pre></td><td><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">class</span> Form {
+  constructor(formElement, config <span style="color: #333333">=</span> {}) {
+    <span style="color: #888888">// Initialization code</span>
+  }
+  <span style="color: #888888">// Other methods</span>
+}
+</pre></td></tr></table></div>
+
+    </p>
+
+    <h1 class="text-dark display-6">Constructor</h1> 
+    <p class="h4 text-dark lead">
+      <ul class="pt-2">
+        <li class="text-dark lead">Initializes the form with default and custom configurations.</li>
+        <li class="text-dark lead">Stores form elements and initializes fields.</li>
+        <li class="text-dark lead">Sets default values and attaches event listeners.</li>
+      </ul>
+<!-- HTML generated using hilite.me --><div style="background: #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.2em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+ 22
+ 23
+ 24
+ 25
+ 26
+ 27
+ 28
+ 29</pre></td><td><pre style="margin: 0; line-height: 120%"><span style="color: #008800; font-weight: bold"> class</span> Form {
+ 
+   constructor(formElement, config <span style="color: #333333">=</span> {}) {
+   constructor(formElement, config <span style="color: #333333">=</span> {}) {
+   <span style="color: #008800; font-weight: bold">const</span> defaultConfig <span style="color: #333333">=</span> {
+     validateOnSubmit<span style="color: #333333">:</span> <span style="color: #008800; font-weight: bold">function</span>() { <span style="color: #008800; font-weight: bold">return</span> <span style="color: #008800; font-weight: bold">true</span>; },
+     customValidations<span style="color: #333333">:</span> {},
+     customFieldTypes<span style="color: #333333">:</span> {},
+     stopOnInvalid<span style="color: #333333">:</span> <span style="color: #008800; font-weight: bold">false</span>,
+     checkModified<span style="color: #333333">:</span> <span style="color: #008800; font-weight: bold">true</span>,
+     initialValues<span style="color: #333333">:</span> <span style="color: #008800; font-weight: bold">null</span>,
+   };
+ 
+   <span style="color: #007020">Object</span>.assign(<span style="color: #008800; font-weight: bold">this</span>, defaultConfig, config);
+   formElement.CONTROLLER <span style="color: #333333">=</span> <span style="color: #008800; font-weight: bold">this</span>;
+   <span style="color: #008800; font-weight: bold">this</span>.formElement <span style="color: #333333">=</span> formElement;
+   <span style="color: #008800; font-weight: bold">this</span>.formElements <span style="color: #333333">=</span> <span style="color: #007020">Array</span>.from(formElement.elements);
+   <span style="color: #008800; font-weight: bold">this</span>.fields <span style="color: #333333">=</span> <span style="color: #008800; font-weight: bold">this</span>.getFields();
+   <span style="color: #008800; font-weight: bold">this</span>.fieldNames <span style="color: #333333">=</span> <span style="color: #007020">Object</span>.keys(<span style="color: #008800; font-weight: bold">this</span>.fields);
+   <span style="color: #008800; font-weight: bold">this</span>.defaultValues <span style="color: #333333">=</span> <span style="color: #007020">Object</span>.assign(<span style="color: #008800; font-weight: bold">this</span>.getValues(<span style="background-color: #fff0f0">&#39;init-bootstrap&#39;</span>), <span style="color: #008800; font-weight: bold">this</span>.initialValues);
+   <span style="color: #008800; font-weight: bold">this</span>.setValues(<span style="color: #008800; font-weight: bold">this</span>.defaultValues, <span style="background-color: #fff0f0">&#39;init-bootstrap&#39;</span>);
+   <span style="color: #008800; font-weight: bold">this</span>.attachEventListeners();
+   <span style="color: #008800; font-weight: bold">this</span>.onInit <span style="color: #333333">&amp;&amp;</span> <span style="color: #008800; font-weight: bold">this</span>.onInit();
+ 
+ }
+ 
+   }
+   <span style="color: #888888">// Other methods</span>
+ }
+ </pre></td></tr></table></div>
+ 
+    </p>
+      <br>
+
+      <h1 class="text-dark display-4 pb-3">Methods in Form.js</h1> 
+      <h1 class="text-dark display-6">getFields()</h1> 
+      <p class="h4 text-dark lead pb-1">
+        Filters and initializes form fields based on their types and custom field types.
+        <!-- HTML generated using hilite.me --><div style="background:#eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.1em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12</pre></td><td><pre style="margin: 0; line-height: 125%">    getFields() {
+      <span style="color: #008800; font-weight: bold">const</span> fields <span style="color: #333333">=</span> {};
+      <span style="color: #008800; font-weight: bold">this</span>.formElements.filter(<span style="color: #008800; font-weight: bold">this</span>.validatable).forEach(input <span style="color: #333333">=&gt;</span> {
+        <span style="color: #008800; font-weight: bold">if</span> (fields[input.name]) <span style="color: #008800; font-weight: bold">return</span> fields[input.name].inputs.push(input);
+        <span style="color: #008800; font-weight: bold">const</span> fieldTypeName <span style="color: #333333">=</span> <span style="color: #008800; font-weight: bold">this</span>.getInputCustomType(input) <span style="color: #333333">||</span> input.type;
+        <span style="color: #008800; font-weight: bold">const</span> FieldType <span style="color: #333333">=</span> <span style="color: #008800; font-weight: bold">this</span>.customFieldTypes[fieldTypeName] <span style="color: #333333">||</span> F1.lib.FormField;
+        <span style="color: #008800; font-weight: bold">const</span> field <span style="color: #333333">=</span> <span style="color: #008800; font-weight: bold">new</span> FieldType(<span style="color: #008800; font-weight: bold">this</span>, input);
+        log(<span style="background-color: #fff0f0">&#39;getFields:&#39;</span>, input.name, field);
+        fields[field.name] <span style="color: #333333">=</span> field;
+      });
+      <span style="color: #008800; font-weight: bold">return</span> fields;
+    }
+</pre></td></tr></table></div>
+
+        <ul>
+          <li  class="text-dark lead pb-2 pt-2">Ensure form.js is loaded before index.js: This guarantees that the Form class is available in the F1.lib namespace when index.js runs.</li>
+          <li  class="text-dark lead">Initialize the form in index.js: Create an instance of the Form class and call the getFields method on it.</li>
+        </ul>
+
+<!-- HTML generated using hilite.me --><div style="background:#eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.1em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%"> 
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+ 22
+ 23
+ 24
+ 25
+ 26
+ 27
+ 28
+ 29
+ 30
+ 31
+ 32
+ 33
+ 34
+ 35
+ 36
+ 37
+ 38
+ 39
+ 40
+   </pre></td><td><pre style="margin: 0; line-height: 125%"> F1.deferred.push(<span style="color: #008800; font-weight: bold">function</span> customFunctionName(app) { 
+ 
+   <!-- <span style="color: #008800; font-weight: bold">const</span> Ajax <span style="color: #333333">=</span> F1.lib.Ajax; -->
+   <span style="color: #888888">// load the form.js</span>
+   <span style="color: #008800; font-weight: bold">const</span> Form <span style="color: #333333">=</span> F1.lib.Form;
+   <!-- <span style="color: #008800; font-weight: bold">const</span> Popup <span style="color: #333333">=</span> F1.lib.Popup;
+   <span style="color: #008800; font-weight: bold">const</span> Utils <span style="color: #333333">=</span> F1.lib.Utils;
+   <span style="color: #008800; font-weight: bold">const</span> F1SelectField <span style="color: #333333">=</span> F1.lib.F1SelectField;
+   <span style="color: #008800; font-weight: bold">const</span> F1UploadField <span style="color: #333333">=</span> F1.lib.F1UploadField; -->
+ 
+   <span style="color: #888888">// Assuming you have a form element with the ID &#39;myForm&#39; in your HTML</span>
+   <span style="color: #008800; font-weight: bold">const</span> formElement <span style="color: #333333">=</span> <span style="color: #007020">document</span>.getElementById(<span style="background-color: #fff0f0">&#39;myForm&#39;</span>);
+ 
+   <span style="color: #888888">// Check if the form element exists</span>
+   <span style="color: #008800; font-weight: bold">if</span> (formElement) {
+     <span style="color: #888888">// Create an instance of the Form class</span>
+     <span style="color: #008800; font-weight: bold">const</span> myForm <span style="color: #333333">=</span> <span style="color: #008800; font-weight: bold">new</span> Form(formElement);
+ 
+     <span style="color: #888888">// Attach an event listener to the form&#39;s submit event</span>
+     formElement.addEventListener(<span style="background-color: #fff0f0">&#39;submit&#39;</span>, <span style="color: #008800; font-weight: bold">function</span>(event) {
+       event.preventDefault(); <span style="color: #888888">// Prevent the default form submission behavior</span>
+ 
+       <span style="color: #888888">// Call the getFields method</span>
+       <span style="color: #008800; font-weight: bold">const</span> fields <span style="color: #333333">=</span> myForm.getFields();
+ 
+       <span style="color: #888888">// Log the fields to the console</span>
+       console.log(<span style="background-color: #fff0f0">&#39;Fields:&#39;</span>, fields);
+ 
+       <span style="color: #888888">// Display a message or handle the fields as needed</span>
+       <span style="color: #007020">Object</span>.keys(fields).forEach(fieldName <span style="color: #333333">=&gt;</span> {
+         <span style="color: #008800; font-weight: bold">const</span> field <span style="color: #333333">=</span> fields[fieldName];
+         console.log(<span style="color: #FF0000; background-color: #FFAAAA">`</span>Field Name<span style="color: #333333">:</span> ${fieldName}<span style="color: #FF0000; background-color: #FFAAAA">`</span>, field);
+       });
+ 
+       <span style="color: #888888">// Optionally, show a popup or message to the user</span>
+       alert(<span style="background-color: #fff0f0">&#39;Form fields have been logged to the console.&#39;</span>);
+     });
+   } <span style="color: #008800; font-weight: bold">else</span> {
+     console.error(<span style="background-color: #fff0f0">&#39;Form element with ID &quot;myForm&quot; not found&#39;</span>);
+   }
+ 
+ });
+ </pre></td></tr></table></div>
+ 
+<!-- <h1 class="text-dark display-5 pt-5">HTML Form Example</h1>
+<p class="text-dark lead">For this example to work, you need to have an HTML form element with the ID myForm. Here’s a basic example:
+
+</p> -->
+<!-- <div class="container">
+  <div class=" my-0 mx-auto">
+    <form id="myForm">
+      <div class="p-1">
+        <label for="firstname">Firstname</label><br>
+        <input type="text" name="firstName" id="firstname" />
+      </div>
+      <div class="p-1">
+        <label for="lastname">Lastname</label><br>
+        <input type="text" name="lastName" id="lastname"/>
+      </div>
+      <div class="p-1">
+        <label for="email">Email</label><br>
+        <input type="email" name="email" id="email" autocomplete="off"/>
+      </div>
+      <div class="p-1 pt-2"> 
+         <button class="btn btn-primary" type="submit">Submit</button>
+      </div>
+    </form>
+  </div>
+</div> -->
+      </p>
+       <h1 class="text-dark display-5 pt-5">validatable()</h1>
+       <p class="h4 text-dark lead pb-3">
+        The validatable function is designed to check if an HTML element should be considered for validation.
+        </p>
+        <!-- HTML generated using hilite.me --><div style="background: #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.1em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1
+2
+3
+4
+5
+6
+7</pre></td><td><pre style="margin: 0; line-height: 125%"><span style="color: #008800; font-weight: bold">function</span> validatable(el) {
+  <span style="color: #008800; font-weight: bold">return</span> el.form <span style="color: #333333">&amp;&amp;</span> el.name <span style="color: #333333">&amp;&amp;</span> (
+    (el.tagName <span style="color: #333333">===</span> <span style="background-color: #fff0f0">&#39;INPUT&#39;</span> <span style="color: #333333">&amp;&amp;</span> el.type <span style="color: #333333">!==</span> <span style="background-color: #fff0f0">&#39;submit&#39;</span> <span style="color: #333333">&amp;&amp;</span> el.type <span style="color: #333333">!==</span> <span style="background-color: #fff0f0">&#39;reset&#39;</span>) <span style="color: #333333">||</span> 
+    el.tagName <span style="color: #333333">===</span> <span style="background-color: #fff0f0">&#39;SELECT&#39;</span> <span style="color: #333333">||</span> 
+    el.tagName <span style="color: #333333">===</span> <span style="background-color: #fff0f0">&#39;TEXTAREA&#39;</span>
+  );
+}
+</pre></td></tr></table></div>
+<dl class="pt-3">
+  <li class="text-dark lead">The <b class="fw-bold">"el.form"</b> checks if the element is associated with a form. If el.form is truthy, it means the element is part of a form.</li>
+  <li class="text-dark lead pt-2">The <b class="fw-bold">"el.name"</b> checks if the element has a name attribute. A name attribute is necessary for form elements that need to be validated and submitted.</li>
+  <li class="text-dark lead pt-2 mr-4"><b class="fw-bold">(el.tagName === 'INPUT' && el.type !== 'submit' && el.type !== 'reset')</b></li>
+  <dt class="text-dark lead pt-2 mr-4"><span class="m-5"><b><i class="bi bi-dash">-</i></b> <b class="fw-bold">" el.tagName === 'INPUT' "</b> This checks if the element is an input field.</span></dt>
+  <dt class="text-dark lead pt-2 mr-4"><span class="m-5"><b><i class="bi bi-dash">-</i></b> <b class="fw-bold">" el.type !== 'submit' && el.type !== 'reset' "</b> This ensures that the input field is not a submit or reset button. These types of input fields typically do not require validation.</span></dt>
+  <li class="text-dark lead pt-2"><b class="fw-bold">el.tagName === 'SELECT'</b>: This checks if the element is a dropdown "<b class="fw-bold">select</b>".</li>
+  <li class="text-dark lead pt-2"><b class="fw-bold">el.tagName === 'TEXTAREA' </b>: This checks if the element is a text area "<b class="fw-bold">textarea</b>".</li>
+</dl>
+<p class="text-dark lead display-6 pt-3">The function returns true if the element:</p>
+<ul class="text-dark lead pt-1">
+  <li>Is part of a form (el.form is truthy).</li>
+  <li>Has a name attribute.</li>
+</ul>
+<p class="text-dark lead pt-1 fs-2">Is either:</p>
+<ul>
+  <li class="text-dark lead">An input field (but not a submit or reset button).</li>
+  <li class="text-dark lead">A dropdown (" <b class="fw-bold">select</b>").</li>
+  <li class="text-dark lead">A text area (" <b class="fw-bold">textarea</b>").</li>
+</ul>
+<p class="text-dark lead pt-1 fs-2">If all these conditions are met, the element is considered validatable.</p>
+<br>
+<p class="text-dark lead display-4">Example</p>
+<ol type="1">
+  <li class="text-dark lead pb-1">Validatable Element:</li>
+  <!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.5em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1</pre></td><td><pre style="margin: 0; line-height: 125%"><span style="color: #333333">&lt;</span>input type<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;text&quot;</span> name<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;username&quot;</span> form<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;userForm&quot;</span><span style="color: #333333">&gt;</span>
+</pre></td></tr></table></div>
+  <p class="text-dark lead pb-1 pt-1">This input element will be considered validatable because it is an input field with a name attribute and is part of a form.</p>
+  <li class="text-dark lead pb-1">Non-Validatable Element:</li>
+  <!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.5em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1</pre></td><td><pre style="margin: 0; line-height: 125%"><span style="color: #333333">&lt;</span>input type<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;submit&quot;</span> name<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;submitBtn&quot;</span> form<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;userForm&quot;</span><span style="color: #333333">&gt;</span>
+</pre></td></tr></table></div>
+<p class="text-dark lead pb-1 pt-1">This input element will not be considered validatable because it is a submit button.</p>
+<li class="text-dark lead pb-1">Validatable Element:</li>
+<!-- HTML generated using hilite.me --><div style="background: #ffffff; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.5em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%">1</pre></td><td><pre style="margin: 0; line-height: 125%"><span style="color: #333333">&lt;</span>textarea name<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;comments&quot;</span> form<span style="color: #333333">=</span><span style="background-color: #fff0f0">&quot;feedbackForm&quot;</span><span style="color: #333333">&gt;&lt;</span><span style="color: #FF0000; background-color: #FFAAAA">/textarea&gt;</span>
+</pre></td></tr></table></div>
+<p class="text-dark lead pb-1 pt-1">This textarea element will be considered validatable because it is a text area with a "<b class="fw-bold">name</b>" attribute and is part of a form.</p>
+</ol>
+<p class="text-dark lead pb-1 pt-1">By using this function, you can easily determine which elements in a form should be validated. <br>Here's how you could integrate the validatable function:</p>
+<!-- HTML generated using hilite.me --><div style="background: #eeeedd; overflow:auto;width:auto;border:solid green;border-width:.1em .1em .1em .8em;padding:.1em .6em;"><table><tr><td><pre style="margin: 0; line-height: 125%"> 
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+ 11
+ 12
+ 13
+ 14
+ 15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+ 22
+ 23
+ 24
+ 25
+ 26
+ 27
+ 28
+ 29
+ 30
+ 31
+ 32
+ 33
+ 34
+ 35
+ 36
+ 37
+ 38
+ 39
+ 40
+ 41
+ 42
+ 43
+ 44
+ 45
+ 46
+ 47</pre></td><td><pre style="margin: 0; line-height: 120%">F1.deferred.push(<span style="color: #008800; font-weight: bold">function</span> customFunctionName(app) {
+ 
+    <span style="color: #888888">// load the form.js</span>
+    <span style="color: #008800; font-weight: bold">const</span> Form <span style="color: #333333">=</span> F1.lib.Form;
+ 
+ 
+   <span style="color: #888888">// Function to check if an element is validatable</span>
+   <span style="color: #008800; font-weight: bold">function</span> validatable(el) {
+     <span style="color: #008800; font-weight: bold">return</span> el.form <span style="color: #333333">&amp;&amp;</span> el.name <span style="color: #333333">&amp;&amp;</span> (
+       (el.tagName <span style="color: #333333">===</span> <span style="background-color: #fff0f0">&#39;INPUT&#39;</span> <span style="color: #333333">&amp;&amp;</span> el.type <span style="color: #333333">!==</span> <span style="background-color: #fff0f0">&#39;submit&#39;</span> <span style="color: #333333">&amp;&amp;</span> el.type <span style="color: #333333">!==</span> <span style="background-color: #fff0f0">&#39;reset&#39;</span>) <span style="color: #333333">||</span> 
+       el.tagName <span style="color: #333333">===</span> <span style="background-color: #fff0f0">&#39;SELECT&#39;</span> <span style="color: #333333">||</span> 
+       el.tagName <span style="color: #333333">===</span> <span style="background-color: #fff0f0">&#39;TEXTAREA&#39;</span>
+     );
+   }
+ 
+   <span style="color: #888888">// Initialize form validation</span>
+   <span style="color: #008800; font-weight: bold">function</span> initializeFormValidation(form) {
+     <span style="color: #008800; font-weight: bold">const</span> elements <span style="color: #333333">=</span> form.elements;
+ 
+     <span style="color: #888888">// Iterate over form elements</span>
+     <span style="color: #008800; font-weight: bold">for</span> (<span style="color: #008800; font-weight: bold">let</span> i <span style="color: #333333">=</span> <span style="color: #0000DD; font-weight: bold">0</span>; i <span style="color: #333333">&lt;</span> elements.length; i<span style="color: #333333">++</span>) {
+       <span style="color: #008800; font-weight: bold">const</span> element <span style="color: #333333">=</span> elements[i];
+ 
+       <span style="color: #888888">// If element is validatable, add &#39;change&#39; event listener</span>
+       <span style="color: #008800; font-weight: bold">if</span> (validatable(element)) {
+         element.addEventListener(<span style="background-color: #fff0f0">&#39;change&#39;</span>, <span style="color: #008800; font-weight: bold">function</span>() {
+ 
+           <span style="color: #888888">// Example validation logic</span>
+           console.log(<span style="color: #FF0000; background-color: #FFAAAA">`</span>Validating element<span style="color: #333333">:</span> ${element.name}<span style="color: #FF0000; background-color: #FFAAAA">`</span>);
+           <span style="color: #008800; font-weight: bold">if</span> (<span style="color: #333333">!</span>element.value.trim()) {
+             console.error(<span style="color: #FF0000; background-color: #FFAAAA">`</span>Validation failed <span style="color: #008800; font-weight: bold">for</span> ${element.name}<span style="color: #FF0000; background-color: #FFAAAA">`</span>);
+           } <span style="color: #008800; font-weight: bold">else</span> {
+             console.log(<span style="color: #FF0000; background-color: #FFAAAA">`</span>Validation passed <span style="color: #008800; font-weight: bold">for</span> ${element.name}<span style="color: #FF0000; background-color: #FFAAAA">`</span>);
+           }
+         });
+       }
+     }
+   }
+ 
+   <span style="color: #888888">// Run when DOM is ready</span>
+   <span style="color: #007020">document</span>.addEventListener(<span style="background-color: #fff0f0">&#39;DOMContentLoaded&#39;</span>, <span style="color: #008800; font-weight: bold">function</span>() {
+     <span style="color: #008800; font-weight: bold">const</span> form <span style="color: #333333">=</span> <span style="color: #007020">document</span>.querySelector(<span style="background-color: #fff0f0">&#39;#yourFormId&#39;</span>); <span style="color: #888888">// Replace with your form ID</span>
+     <span style="color: #008800; font-weight: bold">if</span> (form) {
+       initializeFormValidation(form);
+     }
+   });
+ });
+ </pre></td></tr></table></div>
+ <br>
+ <h4 class="display-4 pt-2">Explanation</h4>
+ <ol type="1">
+    <li class="text-dark lead pt-2">"<b b class="fw-bold">validatable</b>" function:</li>
+    <ul>
+      <li class="text-dark lead pt-2">Checks if an element should be validated.</li>
+    </ul>
+    <li class="text-dark lead pt-2">"<b b class="fw-bold">initializeFormValidation</b>" function:</li>
+    <ul>
+      <li class="text-dark lead pt-2">Iterates over form elements.</li>
+      <li class="text-dark lead pt-2">Adds an event listener for validatable elements to perform validation on change.</li>
+    </ul>
+    <li class="text-dark lead pt-2">"<b b class="fw-bold">DOMContentLoaded</b>" event listener:</li>
+    <ul>
+      <li class="text-dark lead pt-2">Runs when the DOM is fully loaded.</li>
+      <li class="text-dark lead pt-2">Selects the form by its ID and initializes validation.</li>
+    </ul>
+ </ol>
+<br>
+
+
+  </div>
+
+  <div class="b-example-divider"></div>
+
+  <!-- <div class="container">
+    <header class="d-flex justify-content-center py-3">
+      <ul class="nav nav-pills">
+        <li class="nav-item"><a href="#" class="nav-link active" aria-current="page">Home</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">Features</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">Pricing</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">FAQs</a></li>
+        <li class="nav-item"><a href="#" class="nav-link">About</a></li>
+      </ul>
+    </header>
+  </div> -->
+
+  <div class="b-example-divider"></div>
+<!-- 
+  <div class="container">
+    <header class="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
+      <a href="/" class="d-flex align-items-center col-md-3 mb-2 mb-md-0 text-dark text-decoration-none">
+        <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+      </a>
+
+      <ul class="nav col-12 col-md-auto mb-2 justify-content-center mb-md-0">
+        <li><a href="#" class="nav-link px-2 link-secondary">Home</a></li>
+        <li><a href="#" class="nav-link px-2 link-dark">Features</a></li>
+        <li><a href="#" class="nav-link px-2 link-dark">Pricing</a></li>
+        <li><a href="#" class="nav-link px-2 link-dark">FAQs</a></li>
+        <li><a href="#" class="nav-link px-2 link-dark">About</a></li>
+      </ul>
+
+      <div class="col-md-3 text-end">
+        <button type="button" class="btn btn-outline-primary me-2">Login</button>
+        <button type="button" class="btn btn-primary">Sign-up</button>
+      </div>
+    </header>
+  </div> -->
+
+  <div class="b-example-divider"></div>
+
+  <!-- <header class="p-3 bg-dark text-white">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none">
+          <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+        </a>
+
+        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+          <li><a href="#" class="nav-link px-2 text-secondary">Home</a></li>
+          <li><a href="#" class="nav-link px-2 text-white">Features</a></li>
+          <li><a href="#" class="nav-link px-2 text-white">Pricing</a></li>
+          <li><a href="#" class="nav-link px-2 text-white">FAQs</a></li>
+          <li><a href="#" class="nav-link px-2 text-white">About</a></li>
+        </ul>
+
+        <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3">
+          <input type="search" class="form-control form-control-dark" placeholder="Search..." aria-label="Search">
+        </form>
+
+        <div class="text-end">
+          <button type="button" class="btn btn-outline-light me-2">Login</button>
+          <button type="button" class="btn btn-warning">Sign-up</button>
+        </div>
+      </div>
+    </div>
+  </header> -->
+
+  <div class="b-example-divider"></div>
+<!-- 
+  <header class="p-3 mb-3 border-bottom">
+    <div class="container">
+      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+        <a href="/" class="d-flex align-items-center mb-2 mb-lg-0 text-dark text-decoration-none">
+          <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+        </a>
+
+        <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
+          <li><a href="#" class="nav-link px-2 link-secondary">Overview</a></li>
+          <li><a href="#" class="nav-link px-2 link-dark">Inventory</a></li>
+          <li><a href="#" class="nav-link px-2 link-dark">Customers</a></li>
+          <li><a href="#" class="nav-link px-2 link-dark">Products</a></li>
+        </ul>
+
+        <form class="col-12 col-lg-auto mb-3 mb-lg-0 me-lg-3">
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </form>
+
+        <div class="dropdown text-end">
+          <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="https://github.com/mdo.png" alt="mdo" width="32" height="32" class="rounded-circle">
+          </a>
+          <ul class="dropdown-menu text-small" aria-labelledby="dropdownUser1">
+            <li><a class="dropdown-item" href="#">New project...</a></li>
+            <li><a class="dropdown-item" href="#">Settings</a></li>
+            <li><a class="dropdown-item" href="#">Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#">Sign out</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header> -->
+
+  <div class="b-example-divider"></div>
+
+  <!-- <header class="py-3 mb-3 border-bottom">
+    <div class="container-fluid d-grid gap-3 align-items-center" style="grid-template-columns: 1fr 2fr;">
+      <div class="dropdown">
+        <a href="#" class="d-flex align-items-center col-lg-4 mb-2 mb-lg-0 link-dark text-decoration-none dropdown-toggle" id="dropdownNavLink" data-bs-toggle="dropdown" aria-expanded="false">
+          <svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"/></svg>
+        </a>
+        <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownNavLink">
+          <li><a class="dropdown-item active" href="#" aria-current="page">Overview</a></li>
+          <li><a class="dropdown-item" href="#">Inventory</a></li>
+          <li><a class="dropdown-item" href="#">Customers</a></li>
+          <li><a class="dropdown-item" href="#">Products</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="#">Reports</a></li>
+          <li><a class="dropdown-item" href="#">Analytics</a></li>
+        </ul>
+      </div>
+
+      <div class="d-flex align-items-center">
+        <form class="w-100 me-3">
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </form>
+
+        <div class="flex-shrink-0 dropdown">
+          <a href="#" class="d-block link-dark text-decoration-none dropdown-toggle" id="dropdownUser2" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="https://github.com/mdo.png" alt="mdo" width="32" height="32" class="rounded-circle">
+          </a>
+          <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser2">
+            <li><a class="dropdown-item" href="#">New project...</a></li>
+            <li><a class="dropdown-item" href="#">Settings</a></li>
+            <li><a class="dropdown-item" href="#">Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#">Sign out</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container-fluid pb-3">
+    <div class="d-grid gap-3" style="grid-template-columns: 1fr 2fr;">
+      <div class="bg-light border rounded-3">
+        <br><br><br><br><br><br><br><br><br><br>
+      </div>
+      <div class="bg-light border rounded-3">
+        <br><br><br><br><br><br><br><br><br><br>
+      </div>
+    </div>
+  </div> -->
+
+  <div class="b-example-divider"></div>
+
+  <!-- <nav class="py-2 bg-light border-bottom">
+    <div class="container d-flex flex-wrap">
+      <ul class="nav me-auto">
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2 active" aria-current="page">Home</a></li>
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2">Features</a></li>
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2">Pricing</a></li>
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2">FAQs</a></li>
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2">About</a></li>
+      </ul>
+      <ul class="nav">
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2">Login</a></li>
+        <li class="nav-item"><a href="#" class="nav-link link-dark px-2">Sign up</a></li>
+      </ul>
+    </div>
+  </nav>
+  <header class="py-3 mb-4 border-bottom">
+    <div class="container d-flex flex-wrap justify-content-center">
+      <a href="/" class="d-flex align-items-center mb-3 mb-lg-0 me-lg-auto text-dark text-decoration-none">
+        <svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"/></svg>
+        <span class="fs-4">Double header</span>
+      </a>
+      <form class="col-12 col-lg-auto mb-3 mb-lg-0">
+        <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+      </form>
+    </div>
+  </header> -->
+
+  <div class="b-example-divider"></div>
+
+  <!-- <header>
+    <div class="px-3 py-2 bg-dark text-white">
+      <div class="container">
+        <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
+          <a href="/" class="d-flex align-items-center my-2 my-lg-0 me-lg-auto text-white text-decoration-none">
+            <svg class="bi me-2" width="40" height="32" role="img" aria-label="Bootstrap"><use xlink:href="#bootstrap"/></svg>
+          </a>
+
+          <ul class="nav col-12 col-lg-auto my-2 justify-content-center my-md-0 text-small">
+            <li>
+              <a href="#" class="nav-link text-secondary">
+                <svg class="bi d-block mx-auto mb-1" width="24" height="24"><use xlink:href="#home"/></svg>
+                Home
+              </a>
+            </li>
+            <li>
+              <a href="#" class="nav-link text-white">
+                <svg class="bi d-block mx-auto mb-1" width="24" height="24"><use xlink:href="#speedometer2"/></svg>
+                Dashboard
+              </a>
+            </li>
+            <li>
+              <a href="#" class="nav-link text-white">
+                <svg class="bi d-block mx-auto mb-1" width="24" height="24"><use xlink:href="#table"/></svg>
+                Orders
+              </a>
+            </li>
+            <li>
+              <a href="#" class="nav-link text-white">
+                <svg class="bi d-block mx-auto mb-1" width="24" height="24"><use xlink:href="#grid"/></svg>
+                Products
+              </a>
+            </li>
+            <li>
+              <a href="#" class="nav-link text-white">
+                <svg class="bi d-block mx-auto mb-1" width="24" height="24"><use xlink:href="#people-circle"/></svg>
+                Customers
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="px-3 py-2 border-bottom mb-3">
+      <div class="container d-flex flex-wrap justify-content-center">
+        <form class="col-12 col-lg-auto mb-2 mb-lg-0 me-lg-auto">
+          <input type="search" class="form-control" placeholder="Search..." aria-label="Search">
+        </form>
+
+        <div class="text-end">
+          <button type="button" class="btn btn-light text-dark me-2">Login</button>
+          <button type="button" class="btn btn-primary">Sign-up</button>
+        </div>
+      </div>
+    </div>
+  </header> -->
+
+  <div class="b-example-divider"></div>
+</main>
+
+
+    <script src="/docs/5.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+      
+  </body>
+</html>
