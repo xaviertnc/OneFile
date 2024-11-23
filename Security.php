@@ -17,8 +17,8 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.3 - FT - 09 Aug 2024
- *   - Add generateOTP() method.
+ * @version 2.3.1 - FIX - 23 Nov 2024
+ *   - Fix issue in validateToken(). Also verify that the token is an array.
  * 
  */
 
@@ -150,7 +150,7 @@ class Security
     $logPrefix = 'Security::validateToken(), ';
     debug_log( $logPrefix . 'Says Hi!', '', 2, $logType );
     debug_log( $token, $logPrefix . 'token: ', 5, $logType );
-    $formatValid = $token and isset( $token['u'], $token['t'] );
+    $formatValid = is_array( $token ) and isset( $token['u'], $token['t'] );
     if ( ! $formatValid ) return debug_log( 'Token Invalid', $logPrefix, 2, $logType );
     if ( $this->tokenExpired( $token ) ) return debug_log( 'Token Expired', $logPrefix, 2, $logType );
     return true;
