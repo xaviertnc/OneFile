@@ -10,8 +10,8 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.14 - FT - 13 May 2024
- *   - Upgrade / fix count() to work with where clauses.
+ * @version 1.2 - FT - 27 Dec 2024
+ *   - Add Database::nowString()
  */
 
 class Database {
@@ -167,12 +167,14 @@ class Database {
     return $validData;
   }
 
+  public function nowString() { return date( 'Y-m-d H:i:s' ); }
+
   public function autoStamp( array $data, array $options, $operation ) {
     $autoStamp = $options['autoStamp'] ?? null;
     if ( ! $autoStamp ) return $data;
     if ( is_scalar( $autoStamp ) ) $autoStamp = [];
     $at = $operation . '_at';
-    $now = date( 'Y-m-d H:i:s' );
+    $now = $this->nowString();
     debug_log( $at . ': ' . $now, 'db::autoStamp(), ', 3 );
     $data[$autoStamp[$at] ?? $at] = $now;
     $asUser = $options['user'] ?? null;
@@ -198,6 +200,7 @@ class Database {
       'affected' => $affectedRows ];
   }
 
+  // TODO: What if we want to update multiple rows?
   public function update( array $data, $options = [] ) {
     debug_log( $data, 'db::update(), data: ', 3 );
     $pkValue = $data[$this->primaryKey];
