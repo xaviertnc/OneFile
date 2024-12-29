@@ -5,9 +5,9 @@
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.2 - DEV - 28 Feb 2024
- *   - Make class properties public.
- *   - Add Logger::setPath()
+ * @version 2.3 - FT - 27 Dec 2024
+ *   - Add Logger::todayString()
+ *   - Add Logger::nowString()
  */
 
 class Logger {
@@ -22,7 +22,7 @@ class Logger {
   public function __construct( $logPath = __DIR__, $fileName = null, $logLevel = 0 ) {
     $this->setPath( $logPath );
     $this->fileName = $fileName;
-    $this->file = $this->path . DIRECTORY_SEPARATOR . ( $fileName ?: 'log-' . date( 'Y-m-d' ) . '.txt' );
+    $this->file = $this->path . DIRECTORY_SEPARATOR . ( $fileName ?: 'log-' . $this->todayString() . '.txt' );
     $this->disabled = ! $logLevel;
     $this->logLevel = $logLevel;
   }
@@ -30,7 +30,7 @@ class Logger {
 
   public function formatLog( $message, $type = null ) {
     $typePrefix = $type ? '[' . str_pad( ucfirst( $type ), 5 ) . "]:\t" : '';
-    return $typePrefix . date( 'Y-m-d H:i:s' ) . ' - ' . print_r( $message, true) . PHP_EOL;
+    return $typePrefix . $this->nowString() . ' - ' . print_r( $message, true) . PHP_EOL;
   }
 
 
@@ -59,6 +59,8 @@ class Logger {
   }
 
 
+  public function todayString() { return date( 'Y-m-d' ); }
+  public function nowString() { return date( 'Y-m-d H:i:s' ); }
   public function getFileSize() { return file_exists( $this->file ) ? filesize( $this->file ) : 0; }
   public function getFileName() { return $this->fileName; }
   public function getLevel() { return $this->logLevel; }
