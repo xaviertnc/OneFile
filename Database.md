@@ -120,3 +120,16 @@ $db->execute( 'INSERT INTO users (name) VALUES (?)', ['John'] );
 $db->execute( 'UPDATE users SET name = ? WHERE id = ?', ['Joe', 1] );
 $db->execute( 'DELETE FROM users WHERE id = ?', [1] );
 ```
+
+### Transactions
+```php
+$db->pdo->beginTransaction();
+try {
+		$db->table('users')->insert(['name' => 'John']);
+		$db->table('users')->insert(['name' => 'Jane']);
+		$db->pdo->commit();
+} catch (Exception $e) {
+		// $db->pdo->rollBack(); - or -
+		$db->safeRollback(); // Checks if the transaction is still active before rolling back.
+}
+```
