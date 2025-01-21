@@ -8,8 +8,13 @@
    * Utils Class - 01 Jun 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * @version 2.0 - RC3 - 11 Jan 2024
-   *   - Make className optional in getEl()
+   * 
+   * @version 2.1 - FT - 08 Jan 2025
+   *   - Add percent() method
+   * 
+   * @version 2.2 - FT - 18 Jan 2025
+   *   - Rename capitalizeFirstChar() to ucFirst()
+   *   - Improve generateUid(). Prevent UIDs that can be seen as numbers.
    */
 
   class Utils {
@@ -34,11 +39,16 @@
       Array.from(el.querySelectorAll('.' + className)).forEach(found => found.classList.remove(className));
     }
   
-    static capitalizeFirstChar(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
+    static ucFirst(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
 
-    static titleCase(str) { return str.split(/[ _-]+/).map(word => Utils.capitalizeFirstChar(word)).join(' '); }
+    static titleCase(str) { return str.split(/[ _-]+/).map(word => Utils.ucFirst(word)).join(' '); }
 
-    static generateUid(){ return Math.random().toString(36).substr(2, 9); } // e.g. '4k8b4y9w3'
+    static generateUid() {
+      let uid, i = 0; // e.g. '4k8b4y9w3'
+      do { uid = Math.random().toString(36).substr(2, 9); i++; }
+      while (!isNaN(uid.replace('e','')) && i < 1000);
+      return uid;
+    }
 
     static currency(num, symbol = 'R ', sep = ' ', dec = 0, dc = '.') {
       if (num === null || num === '') return '';
@@ -50,6 +60,12 @@
       if (rem > 0) { fmtNum += intPart.slice(0, rem); if (len > grpSize) fmtNum += sep; }
       for (let i = rem; i < len; i += grpSize) { if (i !== rem) fmtNum += sep; fmtNum += intPart.slice(i, i + grpSize); }
       return symbol + fmtNum + decPart;
+    }
+
+    static percent(input, decimals = 2) {
+      let sanitized = input.replace(/[^\d.]/g, '');
+      let percent = Math.min(100, Math.max(0, parseFloat(sanitized) || 0));
+      return percent.toFixed(decimals); // Return as a string
     }
 
     static clone(obj) {
