@@ -17,9 +17,12 @@
  *
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.3.1 - FIX - 23 Nov 2024
- *   - Fix issue in validateToken(). Also verify that the token is an array.
- * 
+ * @version 2.4.0 - DEV - 19 Jan 2025
+ *   Breaking changes:
+ *     - Rename getSession() to getSessionData()
+ *     - Remove GenerateOTP()
+ *     - Add comments
+ *    
  */
 
 class Security
@@ -53,7 +56,7 @@ class Security
   }
 
 
-  public function getSession() {
+  public function getSessionData() {
     if ( session_status() === PHP_SESSION_NONE ) session_start();
     return $_SESSION;
   }
@@ -67,7 +70,7 @@ class Security
 
   public function destorySession() {
     if ( session_status() === PHP_SESSION_NONE ) session_start();
-    // Delete the session cookie
+    // Delete the *php session* cookie (not the same as the *token* cookie)
     if ( ini_get( 'session.use_cookies' ) ) {
       $params = session_get_cookie_params();
       setcookie( session_name(), '', time() - 42000,
@@ -75,18 +78,9 @@ class Security
         $params['secure'], $params['httponly']
       );
     }    
-    $this->setTokenCookie( '' );
-    $this->writeToSession( [] );
+    $this->setTokenCookie( '' ); // Delete *token* cookie
+    $this->writeToSession( [] ); // Clear session data
     session_destroy();
-  }
-
-
-  // OTP: One Time Pin Number
-  public function generateOTP( $length = 6 )
-  {
-    $min = pow( 10, $length - 1 );   // e.g. for 6 digits, 100000
-    $max = pow( 10, $length ) - 1;   // e.g. for 6 digits, 999999
-    return random_int( $min, $max );
   }
 
 
@@ -195,10 +189,10 @@ class Security
     $logPrefix = 'Security::startUserSession(), ';
     debug_log( json_encode( $asUser ), $logPrefix . 'user: ', 3, $logType );
     if ( ! $asUser ) return false;
-    $session = $this->getSession();
-    debug_log( json_encode( $session ), $logPrefix . '$_SESSION: ', 3, $logType );
+    $sessionData = $this->getSessionData();
+    debug_log( json_encode( $sessionData ), $logPrefix . '$_SESSION: ', 3, $logType );
     // If there is no session user, set the provided user as the session user
-    $this->user = $session['user'] ?? $asUser;
+    $this->user = $sessionData['user'] ?? $asUser;
     $this->writeToSession( 'user', $this->user );
     $sessionUserId = $this->user['id'] ?? '';
     $asUserId = $asUser['id'] ?? '';
