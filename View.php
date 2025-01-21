@@ -8,9 +8,8 @@ use Exception;
  *
  * @author C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 7.2.0 - DEV - 09 Dec 2023
- *  - Update code style. Particularly {} use.
- *  - Reorganize code.
+ * @version 7.3.0 - FT - 21 Jan 2025
+ *  - Add <else> tag support.
  */
 
 class View {
@@ -44,6 +43,15 @@ class View {
     if ( $matches[0] ) {
       foreach ( $matches[0] as $index => $match ) {
         $subContent = "<?php end{$matches[1][ $index ]}; ?>";
+        $content = $this->replaceContent( $match, $subContent, $content );
+      }
+    }
+    $matches = array();
+    $pattern = '/\<else\>/';
+    preg_match_all($pattern, $content, $matches);
+    if ( $matches[0] ) {
+      foreach ( $matches[0] as $index => $match ) {
+        $subContent = "<?php else: ?>";
         $content = $this->replaceContent( $match, $subContent, $content );
       }
     }
