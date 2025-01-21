@@ -12,8 +12,8 @@ use Exception;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 3.1.2 - DEV - 28 May 2024
- *   - Declare $sessionName property
+ * @version 3.2.0 - FT - 20 Jan 2025
+ *   - Add a set() method to "set" the entire session's data.
  *
  */
 
@@ -63,6 +63,12 @@ class Session {
       $this->flashed = $_SESSION[ self::FLASH ] ?? [];
       if ( empty( $this->flashed ) ) $_SESSION[ self::FLASH ] = [];
     }
+  }
+
+
+  public function set( $value ) {
+    if ( $this->scope ) $_SESSION[ $this->scope ] = $value;
+    else $_SESSION = $value;
   }
 
 
