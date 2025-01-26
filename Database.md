@@ -47,6 +47,15 @@ $count = $db->table('users')->count();
 $count = $db->table('users')->where('status', 'active')->count();
 ```
 
+### Set Primary Key
+```php
+// Set the primary key for the current table. When set here, 
+// it will be used for all future queries in the current request.
+// This is useful when you want to save, insert or update data based
+// on another unique key. e.g. Use the user UID instead of the user ID.
+$db->table('users')->setPrimaryKey('user_id');
+```
+
 ### Inserting Data
 ```php
 // If the primary key is set in $data, it will be ignored.
