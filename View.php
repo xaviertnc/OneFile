@@ -1,7 +1,6 @@
 <?php namespace F1;
 
 use stdClass;
-use Exception;
 
 /**
  * F1 View Class - 23 June 2022
@@ -10,6 +9,11 @@ use Exception;
  * 
  * @version 7.3.0 - FT - 21 Jan 2025
  *  - Add <else> tag support.
+ * 
+ * @version 7.4.0 - FT - 26 Jan 2025
+ *  - Add default value option to View::get().
+ *  - Comment out: $lastCompileTime (not used)
+ * 
  */
 
 class View {
@@ -181,7 +185,7 @@ class View {
     if ( file_exists( $compiledFile ) ) {
       if ( $this->recompileChanges() ) {
         $manifest = include( $manifestFile );
-        $lastCompileTime = filemtime( $compiledFile );
+        // $lastCompileTime = filemtime( $compiledFile );
         foreach ($manifest ?: [] as $fileToInclude => $timestamp) {
           if ( ! file_exists( $fileToInclude ) or $timestamp < filemtime( $fileToInclude ) ) {
             $compile = true;
@@ -203,6 +207,6 @@ class View {
   public function getDir() { return dirname( $this->file ) . $this->ds; }
 
   public function with( $key, $value ) { $this->data->$key = $value; return $this; }
-  public function get( $key ) { return $this->data->$key ?? null; }
+  public function get( $key, $default = null ) { return $this->data->$key ?? $default; }
 
 }
