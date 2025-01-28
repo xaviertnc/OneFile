@@ -8,8 +8,15 @@
    * F1 Form - 07 Oct 2022
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
+   * 
    * @version 3.3 - FT - 23 Feb 2024
    *   - Add validateOnSubmit()
+   * 
+   * @version 3.4 - FT - 18 Jan 2025
+   *   - Add getInputFieldType()
+   *   - Add getDefaultFieldType()
+   *   - Add addCustomValidation()
+   *   - Update getFields() to use getInputFieldType()
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -30,6 +37,7 @@
       this.formElement = formElement;
       this.formElements = Array.from(formElement.elements);
       this.fields = this.getFields();
+      // this.fields.forEach(field => field.init());
       this.fieldNames = Object.keys(this.fields);
       this.defaultValues = Object.assign(this.getValues('init-bootstrap'), this.initialValues);
       this.setValues(this.defaultValues, 'init-bootstrap');
@@ -37,14 +45,24 @@
       this.onInit && this.onInit();
     }
 
+    getInputFieldType(input) {
+      const fieldElement = input.dataset.customType ? input : input.closest('fieldset') || {};
+      return fieldElement?.dataset?.customType || this.getDefaultFieldType(input);
+    }
+
+    getDefaultFieldType(input) {
+      const type = input?.type || 'text';
+      return 'F1' + type.charAt(0).toUpperCase() + type.slice(1) + 'Field';
+    }
+
     getFields() {
       const fields = {};
       this.formElements.filter(this.validatable).forEach(input => {
         if (fields[input.name]) return fields[input.name].inputs.push(input);
-        const fieldTypeName = this.getInputCustomType(input) || input.type;
+        const fieldTypeName = this.getInputFieldType(input);
         const FieldType = this.customFieldTypes[fieldTypeName] || F1.lib.FormField;
-        const field = new FieldType(this, input);
-        log('getFields:', input.name, field);
+        const field = new FieldType(this, input, fieldTypeName);
+        log('getFields(), Field for input:', input.name, field);
         fields[field.name] = field;
       });
       return fields;
@@ -96,17 +114,18 @@
       e.preventDefault(); this.focusNextField(field);
     }
 
+    addCustomValidation(fieldName, fn) { 
+      if (!this.customValidations[fieldName]) this.customValidations[fieldName] = [];
+      this.customValidations[fieldName].push(fn);
+    }
+
     attachEventListeners() {
       this.formElement.addEventListener('submit', this.handleSubmit.bind(this));
       this.formElement.addEventListener('change', this.handleChange.bind(this));
       this.formElement.addEventListener('keydown', this.handleKeyDown.bind(this));
     }
 
-    getInputCustomType(input) { return input.dataset.customType; }
-
-
     clearValidationUi() { Object.values(this.fields).forEach(field => field.clearValidationUi()); }
-
 
     focusNextField(currentField) {
       const currentIndex = this.fieldNames.indexOf(currentField.name);
