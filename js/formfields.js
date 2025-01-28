@@ -77,7 +77,7 @@
       if (init) this.defaultValue = value;
     }
 
-  }
+  } // F1SelectField
 
 
 
@@ -118,7 +118,7 @@
       if (init) this.defaultValue = value;
     }
 
-  }
+  } // F1UploadField
 
 
   F1.lib = F1.lib || {};
