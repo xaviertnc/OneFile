@@ -14,6 +14,9 @@ use Exception;
  * 
  * @version 3.2.0 - FT - 20 Jan 2025
  *   - Add a set() method to "set" the entire session's data.
+ * 
+ * @version 3.2.1 - FIX - 26 Jan 2025
+ *   - Fix issue with FLASH data not being cleared after being read.
  *
  */
 
@@ -58,10 +61,10 @@ class Session {
   public function setupFlash( $scope = null ) {
     if ( $scope ) {
       $this->flashed = $_SESSION[ $scope ][ self::FLASH ] ?? [];
-      if ( empty( $this->flashed ) ) $_SESSION[ $scope ][ self::FLASH ] = [];
+      $_SESSION[ $scope ][ self::FLASH ] = [];
     } else {
       $this->flashed = $_SESSION[ self::FLASH ] ?? [];
-      if ( empty( $this->flashed ) ) $_SESSION[ self::FLASH ] = [];
+      $_SESSION[ self::FLASH ] = [];
     }
   }
 
@@ -97,11 +100,17 @@ class Session {
   }
 
   public function flash( $key, $value ) {
+    // debug_log( $key, 'Flash Key: ', 3 );
+    // debug_log( $value, 'Flash Value: ', 3 );
     if ( $this->scope ) $_SESSION[ $this->scope ][ self::FLASH ][ $key ] = $value;
     else $_SESSION[ self::FLASH ][ $key ] = $value;
   }
 
-  public function getFlash( $key, $default = null ) { return $this->flashed[ $key ] ?? $default; }
+  public function getFlash( $key, $default = null ) {
+    // debug_log( $this->flashed, 'Flashed Data: ', 3 );
+    // debug_log( $key, 'Get Flash Key: ', 3 );
+    return $this->flashed[ $key ] ?? $default;
+  }
 
   public function destroy() { if ( session_status() != PHP_SESSION_NONE ) session_destroy(); }
   public function close() { session_write_close(); }
