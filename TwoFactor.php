@@ -9,6 +9,9 @@
  * @version 1.0 - INIT - 19 Jan 2025
  *   - Extract common 2FA code into this abstract lib class.
  * 
+ * @version 1.1 - DEV - 26 Jan 2025
+ *   - Rename generateTimeBasedOTPLink() to generateTimeBasedOTPUri()
+ * 
  * PS: This class still needs a lot of work. NM 20 Jan 25 
  *
  */
@@ -82,7 +85,7 @@ abstract class TwoFactor {
   }
 
 
-  public function generateTimeBasedOTPLink( $secret, $issuer, $accountName ) {
+  public function generateTimeBasedOTPUri( $secret, $issuer, $accountName ) {
     return sprintf('otpauth://totp/%s:%s?secret=%s&issuer=%s',
       urlencode( $issuer ), urlencode( $accountName ), 
       urlencode( $secret ), urlencode( $issuer ));
