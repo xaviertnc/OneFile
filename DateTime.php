@@ -23,6 +23,9 @@ use DateTime as BaseDateTime;
  *   - $dateTimeStr defaults to 'now'
  *   - Remove isLeapYear()
  *   - Remove isWeekend()
+ * 
+ * @version 2.1 - FIX - 27 Jan 2025
+ *   - Change $timezone parameter to accept string or DateTimeZone in __construct()
  */
 
 class DateTime extends BaseDateTime {
@@ -43,8 +46,9 @@ class DateTime extends BaseDateTime {
    *  'first day of next month' - Relative to the current system date
    *   null - Defaults to 'now'
    */ 
-  public function __construct( ?string $dateTimeStr = null, ?string $timezoneString = null ) {
-    parent::__construct( $dateTimeStr?:'now', $timezoneString ? new DateTimeZone( $timezoneString ) : null );
+  public function __construct( ?string $dateTimeStr = null, $timezone = null ) {
+    if ( is_string( $timezone ) ) $timezone = new DateTimeZone( $timezone );
+    parent::__construct( $dateTimeStr?:'now', $timezone );
   }
 
 
