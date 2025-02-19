@@ -22,6 +22,10 @@
  *     - Rename getSession() to getSessionData()
  *     - Remove GenerateOTP()
  *     - Add comments
+ * 
+  * @version 2.5.0 - FT - 19 Feb 2025
+ *   - Add JS to the default login form HTML to store the last URL in sessionStorage.
+ *   - Bind the "onsubmit" event in JS instead of adding the code in the FORM tag.
  *    
  */
 
@@ -230,7 +234,7 @@ class Security
 
 
   public function renderLogin( $feedback = null ) {
-    echo '<form method="POST" onsubmit="document.body.className=\'busy\'">';
+    echo '<form method="POST" id="loginForm">';
     if ( $feedback ) echo '<p id="generalFeedback" class="feedback">' . $feedback . '</p>';
     echo '<label for="username">Username:</label>';
     echo '<input type="text" id="username" name="username" placeholder="Username" required>';
@@ -239,7 +243,13 @@ class Security
     echo '<input type="password" id="password" name="password" placeholder="Password" required>';
     echo '<p id="passwordFeedback" class="feedback"></p>';
     echo '<button type="submit"><span class="spinner"></span>Login</button>';
-    echo '</form>' . PHP_EOL;
+    echo '</form><script>';
+    echo 'document.getElementById("loginForm").addEventListener("submit", function(){';
+    echo 'document.body.className = "busy";';
+    echo 'var lastURL = sessionStorage.getItem("lastURL");';
+    echo 'if (lastURL) sessionStorage.setItem("gotoURL", lastURL);';
+    echo '});';
+    echo '</script>' . PHP_EOL;
   }
 
 
