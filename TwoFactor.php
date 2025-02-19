@@ -1,6 +1,9 @@
 <?php namespace F1;
 
 
+use Exception;
+
+
 /**
  * F1 - TwoFactor Class - 19 Jan 2025
  *
@@ -11,6 +14,10 @@
  * 
  * @version 1.1 - DEV - 26 Jan 2025
  *   - Rename generateTimeBasedOTPLink() to generateTimeBasedOTPUri()
+ * 
+ * @version 2.0 - DEV - 19 Feb 2025
+ *   - Improve base32_decode(), base32_encode() and generateTimeBasedOTPUri() 
+ *     methods to work with more TOPT apps, including "Twillo Authy"
  * 
  * PS: This class still needs a lot of work. NM 20 Jan 25 
  *
@@ -28,19 +35,23 @@ abstract class TwoFactor {
   public function base32_decode( $data ) 
   {
     $base32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    $data = strtoupper( $data );
+    $data = strtoupper( str_replace( '=', '', $data ) ); // Remove padding and normalize case
     $binary = '';
-    $data = str_replace( '=', '', $data );
+
     for ( $i = 0; $i < strlen( $data ); $i++ ) {
-        $binary .= str_pad( decbin( strpos( $base32, $data[$i] ) ), 5, '0', STR_PAD_LEFT );
+      $charIndex = strpos( $base32, $data[$i] );
+      if ( $charIndex === false ) throw new Exception( 'Invalid Base32 character found' );
+      $binary .= str_pad( decbin( $charIndex ), 5, '0', STR_PAD_LEFT );
     }
+
     $result = '';
     for ( $i = 0; $i < strlen( $binary ); $i += 8 ) {
-        $byte = substr( $binary, $i, 8 );
-        if ( strlen( $byte ) == 8 ) {
-            $result .= chr( bindec( $byte ) );
-        }
+      $byte = substr( $binary, $i, 8 );
+      if ( strlen( $byte ) == 8 ) {
+        $result .= chr( bindec( $byte ) );
+      }
     }
+
     return $result;
   }
 
@@ -48,18 +59,19 @@ abstract class TwoFactor {
   public function base32_encode( $data ) 
   {
     $base32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    $padding = '=';
     $binary = '';
-    $data = str_pad( $data, ceil( strlen( $data ) / 8 ) * 8, "\0" );
+
     for ( $i = 0; $i < strlen( $data ); $i++ ) {
-        $binary .= str_pad( decbin( ord( $data[$i] ) ), 8, '0', STR_PAD_LEFT );
+      $binary .= str_pad( decbin( ord( $data[$i] ) ), 8, '0', STR_PAD_LEFT );
     }
+
     $result = '';
     for ( $i = 0; $i < strlen( $binary ); $i += 5 ) {
-        $chunk = substr( $binary, $i, 5 );
-        $result .= $base32[bindec( str_pad( $chunk, 5, '0', STR_PAD_RIGHT ) )];
+      $chunk = substr( $binary, $i, 5 );
+      $result .= $base32[bindec( str_pad( $chunk, 5, '0', STR_PAD_RIGHT ) )];
     }
-    return str_pad( $result, ceil( strlen( $result ) / 8 ) * 8, $padding );
+
+    return rtrim( $result, '=' ); // Remove unnecessary padding
   }
 
 
@@ -68,6 +80,11 @@ abstract class TwoFactor {
     $min = pow( 10, $length - 1 );   // e.g. for 6 digits, 100000
     $max = pow( 10, $length ) - 1;   // e.g. for 6 digits, 999999
     return random_int( $min, $max );
+  }
+
+
+  public function generateTimeBasedOTPSecret( $length = 16 ) {
+    return $this->base32_encode( random_bytes( $length ) );
   }
 
 
@@ -86,9 +103,8 @@ abstract class TwoFactor {
 
 
   public function generateTimeBasedOTPUri( $secret, $issuer, $accountName ) {
-    return sprintf('otpauth://totp/%s:%s?secret=%s&issuer=%s',
-      urlencode( $issuer ), urlencode( $accountName ), 
-      urlencode( $secret ), urlencode( $issuer ));
+    return sprintf( 'otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30',
+      urlencode( $issuer ), urlencode( $accountName ), urlencode( $secret ), urlencode( $issuer ) );
   }
 
 
