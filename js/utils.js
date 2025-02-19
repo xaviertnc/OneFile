@@ -15,6 +15,9 @@
    * @version 2.2 - FT - 18 Jan 2025
    *   - Rename capitalizeFirstChar() to ucFirst()
    *   - Improve generateUid(). Prevent UIDs that can be seen as numbers.
+   * 
+   * @version 2.3 - UPD - 19 Feb 2025 
+   *   - Update the default currency() separator to ','.
    */
 
   class Utils {
@@ -50,7 +53,7 @@
       return uid;
     }
 
-    static currency(num, symbol = 'R ', sep = ' ', dec = 0, dc = '.') {
+    static currency(num, symbol = 'R ', sep = ',', dec = 0, dc = '.') {
       if (num === null || num === '') return '';
       const numStr = num.toString().replace(/[^0-9.]/g, ''), decimalIndex = numStr.indexOf(dc);
       const intPart = decimalIndex !== -1 ? numStr.slice(0, decimalIndex) : numStr;
