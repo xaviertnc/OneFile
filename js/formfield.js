@@ -20,6 +20,14 @@
    *   - Update validateCustom(). Refactor and compact.
    *   - Update getValue() to handle option groups.
    *   - Comment out old getFieldElement() and getValue() methods.
+   * 
+   * @version 2.5 - FT - 19 Feb 2025
+   *   - Add fieldElement param to constructor to allow for custom field elements
+   *     that are not the "input" like in the case of radio and checkbox groups.
+   *   - Change this.type === 'radio' to this.type === 'F1RadioField' in setValue().
+   *   - Remove old code.
+   *   - Add debug logs.
+   *  
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -27,11 +35,11 @@
 
   class FormField {
 
-    constructor(form, input, fieldTypeName) {
+    constructor(form, input, fieldTypeName, fieldElement) {
       this.form = form;
       this.name = input.name;
       this.type = fieldTypeName || form.getDefaultFieldType(input);
-      this.element = this.getFieldElement(input);
+      this.element = fieldElement || this.getFieldElement(input);
       this.inputs = [ input ];
     }
 
@@ -62,27 +70,6 @@
       const isOptionGroup = isCheckableOption && input.form.elements[input.name].length > 1;
       return isOptionGroup ? input.closest('fieldset') || input.parentElement : input;
     }
-
-    // this.type = (input.type === 'radio') ? 'F1RadioField' : 'F1ChecklistField';
-
-    // getFieldElement(input) { 
-    //   const isCheckable = (input.type === 'radio') || (input.type === 'checkbox');
-    //   if (isCheckable && input.form.elements[input.name].length > 1) {
-    //     // We have a checkable input group...
-    //     const inputGroupType = (input.type === 'radio') ? 'radiogroup' : 'checklist';
-    //     const fieldsetElement = input.closest('fieldset');
-    //     if (!fieldsetElement) fieldsetElement = input.parentElement;
-    //     if (inputGroupType === 'checklist' && fieldsetElement.hasAttribute('required')) {
-    //       this.form.customValidations[this.name] = this.form.customValidations[this.name] || [];
-    //       this.form.customValidations[this.name].push((field) => {
-    //         const isValid = field.inputs.some(input => input.checked);
-    //         return isValid === true || 'Please select at least one option.';
-    //       });
-    //     }
-    //     return fieldsetElement;
-    //   }
-    //   return input;
-    // }    
 
     getValidations() {
       if (this.type === 'F1ChecklistField' && this.isRequired()) {
@@ -129,11 +116,13 @@
 
     getValue(bootstrap) {
       let value = null;
+      // log('getValue:', { field: this.name, bootstrap });
       if (bootstrap && this.element.hasAttribute('data-value')) value = this.element.dataset.value;
       else if (this.inputs.length > 1) {
-        if (this.type === 'radiogroup') value = this.inputs.find(input => input.checked)?.value || null;
+        if (this.type === 'F1RadioField') value = this.inputs.find(input => input.checked)?.value || null;
         else value = this.inputs.filter(input => input.checked).map(input => input.value); }
       else { const input = this.inputs[0];
+        // log('getValue:', { input, value });
         if (input.type === 'checkbox') value = input.checked;
         else if (input.type === 'radio') value = input.checked ? input.value : null;
         else value = input.value;
@@ -142,28 +131,14 @@
       return value;
     }
 
-    // getValue(bootstrap) {
-    //   let value = null;
-    //   if (bootstrap && this.element.hasAttribute('data-value')) value = this.element.dataset.value;
-    //   else if (this.inputs.length > 1) {
-    //     if (this.inputs[0].type === 'radiogroup') value = this.inputs.find(input => input.checked)?.value || null;
-    //     else value = this.inputs.filter(input => input.checked).map(input => input.value); }
-    //   else {
-    //     if (this.input.type === 'checkbox') value = this.input.checked;
-    //     else if (this.input.type === 'radio') value = this.input.checked ? this.input.value : null;
-    //     else value = this.input.value;
-    //   }
-    //   log(`getValue: ${this.name} = "${value}"`);
-    //   return value;
-    // }
-
     setValue(value, init = false) {
-      log(`setValue: ${this.name} = "${value}"`, init);
+      // log(`setValue: ${this.name} = "${value}"`, init);
       if (init) this.defaultValue = value;
       if (this.inputs.length > 1) {
-        if (this.type === 'radio') this.inputs.forEach(input => input.checked = input.value === value);
+        if (this.type === 'F1RadioField') this.inputs.forEach(input => input.checked = input.value === value);
         else this.inputs.forEach(input => input.checked = value.includes(input.value));
       } else { const input = this.inputs[0];
+        // log('setValue:', { input: input.name, value });
         if (input.type === 'checkbox') input.checked = value;
         else if (input.type === 'radio') input.checked = input.value === value;
         else if (input.type === 'file') return;
