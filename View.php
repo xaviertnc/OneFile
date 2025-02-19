@@ -10,9 +10,9 @@ use stdClass;
  * @version 7.3.0 - FT - 21 Jan 2025
  *  - Add <else> tag support.
  * 
- * @version 7.4.0 - FT - 26 Jan 2025
- *  - Add default value option to View::get().
- *  - Comment out: $lastCompileTime (not used)
+ * @version 7.5 - FT - 17 Feb 2025
+ *  - Add the preCompile() method to allow a single layout to be 
+ *    used for multiple views and /or, augment the compile process.
  * 
  */
 
@@ -29,9 +29,14 @@ class View {
   }
 
 
+  public function preCompile( $content ) { return $content; }
+
+
   public function compile( $uncompiledFile, $compiledFile, $manifestFile, &$manifest, $level = 0 ) {
     if ( $level++ > 3 ) return '';
     $content = file_get_contents( $uncompiledFile );
+    $content = $this->preCompile( $content );
+
     $matches = array();
     $pattern = '/\<(foreach|if) x="(.+?)"\>/';
     preg_match_all($pattern, $content, $matches);
