@@ -17,6 +17,10 @@
    *   - Add getDefaultFieldType()
    *   - Add addCustomValidation()
    *   - Update getFields() to use getInputFieldType()
+   * 
+   * @version 3.4 - FT - 18 Jan 2025
+   *   - Move "getting" the field's element from getInputFieldType() to getFields() to
+   *     enable adding the field's element to the FieldType constructor.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -45,8 +49,8 @@
       this.onInit && this.onInit();
     }
 
-    getInputFieldType(input) {
-      const fieldElement = input.dataset.customType ? input : input.closest('fieldset') || {};
+    getInputFieldType(input, fieldElement) {
+      log('getInputFieldType', { input, fieldElement });
       return fieldElement?.dataset?.customType || this.getDefaultFieldType(input);
     }
 
@@ -59,9 +63,10 @@
       const fields = {};
       this.formElements.filter(this.validatable).forEach(input => {
         if (fields[input.name]) return fields[input.name].inputs.push(input);
-        const fieldTypeName = this.getInputFieldType(input);
+        const fieldElement = input.dataset.customType ? input : input.closest('fieldset');
+        const fieldTypeName = this.getInputFieldType(input, fieldElement);
         const FieldType = this.customFieldTypes[fieldTypeName] || F1.lib.FormField;
-        const field = new FieldType(this, input, fieldTypeName);
+        const field = new FieldType(this, input, fieldTypeName, fieldElement);
         log('getFields(), Field for input:', input.name, field);
         fields[field.name] = field;
       });
