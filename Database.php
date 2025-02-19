@@ -10,8 +10,9 @@ use PDOException;
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 1.2 - FT - 27 Dec 2024
- *   - Add Database::nowString()
+ * @version 1.3 - FIX - 12 Feb 2025
+ *   - Fix orWhere() param defaults.
+ *   - Allow update() with and without where clauses.
  */
 
 class Database {
@@ -87,7 +88,7 @@ class Database {
     return $this;
   }
 
-  public function orWhere( $column, $operator, $value ) {
+  public function orWhere( $column, $operator = null, $value = '*=*' ) {
     return $this->where($column, $operator, $value, 'OR');
   }
 
@@ -203,19 +204,24 @@ class Database {
   // TODO: What if we want to update multiple rows?
   public function update( array $data, $options = [] ) {
     debug_log( $data, 'db::update(), data: ', 3 );
-    $pkValue = $data[$this->primaryKey];
-    if ( empty( $pkValue ) ) throw new Exception( 'Primary key invalid.' );
-    unset( $data[$this->primaryKey] );
+    $key = $options['key'] ?? $this->primaryKey;
+    if ( ! $this->whereClauses ) {
+      if ( ! array_key_exists( $key, $data ) ) throw new Exception( "Key '$key' not found in data." );
+      $keyValue = $data[$key];
+      if ( empty( $keyValue ) ) throw new Exception( "Value for key '$key' is empty." );
+      $this->where( $key, $keyValue );
+    }
+    unset( $data[$key] ); if ( empty( $data ) ) throw new Exception( 'No data provided for update.' );
     $data = $this->filterAndTypeCorrectData( $data );
     $data = $this->autoStamp( $data, $options, 'updated' );
     debug_log( $data, 'db::update(), data (processed): ', 4 );
     $assignments = array_map( function ( $col ) { return "`$col` = ?"; }, array_keys( $data ) );
     $assignmentsStr = implode( ', ', $assignments );
-    $this->sql = "UPDATE `{$this->table}` SET $assignmentsStr WHERE `{$this->primaryKey}` = ?";
-    $this->params = array_values($data); $this->params[] = $pkValue;
+    $this->sql = "UPDATE `{$this->table}` SET $assignmentsStr";
+    $this->params = array_values($data);
+    $this->buildQueryWhere();
     $affectedRows = $this->execute();
-    return [ 'status' => 'updated', 'id' => $pkValue,
-      'affected' => $affectedRows ];
+    return [ 'status' => 'updated', 'id' => $keyValue ?? null, 'affected' => $affectedRows ];
   }
 
   public function upsert( array $data, $upsertOn, $options = [] ) {  
