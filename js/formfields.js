@@ -56,16 +56,20 @@
    * @author  C. Moller <xavier.tnc@gmail.com>
    * @version 2.0 - RC1 - 03 Dec 2023
    *   - Switch from object literal to Class
-   *
+   * 
+   * @version 3.0 - 19 Feb 2025
+   *   - Use init() instead of getFieldElement() to initialize the field.
    */
   class F1SelectField extends F1.lib.FormField {
 
-    getFieldElement(stdSelectEl) {
-      const selectCtrl = new F1.lib.Select(stdSelectEl, selectCtrlConfig);
-      if (stdSelectEl.dataset?.manageOptions !== 'on') {
-        if (stdSelectEl.dataset?.addOption !== 'on') selectCtrl.utilBar.children[0].hidden = true;
-        if (stdSelectEl.dataset?.editOption !== 'on') selectCtrl.utilBar.children[1].hidden = true;
-        if (stdSelectEl.dataset?.deleteOption !== 'on') selectCtrl.utilBar.children[2].hidden = true;        
+    init() {
+      // log('F1SelectField::init()', this.element);
+      const opts = this.element.dataset;
+      const selectCtrl = new F1.lib.Select(this.element, selectCtrlConfig);
+      if (opts?.manageOptions !== 'on') {
+        if (opts?.addOption !== 'on') selectCtrl.utilBar.children[0].hidden = true;
+        if (opts?.editOption !== 'on') selectCtrl.utilBar.children[1].hidden = true;
+        if (opts?.deleteOption !== 'on') selectCtrl.utilBar.children[2].hidden = true;        
       }
       return selectCtrl?.element;
     }
@@ -86,13 +90,16 @@
    *
    * @author  C. Moller <xavier.tnc@gmail.com>
    * @version 1.0 - INIT - 11 Dec 2023
+   * 
+   * @version 2.0 - 19 Feb 2025
+   *  - Use init() instead of getFieldElement() to initialize the field.
    *
    */
   class F1UploadField extends F1.lib.FormField {
 
-    getFieldElement(fileInputEl) {
-      log('F1UploadField::getFieldElement()', fileInputEl);
-      const uploadCtrl = new F1.lib.Upload(fileInputEl, {});
+    init() {
+      // log('F1UploadField::init()', this.element);
+      const uploadCtrl = new F1.lib.Upload(this.element, {});
       uploadCtrl.valueDisplay.onkeydown = (e) => {
         if ( e.code !== 'Enter' ) return;
         e.preventDefault(); this.form.focusNextField(this);

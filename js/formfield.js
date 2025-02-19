@@ -9,9 +9,6 @@
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
    * 
-   * @version 2.3.1 - FIX - 06 Jun 2024
-   *   - Add missing semicolon in constructor.
-   * 
    * @version 2.4 - FT - 18 Jan 2025
    *   - Add isRequired()
    *   - Add getValidations().
@@ -21,7 +18,8 @@
    *   - Update getValue() to handle option groups.
    *   - Comment out old getFieldElement() and getValue() methods.
    * 
-   * @version 2.5 - FT - 19 Feb 2025
+   * @version 3.0 - FT - 19 Feb 2025
+   *   - Add optional init() method to constructor. VERY IMPORTANT
    *   - Add fieldElement param to constructor to allow for custom field elements
    *     that are not the "input" like in the case of radio and checkbox groups.
    *   - Change this.type === 'radio' to this.type === 'F1RadioField' in setValue().
@@ -41,6 +39,8 @@
       this.type = fieldTypeName || form.getDefaultFieldType(input);
       this.element = fieldElement || this.getFieldElement(input);
       this.inputs = [ input ];
+      this.init?.();
+      // log('New FormField:', { name: this.name, type: this.type, element: this.element });
     }
 
     updateValidationUi(valid = false, customValidationMessage = null) {
