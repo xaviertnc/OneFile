@@ -71,7 +71,7 @@
         if (opts?.editOption !== 'on') selectCtrl.utilBar.children[1].hidden = true;
         if (opts?.deleteOption !== 'on') selectCtrl.utilBar.children[2].hidden = true;        
       }
-      return selectCtrl?.element;
+      if ( selectCtrl.element ) this.element = selectCtrl.element;
     }
 
     setValue(value, init) {
@@ -104,7 +104,7 @@
         if ( e.code !== 'Enter' ) return;
         e.preventDefault(); this.form.focusNextField(this);
       };
-      return uploadCtrl.element;
+      if ( uploadCtrl.element ) this.element = uploadCtrl.element;
     }
 
     getValue(bootstrap) {
