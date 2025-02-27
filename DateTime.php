@@ -26,6 +26,9 @@ use DateTime as BaseDateTime;
  * 
  * @version 2.1 - FIX - 27 Jan 2025
  *   - Change $timezone parameter to accept string or DateTimeZone in __construct()
+ * 
+ * @version 3.0 - FT - 27 Feb 2025
+ *   - Add year() method
  */
 
 class DateTime extends BaseDateTime {
@@ -98,5 +101,6 @@ class DateTime extends BaseDateTime {
   public function time(): int { return $this->getTimestamp(); }
   public function today( string $format = 'Y-m-d' ): string { return $this->format( $format ); }
   public function now( string $format = 'Y-m-d H:i:s' ): string { return $this->format( $format ); }
+  public function year(): int { return (int) $this->format( 'Y' ); }
 
 } // DateTime

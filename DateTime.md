@@ -35,6 +35,8 @@ echo date('Y-m-d', $timestamp); // Outputs: [Tomorrow's date]
 $appDateTime = new F1\DateTime('2023-12-25 10:00:00', 'UTC');
 $appDateTime->modify('+1 day');
 echo $appDateTime->format('Y-m-d'); // Outputs: 2023-12-26
+echo $appDateTime->format('Y'); // Outputs: 2023
+echo $appDateTime->year(); // Outputs: 2023
 
 // Set
 $appDateTime = new F1\DateTime('2023-01-01');
