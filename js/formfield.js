@@ -25,7 +25,9 @@
    *   - Change this.type === 'radio' to this.type === 'F1RadioField' in setValue().
    *   - Remove old code.
    *   - Add debug logs.
-   *  
+   * 
+   * @version 3.1 - FT - 25 Feb 2025
+   *   - Move getFieldElement() logic to the Form.getFieldElement() method.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -37,7 +39,7 @@
       this.form = form;
       this.name = input.name;
       this.type = fieldTypeName || form.getDefaultFieldType(input);
-      this.element = fieldElement || this.getFieldElement(input);
+      this.element = fieldElement || input;
       this.inputs = [ input ];
       this.init?.();
       // log('New FormField:', { name: this.name, type: this.type, element: this.element });
@@ -63,12 +65,6 @@
     updateModifiedUi(isModified) {
       log('updateModifiedUi', { field: this.name, isModified });
       this.element.classList.toggle('is-modified', isModified);
-    }
-
-    getFieldElement(input) { 
-      const isCheckableOption = (input.type === 'radio') || (input.type === 'checkbox');
-      const isOptionGroup = isCheckableOption && input.form.elements[input.name].length > 1;
-      return isOptionGroup ? input.closest('fieldset') || input.parentElement : input;
     }
 
     getValidations() {

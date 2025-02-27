@@ -21,6 +21,11 @@
    * @version 3.4 - FT - 18 Jan 2025
    *   - Move "getting" the field's element from getInputFieldType() to getFields() to
    *     enable adding the field's element to the FieldType constructor.
+   * 
+   * @version 3.5 - FT - 25 Feb 2025
+   *   - Add getFieldElement() to handle special fields like
+   *     checkable options and/or groups, where the field element is 
+   *     NOT the same as the input element.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -49,6 +54,13 @@
       this.onInit && this.onInit();
     }
 
+    getFieldElement(input) {
+      if (input?.dataset?.customType) return input; // The custom controller should update the element if necessary.
+      const isCheckableOption = (input.type === 'radio') || (input.type === 'checkbox');
+      const isOptionGroup = isCheckableOption && input.form.elements[input.name].length > 1;
+      return isOptionGroup ? input.closest('fieldset') || input.parentElement : input;
+    }    
+
     getInputFieldType(input, fieldElement) {
       log('getInputFieldType', { input, fieldElement });
       return fieldElement?.dataset?.customType || this.getDefaultFieldType(input);
@@ -63,7 +75,7 @@
       const fields = {};
       this.formElements.filter(this.validatable).forEach(input => {
         if (fields[input.name]) return fields[input.name].inputs.push(input);
-        const fieldElement = input.dataset.customType ? input : input.closest('fieldset');
+        const fieldElement = this.getFieldElement(input);
         const fieldTypeName = this.getInputFieldType(input, fieldElement);
         const FieldType = this.customFieldTypes[fieldTypeName] || F1.lib.FormField;
         const field = new FieldType(this, input, fieldTypeName, fieldElement);
