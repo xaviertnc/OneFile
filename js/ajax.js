@@ -15,6 +15,8 @@
    * @version 3.3 - DEV - 20 Apr 2024
    *   - Simplify the gereric HTTP response error message template on line 88.
    * 
+   * @version 3.4 - DEV - 06 Mar 2025
+   *   - Truncate the error message to 100 characters on line 90.
    * 
    * Method: fetch
    *  GET data from, or POST data to, a specified url via async HTTP.
@@ -85,7 +87,12 @@
       if (fetchOptions.method !== 'GET' && fetchOptions.method !== 'HEAD') fetchOptions.body = body;
       try {
         const response = await fetch(url, fetchOptions);
-        if (!response.ok) throw new Error(`HTTP ${response.status}, ${response.statusText}`);
+        if (!response.ok) {
+          const text = await response.text(); 
+          const MAX_TEXT_LENGTH = 100;
+          const truncatedText = text.length > MAX_TEXT_LENGTH ? text.slice(0, MAX_TEXT_LENGTH) + '...' : text;
+          throw new Error(`HTTP ${response.status}: ${truncatedText}`);
+        }
         if (responseType === 'json') return await response.json();
         if ( responseType === 'html' || responseType === 'text' ) return await response.text();
         return response;
