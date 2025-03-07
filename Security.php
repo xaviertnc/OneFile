@@ -14,7 +14,7 @@
  * The token-based method provides a more reliable session expiry mechanism
  * and allows user-specific logic (e.g. logs) before session initiation.
  * 
- *
+ * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
  * @version 2.4.0 - DEV - 19 Jan 2025
@@ -26,6 +26,10 @@
   * @version 2.5.0 - FT - 19 Feb 2025
  *   - Add JS to the default login form HTML to store the last URL in sessionStorage.
  *   - Bind the "onsubmit" event in JS instead of adding the code in the FORM tag.
+ * 
+ * @version 2.6.0 - FT - 07 Mar 2025
+ *   - Add getUserPermissions() method.
+ *   - Add denyIfPermissionsNot() method.
  *    
  */
 
@@ -228,6 +232,28 @@ class Security
     if ( ! in_array( $currentRole, $roles ) ) {
       http_response_code( 403 );
       debug_log( "***Access Denied!*** role: \"$currentRole\"", '', 1, 'security' );
+      exit( $message ?: 'Access denied' );
+    }
+  }
+
+
+  // Extend me in your AppSecurity class
+  public function getUserPermissions() { return explode( ',', $this->user['permissions'] ?? '' ); }
+
+
+  // Permissions are listed as a CSV string field called `permissions` in the user table
+  // and thus also on $app->user. e.g. 'can_edit_secure_info,can_manage_client_acc,can_delete_permanently'
+  // $permissions = [ 'can_edit_secure_info', 'can_manage_client_acc', 'can_delete_permanently' ]
+  //   - or - 'can_edit_secure_info,can_manage_client_acc,can_delete_permanently'
+  public function denyIfPermissionsNot( $permissions, $message = null ) {
+    if ( ! is_array( $permissions ) ) $permissions = explode( ',', $permissions );
+    $userPermissions = $this->getUserPermissions();
+    debug_log( json_encode( $permissions ), 'Security::denyIfPermissionsNot(), allowed permissions: ', 3, 'security' );
+    debug_log( json_encode( $userPermissions ), 'Security::denyIfPermissionsNot(), user permissions: ', 3, 'security' );
+    $hasPermission = count( array_intersect( $permissions, $userPermissions ) ) > 0;
+    if ( ! $hasPermission ) {
+      http_response_code( 403 );
+      debug_log( "***Access Denied!***", '', 1, 'security' );
       exit( $message ?: 'Access denied' );
     }
   }
