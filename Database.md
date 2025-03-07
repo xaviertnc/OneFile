@@ -32,7 +32,7 @@ $db->getFirst('users', 1); // select * from users where {$db->primaryKey} = 1
 $db->table('users')->where('id', 1); // Same as '='
 $db->table('users')->where('name', 'LIKE', 'Jo%');
 $db->table('users')->where('deleted_at', 'IS', null);
-$db->table('users')->where('status', 'IN', ['Active', 'Suspended']);
+$db->table('users')->where('status', 'IN', ['Active', 'Suspended']); // IN 's value must be an array.
 $db->table('users')->where('role', 'NOT IN', ['Client', 'Accountant', 'Trader']);
 $db->table('users')->where('date', 'BETWEEN', ['2024-01-01', '2024-12-31']); // inclusive
 $subConditions = [];

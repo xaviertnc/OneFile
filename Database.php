@@ -13,6 +13,10 @@ use PDOException;
  * @version 1.3 - FIX - 12 Feb 2025
  *   - Fix orWhere() param defaults.
  *   - Allow update() with and without where clauses.
+ * 
+ * @version 1.4.0 - FT - 07 Mar 2025
+ *   - Fix issue with resetting query parts when starting a new query. 
+ *     Update the table() method to resetQueryParts().
  */
 
 class Database {
@@ -44,7 +48,7 @@ class Database {
     }
   }
 
-  public function table( $tableName ) { $this->table = $tableName; return $this; }
+  public function table( $tableName ) { $this->resetQueryParts(); $this->table = $tableName; return $this; }
   public function select( $select ) { $this->select = $select; return $this; }
   public function orderBy( $order ) { $this->orderBy = ' ORDER BY ' . $order; return $this; }
   public function limit( $limit ) { $this->limit = ' LIMIT ' . $limit; return $this; }
@@ -99,6 +103,7 @@ class Database {
   }
 
   public function getColumns() {
+    // debug_log( $this->table, 'getColumns(), table = ', 2 );
     if ( empty( $this->columns ) ) {
       $stmt = $this->pdo->prepare( 'SHOW COLUMNS FROM ' . $this->table );
       $stmt->execute();
@@ -263,6 +268,7 @@ class Database {
 
   private function resetQueryParts( $primaryKey = null ) {
     $this->sql = '';
+    $this->table = '';
     $this->params = [];
     $this->primaryKey = $primaryKey?:'id';
     $this->whereClauses = [];
