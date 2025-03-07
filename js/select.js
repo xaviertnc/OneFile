@@ -8,9 +8,15 @@
    * F1 Custom Select - 17 Nov 2023
    * 
    * @author  C. Moller <xavier.tnc@gmail.com>
+   * 
    * @version 1.3 - FT - 08 Aug 2024
    *   - Add support for "readonly" attribute.
    * 
+   * @version 1.4 - FT - 07 Mar 2025
+   *   - Add this.valueDisplay.hasEventListeners property.
+   *   - Add removeEventListeners() method.
+   *   - Add disable() method.
+   *   - Add enable() method.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -83,6 +89,21 @@
 
     handleClear(e) { if (e.code === 'Enter' || e.type === 'click') this.selectAndClose(e, ''); }
 
+    removeEventListeners() {
+      this.valueDisplay.removeEventListener('keydown', this.handleValueKeyDown);
+      this.valueDisplay.removeEventListener('click', () => this.toggleDropdown());
+      this.optsList.removeEventListener('keydown', this.handleOptionsKeyDown);
+      this.select?.form.removeEventListener('reset', this.handleReset);
+      if (this.config.clearPrompt) {
+        this.clearX.removeEventListener('keydown', this.handleClear);
+        this.clearX.removeEventListener('click', this.handleClear); }
+      if (this.config.searchable) {
+        this.searchInput.removeEventListener('keydown', this.handleSearchKeyDown);
+        this.searchInput.removeEventListener('input', () => this.filterOptions()); }
+      if (this.config?.onUtilBarKeyDown) {
+        this.utilBar.removeEventListener('keydown', this.config.onUtilBarKeyDown); }
+    }
+
     addEventListeners() {
       this.valueDisplay.addEventListener('keydown', this.handleValueKeyDown.bind(this));
       this.valueDisplay.addEventListener('click', () => this.toggleDropdown());
@@ -95,7 +116,8 @@
         this.searchInput.addEventListener('keydown', this.handleSearchKeyDown.bind(this));
         this.searchInput.addEventListener('input', () => this.filterOptions()); }
       if (this.config?.onUtilBarKeyDown) {
-        this.utilBar.addEventListener('keydown', this.config.onUtilBarKeyDown.bind(this)); } 
+        this.utilBar.addEventListener('keydown', this.config.onUtilBarKeyDown.bind(this)); }
+      this.valueDisplay.hasEventListeners = true;
     }
 
     firstVisibleOption(opts) {
@@ -150,6 +172,20 @@
       if (i === -1) return this.firstVisibleOption(opts)?.focus(); // from search/display to options list
       if (i === 0 && this.config.searchable && (key === 'ArrowUp' || e?.shiftKey && e.code === 'Tab')) return this.searchInput.focus();
       const next = key === 'ArrowUp' ? (i - 1 + opts.length) % opts.length : (i + 1) % opts.length; opts[next].focus(); }
+
+    disable() {
+      this.select.disabled = true;
+      this.valueDisplay.setAttribute('aria-disabled', true);
+      this.toggleDropdown('closed');
+      this.removeEventListeners();
+    }
+
+    enable() {
+      this.select.disabled = false;
+      this.valueDisplay.setAttribute('aria-disabled', false);
+      if (this.valueDisplay.hasEventListeners) this.removeEventListeners();
+      this.addEventListeners();
+    }
   }
 
   F1.lib = F1.lib || {};
