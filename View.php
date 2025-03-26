@@ -14,6 +14,9 @@ use stdClass;
  *  - Add the preCompile() method to allow a single layout to be 
  *    used for multiple views and /or, augment the compile process.
  * 
+ * @version 7.6 - FT - 26 Mar 2025
+ *  - Add support for <elseif x="..."> tags.
+ * 
  */
 
 class View {
@@ -38,7 +41,7 @@ class View {
     $content = $this->preCompile( $content );
 
     $matches = array();
-    $pattern = '/\<(foreach|if) x="(.+?)"\>/';
+    $pattern = '/\<(foreach|elseif|if) x="(.+?)"\>/';
     preg_match_all($pattern, $content, $matches);
     if ( $matches[0] ) {
       foreach ( $matches[0] as $index => $match ) {
