@@ -80,7 +80,7 @@ Generates and sends a One-Time Password (OTP) via email for Two-Factor Authentic
         Subject: 2FA Token
         Message: "Your 2FA OTP is: [OTP]. This pin will expire in 5 minutes."
         From Address: My Currency Hub
-        Bcc: neels@blackonyx.co.za
+        Bcc: neels@currencyhub.co.za
     Ensures reliable delivery and provides a backup copy via BCC.
 
 6. Return the OTP

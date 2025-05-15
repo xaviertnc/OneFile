@@ -17,6 +17,16 @@ use PDOException;
  * @version 1.4.0 - FT - 07 Mar 2025
  *   - Fix issue with resetting query parts when starting a new query. 
  *     Update the table() method to resetQueryParts().
+ * 
+ * @version 1.4.1 - FIX - 26 Mar 2025
+ *   - Resolve the resetQueryParts() issue. What if upsert has a where clause?
+ *   - Add try/catch to upsert() to handle exceptions.
+ * 
+ * @todo
+ *   - We need a better way to handle the resetQueryParts() issue. Sometimes
+ *     we want to reset the query parts, but other times we don't.
+ *     See upsert() for example.
+ * 
  */
 
 class Database {
@@ -193,6 +203,7 @@ class Database {
 
   public function insert( array $data, $options = [] ) {
     debug_log( $data, 'db::insert(), data: ', 3 );
+    debug_log( $options, 'db::insert(), options: ', 3 );
     unset( $data[$this->primaryKey] );
     $data = $this->filterAndTypeCorrectData($data);
     $data = $this->autoStamp( $data, $options, 'created' );
@@ -201,6 +212,8 @@ class Database {
     $placeholders = implode( ', ', array_fill( 0, count( $data ), '?' ) );
     $this->sql = "INSERT INTO `{$this->table}` ( $columnsStr ) VALUES ( $placeholders )";
     $this->params = array_values( $data );
+    debug_log( $this->sql, 'db::insert(), sql: ', 3 );
+    debug_log( $this->params, 'db::insert(), params: ', 3 );
     $affectedRows = $this->execute();
     return [ 'status' => 'inserted', 'id' => $this->pdo->lastInsertId(), 
       'affected' => $affectedRows ];
@@ -229,27 +242,36 @@ class Database {
     return [ 'status' => 'updated', 'id' => $keyValue ?? null, 'affected' => $affectedRows ];
   }
 
-  public function upsert( array $data, $upsertOn, $options = [] ) {  
-    if ( ! array_key_exists( $upsertOn, $data ) )
+  public function upsert( array $data, $upsertOn, $options = [] ) {
+    if ( ! array_key_exists( $upsertOn, $data) )
       throw new Exception( "Upsert key '$upsertOn' not found in data." );
     $upsertKeyValue = $data[$upsertOn];
     debug_log( "$upsertOn = $upsertKeyValue", 'db::upsert() ', 2 );
     debug_log( $options, 'db::upsert(), options: ', 3 );
     debug_log( $data, 'db::upsert(), data: ', 3 );
-    $existing = $this->where( $upsertOn, '=', $upsertKeyValue )->getFirst();
-    if ( empty( $existing ) ) return $this->insert( $data, $options );
-    // else: update existing.
-    $pk = $this->primaryKey;
-    $data[$pk] = $existing->{$pk};
-    if ( isset( $options['onchange'] ) ) {
-      // Do we need to do this before checking for changed values?
-      // $data = $this->filterAndTypeCorrectData( $data );
-      $changedKeys = $options['onchange'];
-      $changed = $this->getChangedValues( $data, (array) $existing, $pk, $changedKeys );
-      if ( count( $changed ) === 0 ) return [ 'status' => 'unchanged', 'id' => $data[$pk], 'affected' => 0 ];
-      debug_log( $changed, 'db::upsert(), Value changes detected: ', 2 );
+    try {
+      // Manually check for existing record without resetting query parts
+      $getFirstExistingSql = "SELECT * FROM `{$this->table}` WHERE `$upsertOn` = ? LIMIT 1";
+      $stmt = $this->pdo->prepare( $getFirstExistingSql );
+      $stmt->execute( [$upsertKeyValue] );
+      $existing = $stmt->fetch( PDO::FETCH_ASSOC );
+      if ( empty( $existing ) ) return $this->insert( $data, $options );
+      // else: update existing
+      $pk = $this->primaryKey;
+      $data[$pk] = $existing[$pk];
+      if ( isset( $options['onchange'] ) ) {
+        $changedKeys = $options['onchange'];
+        $changed = $this->getChangedValues( $data, $existing, $pk, $changedKeys );
+        if ( count( $changed ) === 0 ) return ['status' => 'unchanged', 'id' => $data[$pk], 'affected' => 0];
+        debug_log( $changed, 'db::upsert(), Value changes detected: ', 2 );
+      }
+      return $this->primaryKey( $upsertOn )->update( $data, $options );
+    } catch ( Exception $e ) {
+      debug_log( $e->getMessage(), 'Upsert failed: ', 1, 'error' );
+      debug_log( $getFirstExistingSql, 'SQL: ', 1, 'error' );
+      debug_log( json_encode( [$upsertKeyValue] ), 'Params: ', 1, 'error' );
+      throw $e;
     }
-    return $this->primaryKey( $upsertOn )->update( $data, $options );
   }
 
   public function save( array $data, $options = [] ) {
@@ -327,7 +349,7 @@ class Database {
     if ( isset( $sql ) ) $this->sql = $sql;
     if ( isset( $params ) ) $this->params = $params;
     if ( ! $this->sql ) $this->buildQuery();
-    debug_log( [ $this->sql, json_encode($this->params) ], 'db::query(), ', 3 );
+    debug_log( [ $this->sql, json_encode( $this->params ?? [] ) ], 'db::query(), ', 3 );
     $stmt = $this->pdo->prepare( $this->sql );
     $stmt->execute( $this->params );
     $results = $stmt->fetchAll( PDO::FETCH_OBJ );
@@ -340,7 +362,7 @@ class Database {
     if ( isset( $sql ) ) $this->sql = $sql;
     if ( isset( $params ) ) $this->params = $params;
     if ( ! $this->sql ) $this->buildQuery();
-    debug_log( [ $this->sql, json_encode($this->params) ], 'db::execute(), ', 3 );
+    debug_log( [ $this->sql, json_encode( $this->params ?? [] ) ], 'db::execute(), ', 3 );
     $stmt = $this->pdo->prepare( $this->sql );
     $stmt->execute( $this->params );
     $this->resetQueryParts();
