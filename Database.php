@@ -202,8 +202,8 @@ class Database {
   }
 
   public function insert( array $data, $options = [] ) {
-    debug_log( $data, 'db::insert(), data: ', 3 );
-    debug_log( $options, 'db::insert(), options: ', 3 );
+    debug_log( $data, 'db::insert(), data: ', 4 );
+    debug_log( $options, 'db::insert(), options: ', 4 );
     unset( $data[$this->primaryKey] );
     $data = $this->filterAndTypeCorrectData($data);
     $data = $this->autoStamp( $data, $options, 'created' );
@@ -221,7 +221,8 @@ class Database {
 
   // TODO: What if we want to update multiple rows?
   public function update( array $data, $options = [] ) {
-    debug_log( $data, 'db::update(), data: ', 3 );
+    debug_log( $data, 'db::update(), data: ', 4 );
+    debug_log( $options, 'db::update(), options: ', 4 );
     $key = $options['key'] ?? $this->primaryKey;
     if ( ! $this->whereClauses ) {
       if ( ! array_key_exists( $key, $data ) ) throw new Exception( "Key '$key' not found in data." );
@@ -247,8 +248,8 @@ class Database {
       throw new Exception( "Upsert key '$upsertOn' not found in data." );
     $upsertKeyValue = $data[$upsertOn];
     debug_log( "$upsertOn = $upsertKeyValue", 'db::upsert() ', 2 );
-    debug_log( $options, 'db::upsert(), options: ', 3 );
-    debug_log( $data, 'db::upsert(), data: ', 3 );
+    debug_log( $options, 'db::upsert(), options: ', 4 );
+    debug_log( $data, 'db::upsert(), data: ', 4 );
     try {
       // Manually check for existing record without resetting query parts
       $getFirstExistingSql = "SELECT * FROM `{$this->table}` WHERE `$upsertOn` = ? LIMIT 1";
