@@ -6,21 +6,24 @@ use stdClass;
  * F1 View Class - 23 June 2022
  *
  * @author C. Moller <xavier.tnc@gmail.com>
- * 
+ *
  * @version 7.3.0 - FT - 21 Jan 2025
  *  - Add <else> tag support.
- * 
+ *
  * @version 7.5 - FT - 17 Feb 2025
- *  - Add the preCompile() method to allow a single layout to be 
+ *  - Add the preCompile() method to allow a single layout to be
  *    used for multiple views and /or, augment the compile process.
- * 
+ *
  * @version 7.6 - FT - 26 Mar 2025
  *  - Add support for <elseif x="..."> tags.
- * 
+ *
+ * @version 7.7 - FT - 08 Dec 2025
+ *  - Add support for HTML comment-style tags (<!--if x="..."-->, <!--foreach x="..."-->, etc.)
+ *
  */
 
 class View {
-  
+
   public $file;
   public $data;
   public $ds = DIRECTORY_SEPARATOR;
@@ -41,7 +44,7 @@ class View {
     $content = $this->preCompile( $content );
 
     $matches = array();
-    $pattern = '/\<(foreach|elseif|if) x="(.+?)"\>/';
+    $pattern = '/(?:<|<!--)(foreach|elseif|if) x="(.+?)"(?:>|-->)/';
     preg_match_all($pattern, $content, $matches);
     if ( $matches[0] ) {
       foreach ( $matches[0] as $index => $match ) {
@@ -50,7 +53,7 @@ class View {
       }
     }
     $matches = array();
-    $pattern = '/\<\/(foreach|if)\>/';
+    $pattern = '/(?:<\/|<!--\/)(foreach|if)(?:>|-->)/';
     preg_match_all($pattern, $content, $matches);
     if ( $matches[0] ) {
       foreach ( $matches[0] as $index => $match ) {
@@ -59,7 +62,7 @@ class View {
       }
     }
     $matches = array();
-    $pattern = '/\<else\>/';
+    $pattern = '/(?:<|<!--)else(?:>|-->)/';
     preg_match_all($pattern, $content, $matches);
     if ( $matches[0] ) {
       foreach ( $matches[0] as $index => $match ) {
@@ -76,7 +79,7 @@ class View {
         $replaceOptions = [ 'indent' => 'no' ];
         $content = $this->replaceContent( $match, $subContent, $content, $replaceOptions );
       }
-    }    
+    }
     $matches = array();
     $pattern = '/\<include([^>]*)\>([^>]+)\<\/include\>/';
     preg_match_all($pattern, $content, $matches);
@@ -121,7 +124,7 @@ class View {
       // Write compiled file
       $content = $this->unindentPHPCode( $content );
       $content .= PHP_EOL . '<!-- Compiled: ' . date('Y-m-d H:i:s') . ' -->';
-      file_put_contents( $compiledFile, $content );  
+      file_put_contents( $compiledFile, $content );
     }
     return $content;
   }
@@ -156,7 +159,7 @@ class View {
       if ( count( $lines ) > 1 ) $replace = implode( "\n$indentStr", $lines );
     }
     $result = count( $parts ) > 2
-     ? array_shift( $parts ) . $replace . implode( $match, $parts ) 
+     ? array_shift( $parts ) . $replace . implode( $match, $parts )
      : $parts[0] . $replace . $parts[1];
     return $result;
   }
@@ -181,7 +184,7 @@ class View {
 
   public function recompileChanges() { return true; } // Decide if we need to recompile.
   public function getManifestFile() { return str_replace( '.html', '_manifast.php', $this->file ); }
-  public function getCompiledFile() { return str_replace( '.html', '_compiled.php', $this->file ); }  
+  public function getCompiledFile() { return str_replace( '.html', '_compiled.php', $this->file ); }
   public function getIncludeFile( $inclFileRef, $props ) { return $this->getDir() . $inclFileRef; }
   public function get404File() { return $this->getDir() . '404.html'; }
 
