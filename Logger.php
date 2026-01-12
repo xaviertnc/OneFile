@@ -8,6 +8,9 @@
  * @version 2.3 - FT - 27 Dec 2024
  *   - Add Logger::todayString()
  *   - Add Logger::nowString()
+ * 
+ * @version 2.4 - FT - 16 Jun 2025
+ *   - Add Logger::write()
  */
 
 class Logger {
@@ -28,6 +31,11 @@ class Logger {
   }
 
 
+  public function write( string $message ) {
+    file_put_contents( $this->file, $message, FILE_APPEND | LOCK_EX );
+  }
+
+
   public function formatLog( $message, $type = null ) {
     $typePrefix = $type ? '[' . str_pad( ucfirst( $type ), 5 ) . "]:\t" : '';
     return $typePrefix . $this->nowString() . ' - ' . print_r( $message, true) . PHP_EOL;
@@ -36,14 +44,14 @@ class Logger {
 
   public function nl( $count = 1 ) {
     if ( $this->disabled ) return;
-    file_put_contents( $this->file, str_repeat( PHP_EOL, $count ), FILE_APPEND | LOCK_EX );
+    $this->write( str_repeat( PHP_EOL, $count ) );
   }
 
 
   public function log( $message, $type = null ) {
     if ( $this->disabled ) return;
     $formattedMessage = $this->formatLog( $message, $type );
-    file_put_contents( $this->file, $formattedMessage, FILE_APPEND | LOCK_EX );
+    $this->write( $formattedMessage );
   }
 
 
