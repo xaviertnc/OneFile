@@ -385,7 +385,8 @@
       const hasCurrencyCols = this.currencyColumns.length > 0;
       if ( !hasFooterTotals && !hasCurrencyCols ) { this.footerEl.innerHTML = ''; return; }
 
-      const fmt = n => n.toLocaleString( 'en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 } );
+      // Format totals with comma thousands and dot decimals (e.g. 1,000,000.00) using shared Utils
+      const fmt = n => ( F1.lib && F1.lib.Utils ) ? F1.lib.Utils.currency( n, '', ',', 2, '.' ).replace(/^\s+|\s+$/g, '') : n.toLocaleString( 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 } );
       let html = '<tr>';
 
       this.columns.forEach( ( col, i ) => {
