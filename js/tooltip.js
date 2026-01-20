@@ -60,14 +60,48 @@
     const scrollX = window.scrollX;
     const elementCenterX = rect.left + scrollX + ( rect.width / 2 );
 
-    let top = rect.bottom + scrollY + 4; // ~0.34em gap below element
-    let left = elementCenterX - ( tipRect.width / 2 );
+    // Preferred placement: above the element; fall back to below when space is limited
+    const GAP = 4; // visual gap between element and arrow
+    const ARROW = 6; // arrow height
+    const EDGE = 8; // viewport edge padding
 
-    // Keep within viewport
-    if ( left < scrollX + 8 ) left = scrollX + 8;
-    if ( left + tipRect.width > scrollX + window.innerWidth - 8 ) {
-      left = scrollX + window.innerWidth - tipRect.width - 8;
+    // Candidate for top placement
+    // Note: tipRect.height already includes the arrow; subtract only GAP here
+    let top = rect.top + scrollY - tipRect.height - GAP;
+    let left = elementCenterX - ( tipRect.width / 2 );
+    let placement = 'top';
+
+    // Keep within horizontal viewport
+    if ( left < scrollX + EDGE ) left = scrollX + EDGE;
+    if ( left + tipRect.width > scrollX + window.innerWidth - EDGE ) {
+      left = scrollX + window.innerWidth - tipRect.width - EDGE;
     }
+
+    // If top doesn't fit, try bottom placement
+    if ( top < scrollY + EDGE ) {
+      const bottomTop = rect.bottom + scrollY + GAP;
+      if ( bottomTop + tipRect.height <= scrollY + window.innerHeight - EDGE ) {
+        top = bottomTop;
+        placement = 'bottom';
+      } else {
+        // Neither fits completely; choose the side with more space and clamp
+        const spaceAbove = rect.top - EDGE;
+        const spaceBelow = window.innerHeight - rect.bottom - EDGE;
+        if ( spaceAbove >= spaceBelow ) {
+          // clamp above
+          top = Math.max( scrollY + EDGE, rect.top + scrollY - tipRect.height - GAP );
+          placement = 'top';
+        } else {
+          // clamp below
+          top = Math.min( scrollY + window.innerHeight - tipRect.height - EDGE, rect.bottom + scrollY + GAP );
+          placement = 'bottom';
+        }
+      }
+    }
+
+    // Apply placement class for CSS adjustments
+    tip.classList.toggle( 'f1-tooltip--top', placement === 'top' );
+    tip.classList.toggle( 'f1-tooltip--bottom', placement === 'bottom' );
 
     // Position arrow to point at element center
     const arrow = tip.querySelector( '.f1-tooltip-arrow' );
@@ -75,6 +109,9 @@
       const arrowX = elementCenterX - left - 6; // 6 = half arrow width
       arrow.style.left = Math.max( 8, Math.min( arrowX, tipRect.width - 20 ) ) + 'px';
       arrow.style.marginLeft = '0';
+      // Reset inline top/bottom so CSS class controls it
+      arrow.style.top = '';
+      arrow.style.bottom = '';
     }
 
     tip.style.top = top + 'px';
@@ -97,6 +134,37 @@
     if ( supportsPopover ) tip.hidePopover();
     else tip.style.display = 'none';
   } // hideTooltip
+
+
+  function cleanupTooltip( element ) {
+    const tip = tooltips.get( element );
+    if ( tip ) {
+      hideTooltip( tip );
+      tip.remove();
+      tooltips.delete( element );
+    }
+  } // cleanupTooltip
+
+
+  function cleanupOrphanedTooltips() {
+    const orphanedElements = [];
+    tooltips.forEach( ( tip, element ) => {
+      if ( !document.contains( element ) ) {
+        orphanedElements.push( element );
+      }
+    } );
+    orphanedElements.forEach( cleanupTooltip );
+    return orphanedElements.length;
+  } // cleanupOrphanedTooltips
+
+
+  function cleanupAll() {
+    tooltips.forEach( ( tip, element ) => {
+      hideTooltip( tip );
+      tip.remove();
+    } );
+    tooltips.clear();
+  } // cleanupAll
 
 
   function initElement( element ) {
@@ -145,16 +213,31 @@
     // Auto-init elements with title or data-tooltip attributes
     document.querySelectorAll( '[title], [data-tooltip], [data-tippy-content]' ).forEach( initElement );
 
-    // Watch for dynamically added elements
+    // Watch for dynamically added/removed elements
     if ( window.MutationObserver ) {
       const observer = new MutationObserver( mutations => {
         mutations.forEach( mutation => {
+          // Handle added nodes
           mutation.addedNodes.forEach( node => {
             if ( node.nodeType === 1 ) {
               if ( node.hasAttribute( 'title' ) || node.hasAttribute( 'data-tooltip' ) || node.hasAttribute( 'data-tippy-content' ) ) {
                 initElement( node );
               }
               node.querySelectorAll?.( '[title], [data-tooltip], [data-tippy-content]' ).forEach( initElement );
+            }
+          } );
+          // Handle removed nodes
+          mutation.removedNodes.forEach( node => {
+            if ( node.nodeType === 1 ) {
+              if ( tooltips.has( node ) ) {
+                cleanupTooltip( node );
+              }
+              // Also clean up any descendant elements with tooltips
+              node.querySelectorAll?.( '*' ).forEach( descendant => {
+                if ( tooltips.has( descendant ) ) {
+                  cleanupTooltip( descendant );
+                }
+              } );
             }
           } );
         } );
@@ -187,8 +270,21 @@
   border-right: 6px solid transparent;
   border-bottom: 6px solid #333;
 }
+.f1-tooltip--top .f1-tooltip-arrow {
+  top: auto;
+  bottom: 0;
+  border-bottom: none;
+  border-top: 6px solid #333;
+}
+.f1-tooltip--bottom .f1-tooltip-arrow {
+  top: 0;
+  bottom: auto;
+  border-top: none;
+  border-bottom: 6px solid #333;
+}
 .f1-tooltip-body {
   margin-top: 6px; /* Match arrow height */
+  margin-bottom: 0;
   background: #333;
   color: white;
   padding: 6px 10px;
@@ -198,19 +294,21 @@
   max-width: 250px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
+.f1-tooltip--top .f1-tooltip-body {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
 `;
     document.head.appendChild( style );
   }
 
-
-  // Initialize on DOM ready
-  if ( document.readyState === 'loading' ) {
-    document.addEventListener( 'DOMContentLoaded', init );
-  } else {
-    init();
-  }
-
   F1.lib = F1.lib || {};
-  F1.lib.Tooltip = { init, initElement };
+  F1.lib.Tooltip = {
+    init,
+    initElement,
+    cleanup: cleanupTooltip,
+    cleanupOrphaned: cleanupOrphanedTooltips,
+    cleanupAll
+  };
 
 })(window.F1 = window.F1 || {});
