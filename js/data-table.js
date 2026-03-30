@@ -12,8 +12,16 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
-   * @version 2.2 - FT - 11 Jan 2026
-   *   - Add footerTotals for AJAX mode, improve footer styling
+   * @version 3.8 - FT - 29 Mar 2026 - Clear filters button in filter drawer header
+   * @version 3.7 - FT - 29 Mar 2026 - Bottom page-size select for mobile
+   * @version 3.6 - UPD - 29 Mar 2026 - Clearer info text + visible pagination button affordances
+   *   - Auto min-width on table from column widths + minFlexWidth; prevents flex column collapse
+   *
+   * @version 2.7 - FT - 29 Mar 2026
+   *   - Add widthLg column option: wider column widths on desktop+ (>compactBreakpoint)
+   *
+   * @version 2.6 - FT - 29 Mar 2026
+   *   - Auto table-layout:fixed when columns have widths; trunc CSS overrides for fixed layout
    *
    * @version 2.1 - FIX - 11 Jan 2026
    *   - Fix addControlRight/Center logic, fix empty defaultState sort
@@ -32,6 +40,7 @@
       this.pageSize = opts.pageSize || 25;
       this.keyField = opts.keyField || 'id';
       this.onRowClick = opts.onRowClick || null;
+      this.onLoad = opts.onLoad || null;
       this.currencyColumns = opts.currencyColumns || [];
       this.footerTotals = opts.footerTotals || {}; // { field: 'R' } for AJAX mode
       this.serverTotals = {}; // Totals from server response
@@ -66,11 +75,26 @@
         if ( this.sortCol === -1 ) this.sortCol = null;
       }
 
+      // Compact headers
+      this.compactBreakpoint = opts.compactBreakpoint || 1920;
+      this._compact = false;
+
       // State management
       this.stateKey = opts.stateKey || null;
       this.defaultState = opts.defaultState || null;
       this.customFilters = opts.customFilters || {};
       this.resetButton = null;
+
+      // Column config + responsive + export + filter panel
+      this.filterPanel = opts.filterPanel || false;
+      this.columnConfig = opts.columnConfig || false;
+      this.responsive = opts.responsive || false;
+      this.responsiveBreakpoints = opts.responsiveBreakpoints || { 2: 1200, 3: 900, 4: 640 };
+      this.exportUrl = opts.exportUrl || null;
+      this._colOrder = this.columns.map( ( _, i ) => i );
+      this._colVisibility = new Map();
+      this._responsiveHidden = new Set();
+      this.minFlexWidth = opts.minFlexWidth || 120;
 
       this._init();
       if ( this.stateKey ) this._initState();
@@ -109,6 +133,8 @@
       scroll.className = 'dt-scroll';
       const tbl = document.createElement( 'table' );
       tbl.className = 'dt-table';
+      if ( this.columns.some( c => c.width ) ) { tbl.style.tableLayout = 'fixed'; tbl.classList.add( 'dt-fixed' ); }
+      this._tbl = tbl;
       this.headerEl = document.createElement( 'thead' );
       this.tbody = document.createElement( 'tbody' );
       this.footerEl = document.createElement( 'tfoot' );
@@ -126,25 +152,63 @@
       // Bottom bar
       const bottom = document.createElement( 'div' );
       bottom.className = 'dt-bottom';
+      const bottomLeft = document.createElement( 'div' );
+      bottomLeft.className = 'dt-bottom-left';
       this.infoEl = document.createElement( 'div' );
       this.infoEl.className = 'dt-info';
+      const ps2Lbl = document.createElement( 'label' );
+      ps2Lbl.className = 'dt-pagesize-bottom';
+      ps2Lbl.textContent = 'Show: ';
+      const ps2 = document.createElement( 'select' );
+      ps2.className = 'dt-pagesize';
+      this.pageSizes.forEach( s => { const o = document.createElement( 'option' ); o.value = s; o.textContent = s; ps2.appendChild( o ); } );
+      ps2.value = this.pageSize;
+      ps2.onchange = () => { this.pageSizeSelect.value = ps2.value; this._onPageSizeChange(); };
+      this._pageSizeBottom = ps2;
+      ps2Lbl.appendChild( ps2 );
+      bottomLeft.append( this.infoEl, ps2Lbl );
       this.paginationEl = document.createElement( 'div' );
       this.paginationEl.className = 'dt-pagination';
-      bottom.append( this.infoEl, this.paginationEl );
+      bottom.append( bottomLeft, this.paginationEl );
       c.appendChild( bottom );
 
+      if ( this.stateKey ) this._loadColConfig();
+
+      // Compact header titles at narrow widths
+      if ( this.columns.some( c => c.titleShort || c.hideCompact ) ) {
+        const mq = window.matchMedia( `(max-width: ${this.compactBreakpoint}px)` );
+        this._compact = mq.matches;
+        const needsRerender = this.columns.some( c => c.hideCompact || c.widthLg );
+        mq.addEventListener( 'change', e => {
+          this._compact = e.matches;
+          needsRerender ? this._reRenderTable() : this._syncHeaderTitles();
+        } );
+      }
+
       this._renderHeader();
+      this._updateMinWidth();
       this.tbody.onclick = e => this._onRowClick( e );
+      if ( this.filterPanel ) this._initFilterPanel();
+      if ( this.columnConfig ) this._initColumnConfig();
+      if ( this.responsive ) this._initResponsive();
+      if ( this.exportUrl ) this._initExport();
     } // _init
+
+
+    _colW( col ) {
+      const w = ( !this._compact && col.widthLg ) ? col.widthLg : col.width;
+      return w ? ` style="width:${w};max-width:${w}"` : '';
+    } // _colW
 
 
     _renderHeader() {
       let html = '<tr>';
-      this.columns.forEach( ( col, i ) => {
+      this._vis().forEach( ( { col, i } ) => {
         const sortable = col.sortable !== false;
         const cls = [ sortable ? 'sortable' : '', col.className || '' ].filter( Boolean ).join( ' ' );
         const arrows = sortable ? '<span class="sort-arrows"><span class="up">▲</span><span class="dn">▼</span></span>' : '';
-        html += `<th class="${cls}" data-col="${i}">${col.title || ''}${arrows}</th>`;
+        const label = ( this._compact && col.titleShort ) ? col.titleShort : ( col.title || '' );
+        html += `<th class="${cls}" data-col="${i}" title="${col.title || ''}"${this._colW( col )}>${label}${arrows}</th>`;
       } );
       this.headerEl.innerHTML = html + '</tr>';
       this.headerEl.querySelectorAll( 'th.sortable' ).forEach( th => {
@@ -152,6 +216,18 @@
       } );
       this._updateSortIndicators();
     } // _renderHeader
+
+
+    _syncHeaderTitles() {
+      const vis = this._vis();
+      this.headerEl.querySelectorAll( 'th' ).forEach( ( th, idx ) => {
+        const entry = vis[ idx ];
+        if ( !entry ) return;
+        const arrows = th.querySelector( '.sort-arrows' );
+        const label = ( this._compact && entry.col.titleShort ) ? entry.col.titleShort : ( entry.col.title || '' );
+        th.innerHTML = this._esc( label ) + ( arrows ? arrows.outerHTML : '' );
+      } );
+    } // _syncHeaderTitles
 
 
     // Client-side data
@@ -259,6 +335,7 @@
 
     _onPageSizeChange() {
       this.pageSize = +this.pageSizeSelect.value;
+      if ( this._pageSizeBottom ) this._pageSizeBottom.value = this.pageSize;
       this.currentPage = 1;
       if ( this.isAjax ) this._fetchData();
       else { this._updatePagination(); this._render(); }
@@ -318,9 +395,10 @@
         this._renderFooter();
         this._renderInfo();
         this._renderPagination();
+        if ( this.onLoad ) this.onLoad( this );
       } catch ( e ) {
         console.error( 'DataTable AJAX error:', e );
-        this.tbody.innerHTML = `<tr><td colspan="${this.columns.length}" class="center">Error loading data</td></tr>`;
+        this.tbody.innerHTML = `<tr><td colspan="${this._vis().length}" class="center">Error loading data</td></tr>`;
       } finally {
         this.isLoading = false;
         this.loadingEl.classList.add( 'hidden' );
@@ -347,9 +425,9 @@
       for ( let i = start; i < end; i++ ) {
         const row = this.filteredData[ i ], key = row[ this.keyField ] || i;
         html += `<tr data-id="${key}" data-idx="${i}">`;
-        this.columns.forEach( c => {
+        this._vis().forEach( ( { col: c } ) => {
           const v = c.field ? row[ c.field ] : '';
-          html += `<td class="${c.className || ''}">${c.render ? c.render( v, row ) : this._esc( v )}</td>`;
+          html += `<td class="${c.className || ''}"${this._colW( c )}>${c.render ? c.render( v, row ) : this._esc( v )}</td>`;
         } );
         html += '</tr>';
       }
@@ -359,8 +437,8 @@
 
     _renderPagination() {
       const t = this.totalPages, c = this.currentPage;
-      let html = `<button class="dt-btn${c <= 1 ? ' disabled' : ''}" data-p="prev">Previous</button>`;
-      const max = 5;
+      let html = `<button class="dt-btn dt-prev${c <= 1 ? ' disabled' : ''}" data-p="prev"><span class="dt-pg-full">Previous</span><span class="dt-pg-short">&lsaquo;</span></button>`;
+      const max = window.matchMedia( '(max-width:640px)' ).matches ? 3 : 5;
       let s = Math.max( 1, c - Math.floor( max / 2 ) );
       let e = Math.min( t, s + max - 1 );
       if ( e - s < max - 1 ) s = Math.max( 1, e - max + 1 );
@@ -368,7 +446,7 @@
       if ( s > 1 ) { html += '<button class="dt-btn" data-p="1">1</button>'; if ( s > 2 ) html += '<span class="dt-dots">...</span>'; }
       for ( let p = s; p <= e; p++ ) html += `<button class="dt-btn${p === c ? ' active' : ''}" data-p="${p}">${p}</button>`;
       if ( e < t ) { if ( e < t - 1 ) html += '<span class="dt-dots">...</span>'; html += `<button class="dt-btn" data-p="${t}">${t}</button>`; }
-      html += `<button class="dt-btn${c >= t ? ' disabled' : ''}" data-p="next">Next</button>`;
+      html += `<button class="dt-btn dt-next${c >= t ? ' disabled' : ''}" data-p="next"><span class="dt-pg-full">Next</span><span class="dt-pg-short">&rsaquo;</span></button>`;
 
       this.paginationEl.innerHTML = html;
       this.paginationEl.querySelectorAll( '.dt-btn:not(.disabled)' ).forEach( b => {
@@ -389,7 +467,7 @@
       const fmt = n => ( F1.lib && F1.lib.Utils ) ? F1.lib.Utils.currency( n, '', ',', 2, '.' ).replace(/^\s+|\s+$/g, '') : n.toLocaleString( 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 } );
       let html = '<tr>';
 
-      this.columns.forEach( ( col, i ) => {
+      this._vis().forEach( ( { col, i } ) => {
         // AJAX mode: use serverTotals with footerTotals config
         if ( this.isAjax && hasFooterTotals && col.field && this.footerTotals[ col.field ] !== undefined ) {
           const symbol = this.footerTotals[ col.field ];
@@ -418,9 +496,10 @@
       const start = filtered === 0 ? 0 : ( this.currentPage - 1 ) * this.pageSize + 1;
       const end = Math.min( this.currentPage * this.pageSize, filtered );
       let txt = filtered === 0 ? 'No entries found'
-        : `Showing ${start.toLocaleString()} to ${end.toLocaleString()} of ${filtered.toLocaleString()} entries`;
-      if ( filtered !== total && total > 0 ) txt += ` (filtered from ${total.toLocaleString()} total)`;
-      this.infoEl.textContent = txt;
+        : `Showing: <b>${start.toLocaleString()}</b> &ndash; <b>${end.toLocaleString()}</b> &nbsp;of&nbsp; <b>${filtered.toLocaleString()}</b>`;
+      if ( filtered !== total && total > 0 ) txt += ` <span class="dt-info-filtered">(${total.toLocaleString()} total)</span>`;
+      this.infoEl.innerHTML = txt;
+      if ( this._exportBtn ) this._exportBtn.title = `Export ${filtered.toLocaleString()} entries to CSV`;
     } // _renderInfo
 
 
@@ -499,7 +578,7 @@
       const Utils = F1.lib?.Utils;
       if ( Utils ) {
         this.resetButton = Utils.newEl( 'button', 'btn btn-sm btn-outline btn-clear-state hidden' );
-        this.resetButton.dataset.tippyContent = 'Reset table filters/sort';
+        this.resetButton.title = 'Reset table filters/sort';
         this.resetButton.innerHTML = '<span class="fa fa-eraser"></span>';
         this.resetButton.onclick = () => this._resetState();
         this.addControlRight( this.resetButton );
@@ -534,6 +613,7 @@
       this.sortDir = this.defaultState.sortDir;
       this.searchTerm = '';
       this.pageSizeSelect.value = this.defaultState.pageSize;
+      if ( this._pageSizeBottom ) this._pageSizeBottom.value = this.defaultState.pageSize;
       this.searchInput.value = '';
       const url = new URL( location.href );
       Object.keys( this.customFilters ).forEach( k => {
@@ -554,17 +634,269 @@
 
 
     _updateResetBtn() {
-      if ( !this.resetButton ) return;
+      if ( !this.resetButton && !this._filterPanelWrap ) return;
       const d = this.defaultState;
-      const nonDefault = this.pageSize !== d.pageSize || this.currentPage !== d.currentPage ||
-        ( this.sortColField || d.sortColField ) !== d.sortColField || this.sortDir !== d.sortDir ||
-        this.searchTerm !== d.searchTerm ||
-        Object.keys( this.customFilters ).some( k => {
-          const f = this.customFilters[ k ];
-          return ( f.element ? f.element.value : f.default || '' ) !== ( f.default || '' );
-        } );
-      this.resetButton.classList.toggle( 'hidden', !nonDefault );
+      const filtersNonDefault = Object.keys( this.customFilters ).some( k => {
+        const f = this.customFilters[ k ];
+        return ( f.element ? f.element.value : f.default || '' ) !== ( f.default || '' );
+      } );
+      if ( this.resetButton ) {
+        const nonDefault = this.pageSize !== d.pageSize || this.currentPage !== d.currentPage ||
+          ( this.sortColField || d.sortColField ) !== d.sortColField || this.sortDir !== d.sortDir ||
+          this.searchTerm !== d.searchTerm || filtersNonDefault;
+        this.resetButton.classList.toggle( 'hidden', !nonDefault );
+      }
+      if ( this._filterPanelWrap ) {
+        const badge = this._filterPanelWrap.querySelector( '.dt-filter-badge' );
+        if ( badge ) badge.classList.toggle( 'active', filtersNonDefault );
+      }
+      if ( this._filterClearBtn ) this._filterClearBtn.classList.toggle( 'hidden', !filtersNonDefault );
     } // _updateResetBtn
+
+
+    _resetFilters() {
+      const url = new URL( location.href );
+      Object.keys( this.customFilters ).forEach( k => {
+        const f = this.customFilters[ k ];
+        if ( f.element ) f.element.value = f.default || '';
+        if ( f.urlParam !== false ) url.searchParams.set( k, f.default || '' );
+      } );
+      history.replaceState( null, '', url );
+      this.currentPage = 1;
+      if ( this.isAjax ) this.load();
+      else this._render();
+      this._saveState();
+      this._updateResetBtn();
+    } // _resetFilters
+
+    // --- Column Config, Responsive & Export ---
+
+    _vis() {
+      const result = [];
+      for ( const i of this._colOrder ) {
+        const col = this.columns[ i ];
+        if ( !col ) continue;
+        const uv = this._colVisibility.get( i );
+        if ( uv === false ) continue;
+        if ( uv === undefined && ( this._responsiveHidden.has( i ) || ( this._compact && col.hideCompact ) ) ) continue;
+        result.push( { col, i } );
+      }
+      return result;
+    } // _vis
+
+
+    _reRenderTable() {
+      this._renderHeader();
+      this._renderRows();
+      this._renderFooter();
+      this._updateMinWidth();
+    } // _reRenderTable
+
+
+    _updateMinWidth() {
+      if ( !this._tbl ) return;
+      let sum = 0, flex = 0;
+      this._vis().forEach( ( { col } ) => {
+        const w = ( !this._compact && col.widthLg ) ? col.widthLg : col.width;
+        w ? sum += parseInt( w ) : flex++;
+      } );
+      this._tbl.style.minWidth = flex ? ( sum + flex * this.minFlexWidth ) + 'px' : '';
+    } // _updateMinWidth
+
+
+    _loadColConfig() {
+      try {
+        const raw = localStorage.getItem( this.stateKey + '-cols' );
+        if ( !raw ) return;
+        const cfg = JSON.parse( raw );
+        if ( Array.isArray( cfg.order ) && cfg.order.length === this.columns.length ) this._colOrder = cfg.order;
+        if ( cfg.vis ) Object.entries( cfg.vis ).forEach( ( [ k, v ] ) => this._colVisibility.set( +k, v ) );
+      } catch { /* ignore */ }
+    } // _loadColConfig
+
+
+    _saveColConfig() {
+      if ( !this.stateKey ) return;
+      try {
+        const vis = {};
+        this._colVisibility.forEach( ( v, k ) => vis[ k ] = v );
+        localStorage.setItem( this.stateKey + '-cols', JSON.stringify( { order: this._colOrder, vis } ) );
+      } catch { /* ignore */ }
+    } // _saveColConfig
+
+
+    _initFilterPanel() {
+      const Utils = F1.lib?.Utils;
+      if ( !Utils ) return;
+      const wrap = Utils.newEl( 'div', 'dt-filter-wrap' );
+      const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline dt-filter-btn', { type: 'button', title: 'Filters' } );
+      btn.innerHTML = '<i class="fa fa-filter"></i><span class="dt-filter-badge"></span>';
+      const panel = Utils.newEl( 'div', 'dt-filter-panel' );
+      const header = Utils.newEl( 'div', 'dt-drawer-header' );
+      header.innerHTML = '<span class="dt-drawer-title">Filters</span>';
+      const clearBtn = Utils.newEl( 'button', 'dt-filter-clear hidden', { type: 'button' } );
+      clearBtn.textContent = 'Reset All';
+      clearBtn.onclick = () => this._resetFilters();
+      this._filterClearBtn = clearBtn;
+      const closeBtn = Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
+      closeBtn.innerHTML = '&times;';
+      header.append( clearBtn, closeBtn );
+      panel.appendChild( header );
+      const backdrop = Utils.newEl( 'div', 'dt-filter-backdrop' );
+      wrap.append( btn, panel );
+      this._filterPanelWrap = wrap;
+      this._filterPanel = panel;
+      const mobile = () => window.matchMedia( '(max-width:640px)' ).matches;
+      const close = () => {
+        panel.classList.remove( 'open' ); backdrop.classList.remove( 'open' );
+        if ( panel.parentElement === document.body ) wrap.appendChild( panel );
+      };
+      const open = () => {
+        if ( mobile() ) document.body.appendChild( panel );
+        panel.classList.add( 'open' ); backdrop.classList.add( 'open' );
+      };
+      btn.onclick = e => { e.stopPropagation(); panel.classList.contains( 'open' ) ? close() : open(); };
+      closeBtn.onclick = close;
+      backdrop.onclick = close;
+      document.body.appendChild( backdrop );
+      if ( this.searchInput && !this.searchInput.placeholder ) this.searchInput.placeholder = 'Search\u2026';
+    } // _initFilterPanel
+
+
+    _initColumnConfig() {
+      const Utils = F1.lib?.Utils;
+      if ( !Utils ) return;
+      const wrap = Utils.newEl( 'div', 'dt-col-config-wrap' );
+      const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline', { type: 'button', title: 'Configure columns' } );
+      btn.innerHTML = '<i class="fa fa-columns"></i>';
+      const panel = Utils.newEl( 'div', 'dt-col-config' );
+      const cfgHeader = Utils.newEl( 'div', 'dt-drawer-header' );
+      cfgHeader.innerHTML = '<span class="dt-drawer-title">Columns</span>';
+      const cfgClose = Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
+      cfgClose.innerHTML = '&times;';
+      cfgHeader.appendChild( cfgClose );
+      panel.appendChild( cfgHeader );
+      const backdrop = Utils.newEl( 'div', 'dt-col-config-backdrop' );
+      wrap.append( btn, panel );
+      this._colConfigWrap = wrap;
+      const mobile = () => window.matchMedia( '(max-width:640px)' ).matches;
+      const close = () => {
+        panel.classList.remove( 'open' ); backdrop.classList.remove( 'open' );
+        if ( panel.parentElement === document.body ) wrap.appendChild( panel );
+      };
+      const openCfg = () => {
+        if ( mobile() ) document.body.appendChild( panel );
+        panel.classList.add( 'open' ); backdrop.classList.add( 'open' );
+      };
+      btn.onclick = e => { e.stopPropagation(); panel.classList.contains( 'open' ) ? close() : openCfg(); };
+      cfgClose.onclick = close;
+      document.addEventListener( 'click', e => { if ( !wrap.contains( e.target ) && !panel.contains( e.target ) ) close(); } );
+      backdrop.onclick = close;
+      document.body.appendChild( backdrop );
+      this._colConfigPanel = panel;
+      this._renderColConfig();
+    } // _initColumnConfig
+
+
+    _renderColConfig() {
+      const panel = this._colConfigPanel;
+      if ( !panel ) return;
+      const hdr = panel.querySelector( '.dt-drawer-header' );
+      panel.innerHTML = '';
+      if ( hdr ) panel.appendChild( hdr );
+      this._colOrder.forEach( ( ci, pos ) => {
+        const col = this.columns[ ci ];
+        if ( !col || col.configurable === false || !col.title ) return;
+        const uv = this._colVisibility.get( ci );
+        const isVis = uv === false ? false : ( uv === true || !this._responsiveHidden.has( ci ) );
+        const item = document.createElement( 'div' );
+        item.className = 'dt-col-config-item';
+        const lbl = document.createElement( 'label' );
+        const cb = document.createElement( 'input' );
+        cb.type = 'checkbox'; cb.checked = isVis;
+        lbl.append( cb, document.createTextNode( ' ' + col.title ) );
+        const mv = document.createElement( 'span' );
+        mv.className = 'dt-col-config-move';
+        const up = document.createElement( 'button' );
+        up.type = 'button'; up.textContent = '▲'; up.title = 'Move up';
+        up.onclick = e => { e.stopPropagation(); this._moveCol( pos, pos - 1 ); };
+        const dn = document.createElement( 'button' );
+        dn.type = 'button'; dn.textContent = '▼'; dn.title = 'Move down';
+        dn.onclick = e => { e.stopPropagation(); this._moveCol( pos, pos + 1 ); };
+        mv.append( up, dn );
+        item.append( lbl, mv );
+        cb.onchange = () => {
+          this._colVisibility.set( ci, cb.checked );
+          this._saveColConfig();
+          this._reRenderTable();
+        };
+        panel.appendChild( item );
+      } );
+    } // _renderColConfig
+
+
+    _moveCol( from, to ) {
+      if ( to < 0 || to >= this._colOrder.length ) return;
+      const item = this._colOrder.splice( from, 1 )[ 0 ];
+      this._colOrder.splice( to, 0, item );
+      this._saveColConfig();
+      this._renderColConfig();
+      this._reRenderTable();
+    } // _moveCol
+
+
+    _initResponsive() {
+      const update = () => {
+        const w = this.scrollContainer.clientWidth;
+        const prev = new Set( this._responsiveHidden );
+        this._responsiveHidden.clear();
+        this.columns.forEach( ( col, i ) => {
+          const p = col.priority;
+          if ( p && p > 1 && this.responsiveBreakpoints[ p ] && w < this.responsiveBreakpoints[ p ] ) {
+            this._responsiveHidden.add( i );
+          }
+        } );
+        const changed = prev.size !== this._responsiveHidden.size || [ ...prev ].some( x => !this._responsiveHidden.has( x ) );
+        if ( changed ) { this._reRenderTable(); if ( this._colConfigPanel ) this._renderColConfig(); }
+      };
+      if ( window.ResizeObserver ) new ResizeObserver( update ).observe( this.scrollContainer );
+      update();
+    } // _initResponsive
+
+
+    _initExport() {
+      const Utils = F1.lib?.Utils;
+      if ( !Utils ) return;
+      this._exportBtn = Utils.newEl( 'button', 'btn btn-sm btn-outline dt-export-btn', { type: 'button', title: 'Export to CSV' } );
+      this._exportBtn.innerHTML = '<i class="fa fa-download"></i>';
+      this._exportBtn.onclick = () => this._doExport();
+      this.addControlRight( this._exportBtn );
+    } // _initExport
+
+
+    _doExport() {
+      if ( !this.exportUrl ) return;
+      let iframe = document.getElementById( 'dt-export-frame' );
+      if ( !iframe ) {
+        iframe = document.createElement( 'iframe' );
+        iframe.id = 'dt-export-frame'; iframe.name = 'dt-export-frame';
+        iframe.style.display = 'none';
+        document.body.appendChild( iframe );
+      }
+      const form = document.createElement( 'form' );
+      form.method = 'POST'; form.action = this.exportUrl;
+      form.target = 'dt-export-frame'; form.style.display = 'none';
+      const params = { action: 'export_csv', search: this.searchTerm || '',
+        sortCol: this.sortColField || '', sortDir: ( this.sortDir || 'desc' ).toUpperCase(), ...this.ajaxParams() };
+      Object.entries( params ).forEach( ( [ k, v ] ) => {
+        const inp = document.createElement( 'input' );
+        inp.type = 'hidden'; inp.name = k; inp.value = v;
+        form.appendChild( inp );
+      } );
+      document.body.appendChild( form );
+      form.submit();
+      setTimeout( () => form.remove(), 2000 );
+    } // _doExport
 
   } // DataTable
 
@@ -576,41 +908,94 @@
     s.textContent = `
 .dt-wrap{display:flex;flex-direction:column;height:100%;box-sizing:border-box}
 .dt-wrap *,.dt-wrap *:before,.dt-wrap *:after{box-sizing:inherit}
-.dt-controls{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.dt-controls{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:13px}
 .dt-left,.dt-right{display:flex;gap:8px;align-items:center;margin:5px;white-space:nowrap}
 .dt-left{gap:16px}
 .dt-search,.dt-pagesize{padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent}
+.dt-search{width:100px}
+.dt-filter-sm{max-width:120px;padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clients-filter-group{display:flex;align-items:center;gap:3px;flex-wrap:nowrap}
 .dt-scroll{overflow:auto;position:relative}
-.dt-table{width:100%;border-collapse:collapse;}
-.dt-table th,.dt-table td{padding:6px 2px 6px 12px;text-align:left;white-space:nowrap}
+.dt-table{width:100%;border-collapse:collapse}
+.dt-table th,.dt-table td{padding:6px 6px;text-align:left;white-space:nowrap}
 .dt-table th{font-size:13px}.dt-table td{font-size:12px;border-bottom:1px solid #ddd}
 .dt-table thead{background:var(--heading-color,#2c3e50);color:#fff;position:sticky;top:0;z-index:2}
-.dt-table tfoot tr{background:#f5f5f5;position:sticky;bottom:0;z-index:1;font-size:.9em;border-bottom:1px solid grey}
+.dt-table tfoot tr{background:#f5f5f5;position:sticky;bottom:0;z-index:1;font-size:.9em;border-bottom:1px solid grey;box-shadow:0 4px 0 #f5f5f5}
 .dt-table tfoot th{padding:8px 2px 8px 12px;font-weight:600}
 .dt-table th.sortable{cursor:pointer;user-select:none}
 .dt-table th.sortable:hover{background:rgba(255,255,255,.1)}
 .dt-table tbody tr:hover{background:#eee;cursor:pointer}
 .dt-table .fa{width:1em;color:var(--primary-color);opacity:.67;vertical-align:middle;line-height:1}
 .dt-bottom{display:flex;justify-content:space-between;align-items:flex-start;}
-.dt-info{font-size:13px;color:#444;padding:10px 0 0;margin:5.5px}
+.dt-bottom-left{display:flex;align-items:center;gap:12px;margin:5.5px}
+.dt-info{font-size:13px;color:#444;padding:10px 0 0}
+.dt-pagesize-bottom{display:none}
 .dt-pagination{display:flex;align-items:center;padding:3px 0 0;margin:5.5px}
-.dt-btn{padding:6.5px 13px;border:1px solid transparent;background:transparent;cursor:pointer;margin-left:2px;color:#666;font-size:13px;border-radius:3px}
+.dt-btn{padding:6.5px 13px;border:1px solid #ddd;background:#fafafa;cursor:pointer;margin-left:2px;color:#555;font-size:13px;border-radius:3px}
+.dt-pg-short{display:none}
 .dt-btn:first-child{margin-left:0}
-.dt-btn:hover:not(.disabled):not(.active){background:rgba(0,0,0,.05)}
-.dt-btn.active{border:1px solid rgba(0,0,0,.3);color:#444;background:linear-gradient(to bottom,#fff,#dcdcdc)}
-.dt-btn.disabled{color:#999;cursor:not-allowed}
-.dt-dots{padding:6.5px 8px;color:#666;font-size:13px}
+.dt-btn:hover:not(.disabled):not(.active){background:#e8e8e8;border-color:#ccc}
+.dt-btn.active{border:1px solid rgba(0,0,0,.3);color:#fff;background:var(--primary-color,#337ab7)}
+.dt-btn.disabled{color:#bbb;background:transparent;border-color:#eee;cursor:default}
+.dt-btn.dt-prev,.dt-btn.dt-next{color:#555}
+.dt-dots{padding:6.5px 4px;color:#999;font-size:13px}
+.dt-info-filtered{color:#999;font-size:12px}
 .sort-arrows{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:8px;line-height:.7;font-size:9px}
 .sort-arrows .up,.sort-arrows .dn{opacity:.2;transition:opacity .2s}
 .dt-table th.sortable:hover .up,.dt-table th.sortable:hover .dn{opacity:.5}
 .dt-table th.sort-asc .up,.dt-table th.sort-desc .dn{opacity:1;color:#fff}
 .dt-table .left{text-align:left}.dt-table .right{text-align:right}.dt-table .center{text-align:center}
-.dt-table .nowrap{white-space:nowrap}.dt-table .name{min-width:180px}.dt-table .mute{color:#888;font-size:.85em}
+.dt-table .nowrap{white-space:nowrap}.dt-table .name{min-width:140px}.dt-table .mute{color:#888;font-size:.85em}
+.dt-table .trunc{width:1px;white-space:nowrap;overflow:hidden}.dt-table .trunc-text{display:inline-block;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.dt-fixed .trunc{width:auto}.dt-fixed .trunc-text{max-width:calc(100% - 1.5em)}.dt-fixed td{overflow:hidden;text-overflow:ellipsis}
 .dt-loading{position:absolute;inset:0;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;z-index:10}
 .dt-loading.hidden{display:none}
 .dt-spinner{width:32px;height:32px;border:3px solid #ddd;border-top-color:var(--primary-color,#337ab7);border-radius:50%;animation:dt-spin .8s linear infinite}
 @keyframes dt-spin{to{transform:rotate(360deg)}}
-@media(max-width:640px){.dt-controls,.dt-bottom{flex-direction:column;align-items:stretch}.dt-left,.dt-right{justify-content:center}.dt-pagination{justify-content:center;flex-wrap:wrap}}
+@media(max-width:640px){.dt-controls{flex-direction:column;align-items:stretch}.dt-left,.dt-right{justify-content:center}.dt-bottom{flex-direction:column;align-items:stretch;gap:2px}.dt-bottom-left{justify-content:space-between;width:100%;padding:0 0 4px}.dt-info{padding:6px 0 0}.dt-pagesize-bottom{display:flex;align-items:center;gap:4px;font-size:13px;color:#444;white-space:nowrap;padding:6px 0 0;margin-right:8px}.dt-pagination{justify-content:center;flex-wrap:nowrap;gap:0}.dt-pagination .dt-btn{padding:8px 10px;min-width:34px;font-size:13px;text-align:center}.dt-pagination .dt-dots{padding:8px 2px}.dt-pg-full{display:none}.dt-pg-short{display:inline;font-size:18px;font-weight:700;line-height:1}}
+.dt-col-config-wrap{position:relative;display:inline-block}
+.dt-col-config{position:absolute;right:0;top:100%;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:100;min-width:220px;max-height:400px;overflow-y:auto;padding:4px 0;display:none}
+.dt-col-config.open{display:block}
+.dt-col-config-item{display:flex;align-items:center;padding:2px 8px}
+.dt-col-config-item label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;white-space:nowrap;flex:1}
+.dt-col-config-move{display:flex;gap:1px}
+.dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:1px 4px;font-size:9px;color:#888;line-height:1}
+.dt-col-config-move button:hover{color:#333}
+.dt-col-config-backdrop{display:none}
+@media(max-width:640px){
+.dt-col-config{position:fixed;bottom:0;left:0;right:0;top:auto;min-width:0;max-height:60vh;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:12px 16px;z-index:1001}
+.dt-col-config.open{display:block}
+.dt-col-config-item{padding:6px 16px}
+.dt-col-config-item label{font-size:14px;gap:10px}
+.dt-col-config-move button{padding:4px 8px;font-size:12px}
+.dt-col-config-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1000}
+}
+.dt-export-btn{order:99;margin-left:12px}
+.dt-drawer-header{display:none}
+.dt-filter-clear{display:none}
+.dt-filter-wrap{position:relative;display:inline-flex;align-items:center}
+.dt-filter-btn{display:none;position:relative}
+.dt-filter-panel{display:contents}
+.dt-filter-badge{display:none}
+.dt-filter-backdrop{display:none}
+.dt-filter-panel label[data-label]::before{display:none}
+@media(max-width:640px){
+.dt-drawer-header{display:flex;justify-content:space-between;align-items:center;grid-column:1/-1;padding:0 0 4px}
+.dt-drawer-title{font-size:15px;font-weight:600;color:#333}
+.dt-drawer-close{margin-left:auto;border:none;background:transparent;font-size:22px;line-height:1;color:#888;cursor:pointer;padding:0 4px}
+.dt-filter-clear{display:inline-block;margin-left:12px;border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
+.dt-filter-clear.hidden{display:none}
+.dt-col-config-wrap{order:-1}
+.dt-filter-btn{display:inline-flex}
+.dt-filter-panel{display:none;position:fixed;bottom:0;left:0;right:0;z-index:1001;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:16px;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center}
+.dt-filter-panel.open{display:grid}
+.dt-filter-panel .clients-filter-group{display:contents}
+.dt-filter-panel label{display:contents}
+.dt-filter-panel label[data-label]::before{display:block;content:attr(data-label);font-size:13px;font-weight:600;color:#555;white-space:nowrap}
+.dt-filter-panel select{width:100%;padding:8px;font-size:14px;border:1px solid #ccc;border-radius:4px;background:#fff}
+.dt-filter-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--primary-color,#337ab7)}
+.dt-filter-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1000}
+}
 `;
     document.head.appendChild( s );
   }
