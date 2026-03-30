@@ -15,9 +15,12 @@
    * @version 2.2 - FT - 18 Jan 2025
    *   - Rename capitalizeFirstChar() to ucFirst()
    *   - Improve generateUid(). Prevent UIDs that can be seen as numbers.
-   * 
+   *
    * @version 2.3 - UPD - 19 Feb 2025 
    *   - Update the default currency() separator to ','.
+   * 
+   * @version 2.4 - FT - 29 Mar 2026
+   *   - Add fullName() for building display names from row data* 
    */
 
   class Utils {
@@ -69,6 +72,16 @@
       let sanitized = input.replace(/[^\d.]/g, '');
       let percent = Math.min(100, Math.max(0, parseFloat(sanitized) || 0));
       return percent.toFixed(decimals); // Return as a string
+    }
+
+    static fullName( row, fallbackField = 'name' ) {
+      if ( row.first_name ) {
+        let n = row.first_name;
+        if ( row.middle_name ) n += ' ' + row.middle_name;
+        if ( row.last_name ) n += ' ' + row.last_name;
+        return n;
+      }
+      return row[ fallbackField ] || '';
     }
 
     static clone(obj) {
