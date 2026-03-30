@@ -136,6 +136,15 @@
   } // hideTooltip
 
 
+  function updateContent( element, content ) {
+    const tip = tooltips.get( element );
+    if ( tip ) {
+      const body = tip.querySelector( '.f1-tooltip-body' );
+      if ( body ) body.textContent = content;
+    }
+  } // updateContent
+
+
   function cleanupTooltip( element ) {
     const tip = tooltips.get( element );
     if ( tip ) {
@@ -306,6 +315,7 @@
   F1.lib.Tooltip = {
     init,
     initElement,
+    updateContent,
     cleanup: cleanupTooltip,
     cleanupOrphaned: cleanupOrphanedTooltips,
     cleanupAll
