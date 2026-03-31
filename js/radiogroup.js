@@ -16,6 +16,8 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * @version 1.0 - INIT - 31 Mar 2026 - Initial commit
+   * @version 1.1 - FT - 31 Mar 2026 - Skip empty-value options
+   * @version 1.2 - FT - 31 Mar 2026 - Add xcompact size, data-cols grid columns, data-auto-width
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -44,11 +46,18 @@
       const dir = style === 'list' ? ( cfg.dir || 'vert' ) : 'horz';
       const cls = [ c, `${c}--${style}`, `${c}--${dir}` ];
       if ( cfg.seamless ) cls.push( `${c}--seamless` );
-      if ( cfg.size === 'compact' ) cls.push( `${c}--compact` );
+      if ( cfg.autoWidth ) cls.push( `${c}--auto-width` );
+      if ( cfg.size ) cls.push( `${c}--${cfg.size}` );
       this.element = this.newEl( 'div', { className: cls.join( ' ' ) } );
+      if ( cfg.cols ) {
+        const s = this.element.style;
+        s.display = 'grid';
+        s.gridTemplateColumns = cfg.cols === 'auto'
+          ? 'repeat(auto-fill, minmax(8em, 1fr))' : `repeat(${cfg.cols}, 1fr)`;
+      }
       const name = this.select.name + '_rg';
 
-      this.items = Array.from( this.select.options ).map(( opt, i ) => {
+      this.items = Array.from( this.select.options ).filter( o => o.value ).map(( opt, i ) => {
         const item = this.newEl( 'label', { className: `${c}__item` } );
         const radio = this.newEl( 'input', { type: 'radio', name, value: opt.value } );
         if ( style === 'buttons' ) {

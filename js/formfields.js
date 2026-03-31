@@ -16,6 +16,9 @@
    *
    * @version 1.3 - FT - 31 Mar 2026
    *   - Add F1RadioListField and F1RadioButtonsField types.
+   *
+   * @version 1.4 - FT - 31 Mar 2026
+   *   - Add F1OnOffToggleField type.
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -206,11 +209,34 @@
   } // F1RadioButtonsField
 
 
+  /**
+   * F1OnOffToggleField - 31 Mar 2026
+   *
+   * @version 1.0 - INIT - 31 Mar 2026
+   */
+  class F1OnOffToggleField extends F1.lib.FormField {
+
+    init() {
+      const ctrl = new F1.lib.OnOffToggle( this.element );
+      if ( ctrl.element ) this.element = ctrl.element;
+    }
+
+    getValue() { return this.element.CONTROLLER.getValue(); }
+
+    setValue( value, init ) {
+      if ( init !== 'init-bootstrap' ) this.element.CONTROLLER.setValue( value, init );
+      if ( init ) this.defaultValue = value;
+    }
+
+  } // F1OnOffToggleField
+
+
   F1.lib = F1.lib || {};
   F1.lib.F1SelectField = F1SelectField;
   F1.lib.F1UploadField = F1UploadField;
   F1.lib.F1ChecklistField = F1ChecklistField;
   F1.lib.F1RadioListField = F1RadioListField;
   F1.lib.F1RadioButtonsField = F1RadioButtonsField;
+  F1.lib.F1OnOffToggleField = F1OnOffToggleField;
 
 })(window.F1 = window.F1 || {});

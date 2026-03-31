@@ -10,6 +10,8 @@
  * @author C. Moller <xavier.tnc@gmail.com>
  *
  * @version 1.0 - INIT - 31 Mar 2026 - Initial commit
+ * @version 1.1 - FIX - 31 Mar 2026 - Add base input reset to prevent form CSS leaking in
+ * @version 1.2 - FT - 31 Mar 2026 - Add xcompact size
  */
 :root {
   --rg-primary: #007bff;
@@ -31,6 +33,14 @@
 .radiogroup--vert { flex-direction: column; }
 .radiogroup--horz { flex-direction: row; flex-wrap: wrap; }
 
+.radiogroup input[type="radio"] {
+  padding: 0;
+  border: none;
+  min-width: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
 
 /* === List Mode === */
 
@@ -48,8 +58,6 @@
 }
 .radiogroup--list .radiogroup__item:has(input:checked) {
   background: var(--rg-checked);
-  border-left: 2px solid var(--rg-primary);
-  padding-left: calc(0.1em + 0.65em - 2px);
 }
 
 .radiogroup--list input[type="radio"] {
@@ -65,7 +73,7 @@
   margin-right: 0.25em;
 }
 .radiogroup--list.radiogroup--horz .radiogroup__item:has(input:checked) {
-  padding-left: calc(0.75em - 2px);
+  padding-left: 0.75em;
 }
 
 
@@ -95,6 +103,8 @@
   padding: 0.55em 1.2em;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
+
+.radiogroup--auto-width .radiogroup__item { flex: none; }
 
 .radiogroup--buttons:not(.radiogroup--seamless) .radiogroup__item {
   margin-right: 5px;
@@ -138,6 +148,12 @@
 .radiogroup--compact .radiogroup__item { font-size: 0.88em; }
 .radiogroup--compact.radiogroup--list .radiogroup__item { padding: 0.2em 0.1em; }
 .radiogroup--compact.radiogroup--buttons .radiogroup__item span { padding: 0.35em 0.8em; }
+
+/* === XCompact === */
+
+.radiogroup--xcompact .radiogroup__item { font-size: 0.8em; }
+.radiogroup--xcompact.radiogroup--list .radiogroup__item { padding: 0.1em 0.1em; gap: 0.35em; }
+.radiogroup--xcompact.radiogroup--buttons .radiogroup__item span { padding: 0.25em 0.6em; }
 
 
 /* === Validation === */
