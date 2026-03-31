@@ -1,0 +1,146 @@
+/**
+ * vendors/F1/css/radiogroup.css
+ *
+ * F1 RadioGroup Styles - 31 Mar 2026
+ *
+ * Purpose: Styles for RadioList and RadioButtons controls.
+ *
+ * @package F1
+ *
+ * @author C. Moller <xavier.tnc@gmail.com>
+ *
+ * @version 1.0 - INIT - 31 Mar 2026 - Initial commit
+ */
+:root {
+  --rg-primary: #007bff;
+  --rg-primary-dark: #0056b3;
+  --rg-border: #cdcdcd;
+  --rg-hover: #f0f4ff;
+  --rg-checked: #e8f0fe;
+  --rg-radius: 4px;
+}
+
+
+/* === Base === */
+
+.radiogroup {
+  font: inherit;
+  display: flex;
+  color: #222;
+}
+.radiogroup--vert { flex-direction: column; }
+.radiogroup--horz { flex-direction: row; flex-wrap: wrap; }
+
+
+/* === List Mode === */
+
+.radiogroup--list .radiogroup__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.4em 0.1em;
+  cursor: pointer;
+  transition: background 0.1s;
+  margin: 0;
+}
+.radiogroup--list .radiogroup__item:hover {
+  background: var(--rg-hover);
+}
+.radiogroup--list .radiogroup__item:has(input:checked) {
+  background: var(--rg-checked);
+  border-left: 2px solid var(--rg-primary);
+  padding-left: calc(0.1em + 0.65em - 2px);
+}
+
+.radiogroup--list input[type="radio"] {
+  accent-color: var(--rg-primary);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.radiogroup--list.radiogroup--horz .radiogroup__item {
+  padding: 0.4em 0.75em;
+  margin-right: 0.25em;
+}
+.radiogroup--list.radiogroup--horz .radiogroup__item:has(input:checked) {
+  padding-left: calc(0.75em - 2px);
+}
+
+
+/* === Buttons Mode === */
+
+.radiogroup--buttons .radiogroup__item {
+  cursor: pointer;
+  -webkit-user-select: none; /* Prevent text selection in Safari */
+  user-select: none; /* Prevent text selection in other browsers */
+  text-align: center;
+  flex: 1;
+  margin: 0;
+}
+
+.radiogroup--buttons input[type="radio"] {
+  position: absolute;
+  appearance: none;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.radiogroup--buttons .radiogroup__item span {
+  display: block;
+  border: 1px solid var(--rg-border);
+  border-radius: var(--rg-radius);
+  padding: 0.55em 1.2em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.radiogroup--buttons:not(.radiogroup--seamless) .radiogroup__item {
+  margin-right: 5px;
+}
+.radiogroup--buttons:not(.radiogroup--seamless) .radiogroup__item:last-child {
+  margin-right: 0;
+}
+
+.radiogroup--buttons .radiogroup__item:hover span {
+  background: #e7e7e7;
+}
+
+.radiogroup--buttons input[type="radio"]:checked + span {
+  background: var(--rg-primary);
+  border-color: var(--rg-primary-dark);
+  color: white;
+}
+
+.radiogroup--buttons input[type="radio"]:focus + span {
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.4);
+}
+
+
+/* === Seamless Strip === */
+
+.radiogroup--seamless .radiogroup__item span {
+  border-radius: 0;
+  margin-left: -1px;
+}
+.radiogroup--seamless .radiogroup__item:first-child span {
+  border-radius: var(--rg-radius) 0 0 var(--rg-radius);
+  margin-left: 0;
+}
+.radiogroup--seamless .radiogroup__item:last-child span {
+  border-radius: 0 var(--rg-radius) var(--rg-radius) 0;
+}
+
+
+/* === Compact === */
+
+.radiogroup--compact .radiogroup__item { font-size: 0.88em; }
+.radiogroup--compact.radiogroup--list .radiogroup__item { padding: 0.2em 0.1em; }
+.radiogroup--compact.radiogroup--buttons .radiogroup__item span { padding: 0.35em 0.8em; }
+
+
+/* === Validation === */
+
+.is-invalid .radiogroup { outline: 1px solid #dc3545; outline-offset: 2px; }
+.is-valid .radiogroup { outline: 1px solid #28a745; outline-offset: 2px; }
