@@ -12,7 +12,11 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
-   * @version 3.8 - FT - 29 Mar 2026 - Clear filters button in filter drawer header
+   * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
+   * @version 4.1 - FIX - 31 Mar 2026 - Hide empty dt-left; show on addControlLeft()
+   * @version 4.0 - UPD - 31 Mar 2026 - Normalize controls spacing: gap 6px, margin 0 on dt-left/dt-right
+   * @version 3.9 - UPD - 01 Apr 2026 - Move page-size control from top to bottom bar (all screen sizes)
+ * @version 3.8 - FT - 29 Mar 2026 - Clear filters button in filter drawer header
    * @version 3.7 - FT - 29 Mar 2026 - Bottom page-size select for mobile
    * @version 3.6 - UPD - 29 Mar 2026 - Clearer info text + visible pagination button affordances
    *   - Auto min-width on table from column widths + minFlexWidth; prevents flex column collapse
@@ -108,7 +112,7 @@
 
       // Controls
       c.innerHTML = `<div class="dt-controls">
-        <div class="dt-left"><label>Show <select class="dt-pagesize"></select> entries</label></div>
+        <div class="dt-left"><label class="dt-pagesize-top">Show <select class="dt-pagesize"></select> entries</label></div>
         <div class="dt-right"><label>Search: <input type="search" class="dt-search"></label></div>
       </div>`;
       this.controlsLeft = c.querySelector( '.dt-left' );
@@ -126,6 +130,7 @@
 
       // Search
       this.searchInput = c.querySelector( '.dt-search' );
+      this.searchInput.placeholder = 'Search\u2026';
       this.searchInput.oninput = () => this._onSearch();
 
       // Table
@@ -519,7 +524,7 @@
     getFilteredData() { return this.filteredData; }
     getAllData() { return this.allData; }
     getRowCount() { return this.filteredData.length; }
-    addControlLeft( el ) { this.controlsLeft.appendChild( el ); }
+    addControlLeft( el ) { this.controlsLeft.style.display = 'flex'; this.controlsLeft.appendChild( el ); }
     addControlRight( el ) { this.controlsRight.appendChild( el ); }
 
 
@@ -759,7 +764,6 @@
       closeBtn.onclick = close;
       backdrop.onclick = close;
       document.body.appendChild( backdrop );
-      if ( this.searchInput && !this.searchInput.placeholder ) this.searchInput.placeholder = 'Search\u2026';
     } // _initFilterPanel
 
 
@@ -908,9 +912,9 @@
     s.textContent = `
 .dt-wrap{display:flex;flex-direction:column;height:100%;box-sizing:border-box}
 .dt-wrap *,.dt-wrap *:before,.dt-wrap *:after{box-sizing:inherit}
-.dt-controls{display:flex;flex-wrap:wrap;align-items:center;gap:2px 6px;font-size:13px}
-.dt-left,.dt-right{display:flex;gap:8px;align-items:center;margin:5px;white-space:nowrap}
-.dt-left{gap:16px}
+.dt-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;padding:5px}
+.dt-left,.dt-right{display:flex;gap:8px;align-items:center;margin:0;white-space:nowrap}
+.dt-left{display:none;gap:16px}
 .dt-search,.dt-pagesize{padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent}
 .dt-search{width:100px}
 .dt-filter-sm{max-width:120px;padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -926,11 +930,12 @@
 .dt-table th.sortable:hover{background:rgba(255,255,255,.1)}
 .dt-table tbody tr:hover{background:#eee;cursor:pointer}
 .dt-table .fa{width:1em;color:var(--primary-color);opacity:.67;vertical-align:middle;line-height:1}
-.dt-bottom{display:flex;justify-content:space-between;align-items:flex-start;}
-.dt-bottom-left{display:flex;align-items:center;gap:12px;margin:5.5px}
-.dt-info{font-size:13px;color:#444;padding:10px 0 0}
-.dt-pagesize-bottom{display:none}
-.dt-pagination{display:flex;align-items:center;padding:3px 0 0;margin:5.5px}
+.dt-bottom{display:flex;justify-content:space-between;align-items:center;}
+.dt-bottom-left{display:flex;align-items:center;gap:28px;margin:5.5px}
+.dt-info{font-size:13px;color:#444;padding:0}
+.dt-pagesize-top{display:none}
+.dt-pagesize-bottom{display:flex;align-items:center;gap:4px;font-size:13px;color:#444;white-space:nowrap}
+.dt-pagination{display:flex;align-items:center;padding:0;margin:5.5px}
 .dt-btn{padding:6.5px 13px;border:1px solid #ddd;background:#fafafa;cursor:pointer;margin-left:2px;color:#555;font-size:13px;border-radius:3px}
 .dt-pg-short{display:none}
 .dt-btn:first-child{margin-left:0}
@@ -952,7 +957,7 @@
 .dt-loading.hidden{display:none}
 .dt-spinner{width:32px;height:32px;border:3px solid #ddd;border-top-color:var(--primary-color,#337ab7);border-radius:50%;animation:dt-spin .8s linear infinite}
 @keyframes dt-spin{to{transform:rotate(360deg)}}
-@media(max-width:640px){.dt-controls{flex-direction:column;align-items:stretch}.dt-left,.dt-right{justify-content:center}.dt-bottom{flex-direction:column;align-items:stretch;gap:2px}.dt-bottom-left{justify-content:space-between;width:100%;padding:0 0 4px}.dt-info{padding:6px 0 0}.dt-pagesize-bottom{display:flex;align-items:center;gap:4px;font-size:13px;color:#444;white-space:nowrap;padding:6px 0 0;margin-right:8px}.dt-pagination{justify-content:center;flex-wrap:nowrap;gap:0}.dt-pagination .dt-btn{padding:8px 10px;min-width:34px;font-size:13px;text-align:center}.dt-pagination .dt-dots{padding:8px 2px}.dt-pg-full{display:none}.dt-pg-short{display:inline;font-size:18px;font-weight:700;line-height:1}}
+@media(max-width:640px){.dt-controls{flex-direction:column;align-items:stretch}.dt-left,.dt-right{justify-content:center}.dt-bottom{flex-direction:column;align-items:stretch;gap:2px}.dt-bottom-left{justify-content:space-between;width:100%;padding:0 0 4px}.dt-info{padding:0}.dt-pagesize-bottom{padding:0;margin-right:8px}.dt-pagination{justify-content:center;flex-wrap:nowrap;gap:0}.dt-pagination .dt-btn{padding:8px 10px;min-width:34px;font-size:13px;text-align:center}.dt-pagination .dt-dots{padding:8px 2px}.dt-pg-full{display:none}.dt-pg-short{display:inline;font-size:18px;font-weight:700;line-height:1}}
 .dt-col-config-wrap{position:relative;display:inline-block}
 .dt-col-config{position:absolute;right:0;top:100%;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:100;min-width:220px;max-height:400px;overflow-y:auto;padding:4px 0;display:none}
 .dt-col-config.open{display:block}
