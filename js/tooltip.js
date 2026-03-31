@@ -11,6 +11,9 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
+   * @version 1.3 - FIX - 31 Mar 2026
+   *   - Guard show/hide when trigger or tooltip node was removed (stale timers)
+   *
    * @version 1.2 - FIX - 11 Jan 2026
    *   - Fix positioning for Popover API, fix arrow CSS
    *
@@ -120,6 +123,7 @@
 
 
   function showTooltip( element, tip ) {
+    if ( !document.contains( element ) || !document.contains( tip ) ) return;
     if ( supportsPopover ) {
       tip.showPopover();
       positionTooltip( element, tip );
@@ -131,6 +135,7 @@
 
 
   function hideTooltip( tip ) {
+    if ( !document.contains( tip ) ) return;
     if ( supportsPopover ) tip.hidePopover();
     else tip.style.display = 'none';
   } // hideTooltip
