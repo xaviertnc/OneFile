@@ -14,6 +14,8 @@
  * @version 1.2 - FIX - 31 Mar 2026 - No scroll by default; opt-in via max-height/rows
  * @version 1.3 - FT - 31 Mar 2026 - Add compact/super-compact modes, inherit font-size
  * @version 1.4 - UPD - 31 Mar 2026 - Remove left accent on checked items
+ * @version 1.5 - FT - 31 Mar 2026 - Add lg size variant for larger checkboxes
+ * @version 1.6 - FT - 31 Mar 2026 - Add indent levels 1-3
  */
 :root {
   --cl-border: #cdcdcd;
@@ -84,18 +86,11 @@
   display: flex;
   align-items: center;
   gap: 0.5em;
-  padding: 0.4em 0.75em;
+  padding: 0.3em 0;
   cursor: pointer;
-  transition: background 0.1s;
   margin: 0;
   font-size: 1em;
   color: #222;
-}
-.checklist__item:hover {
-  background: var(--cl-hover);
-}
-.checklist__item:has(input:checked) {
-  background: var(--cl-checked);
 }
 
 .checklist__item input[type="checkbox"],
@@ -112,15 +107,23 @@
 
 /* Compact */
 .checklist--compact .checklist__item {
-  padding: 0.2em 0.6em;
   font-size: 0.88em;
 }
 .checklist--compact .checklist__header { padding: 0.35em 0.6em; }
 .checklist--compact .checklist__search { padding: 0.35em 0.6em; }
 
+/* Large */
+.checklist--lg .checklist__item input[type="checkbox"],
+.checklist--lg .checklist__toggle {
+  accent-color: var(--cl-primary);
+  width: 18px;
+  height: 18px;
+  transform: scale(1.35);
+  margin: 0 2px;
+}
+
 /* Super-compact */
 .checklist--xcompact .checklist__item {
-  padding: 0.1em 0.5em;
   font-size: 0.8em;
   gap: 0.35em;
 }
@@ -131,6 +134,11 @@
 }
 .checklist--xcompact .checklist__header { padding: 0.25em 0.5em; }
 .checklist--xcompact .checklist__search { padding: 0.25em 0.5em; }
+
+/* Indent */
+.checklist--indent-1 { padding-left: 1em; }
+.checklist--indent-2 { padding-left: 2em; }
+.checklist--indent-3 { padding-left: 3em; }
 
 .is-invalid .checklist {
   border-color: #dc3545;

@@ -18,6 +18,8 @@
    * @version 1.0 - INIT - 31 Mar 2026 - Initial commit
    * @version 1.1 - FT - 31 Mar 2026 - Skip empty-value options
    * @version 1.2 - FT - 31 Mar 2026 - Add xcompact size, data-cols grid columns, data-auto-width
+ * @version 1.3 - FT - 31 Mar 2026 - Add data-indent support
+ * @version 1.4 - UPD - 31 Mar 2026 - Bump default grid col min to 10em, add data-col-min
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -48,12 +50,14 @@
       if ( cfg.seamless ) cls.push( `${c}--seamless` );
       if ( cfg.autoWidth ) cls.push( `${c}--auto-width` );
       if ( cfg.size ) cls.push( `${c}--${cfg.size}` );
+      if ( cfg.indent ) cls.push( `${c}--indent-${cfg.indent}` );
       this.element = this.newEl( 'div', { className: cls.join( ' ' ) } );
       if ( cfg.cols ) {
         const s = this.element.style;
         s.display = 'grid';
+        const min = cfg.colMin || '10em';
         s.gridTemplateColumns = cfg.cols === 'auto'
-          ? 'repeat(auto-fill, minmax(8em, 1fr))' : `repeat(${cfg.cols}, 1fr)`;
+          ? `repeat(auto-fill, minmax(${min}, 1fr))` : `repeat(${cfg.cols}, 1fr)`;
       }
       const name = this.select.name + '_rg';
 

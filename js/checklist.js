@@ -19,6 +19,8 @@
    * @version 1.1 - UPD - 31 Mar 2026 - Make header/search opt-in via data attrs
    * @version 1.2 - UPD - 31 Mar 2026 - Scroll opt-in via data-max-height or data-rows
    * @version 1.3 - FT - 31 Mar 2026 - Add compact/xcompact size modes via data-size
+ * @version 1.4 - UPD - 31 Mar 2026 - Generalize size class from data-size attribute
+ * @version 1.5 - FT - 31 Mar 2026 - Add data-indent support
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -45,8 +47,9 @@
     createElement() {
       const c = 'checklist', cfg = this.config;
       const hasFrame = cfg.maxHeight || cfg.rows || cfg.toggleAll || cfg.searchable;
-      const sizeCls = cfg.size === 'compact' ? ` ${c}--compact` : cfg.size === 'xcompact' ? ` ${c}--xcompact` : '';
-      this.element = this.newEl( 'div', { className: c + sizeCls + ( hasFrame ? ` ${c}--framed` : '' ) } );
+      const sizeCls = cfg.size ? ` ${c}--${cfg.size}` : '';
+      const indentCls = cfg.indent ? ` ${c}--indent-${cfg.indent}` : '';
+      this.element = this.newEl( 'div', { className: c + sizeCls + indentCls + ( hasFrame ? ` ${c}--framed` : '' ) } );
       this.itemsWrap = this.newEl( 'div', { className: `${c}__items` } );
       if ( cfg.maxHeight ) this.itemsWrap.style.maxHeight = cfg.maxHeight;
       else if ( cfg.rows ) this.itemsWrap.style.maxHeight = ( cfg.rows * 2 ) + 'em';
