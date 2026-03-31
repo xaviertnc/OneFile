@@ -6,25 +6,25 @@
 
   /**
    * F1 Form - 07 Oct 2022
-   * 
+   *
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * 
+   *
    * @version 3.3 - FT - 23 Feb 2024
    *   - Add validateOnSubmit()
-   * 
+   *
    * @version 3.4 - FT - 18 Jan 2025
    *   - Add getInputFieldType()
    *   - Add getDefaultFieldType()
    *   - Add addCustomValidation()
    *   - Update getFields() to use getInputFieldType()
-   * 
+   *
    * @version 3.4 - FT - 18 Jan 2025
    *   - Move "getting" the field's element from getInputFieldType() to getFields() to
    *     enable adding the field's element to the FieldType constructor.
-   * 
+   *
    * @version 3.5 - FT - 25 Feb 2025
    *   - Add getFieldElement() to handle special fields like
-   *     checkable options and/or groups, where the field element is 
+   *     checkable options and/or groups, where the field element is
    *     NOT the same as the input element.
    */
 
@@ -59,7 +59,7 @@
       const isCheckableOption = (input.type === 'radio') || (input.type === 'checkbox');
       const isOptionGroup = isCheckableOption && input.form.elements[input.name].length > 1;
       return isOptionGroup ? input.closest('fieldset') || input.parentElement : input;
-    }    
+    }
 
     getInputFieldType(input, fieldElement) {
       log('getInputFieldType', { input, fieldElement });
@@ -86,7 +86,7 @@
     }
 
     validatable(el) {
-      return el.form && el.name && (el.tagName === 'INPUT' && el.type !== 'submit' 
+      return el.form && el.name && (el.tagName === 'INPUT' && el.type !== 'submit'
         && el.type !== 'reset') || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA';
     }
 
@@ -131,7 +131,7 @@
       e.preventDefault(); this.focusNextField(field);
     }
 
-    addCustomValidation(fieldName, fn) { 
+    addCustomValidation(fieldName, fn) {
       if (!this.customValidations[fieldName]) this.customValidations[fieldName] = [];
       this.customValidations[fieldName].push(fn);
     }

@@ -6,7 +6,7 @@
 
   /**
    * F1 Custom File Upload - 11 Dec 2023
-   * 
+   *
    * @author  C. Moller <xavier.tnc@gmail.com>
    * @version 2.1 - FT - 16 Jul 2024
    *   - Improve file type validation logic.
@@ -15,7 +15,7 @@
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
 
-  function newEl(tag, attrs = {}) { const el = document.createElement(tag); 
+  function newEl(tag, attrs = {}) { const el = document.createElement(tag);
      Object.entries(attrs).forEach(([key, value]) => el[key] = value); return el; }
 
 
@@ -116,9 +116,9 @@
       if (value) this.input.removeAttribute('required');
       this.valueInput = newEl('input', { name: this.name, type: 'hidden', value });
       this.promptHtml = `<span class="${bcn}__prompt">${this.config.prompt || 'Browse... '}</span>`;
-      this.valueDisplay = newEl('button', { className: `${bcn}__value`, type: 'button', 
+      this.valueDisplay = newEl('button', { className: `${bcn}__value`, type: 'button',
         innerHTML: this.getValueHtml(value), onclick: (e) => this.input.click(e), tabIndex: 0 });
-      this.clearX = newEl('a', { className: `${bcn}__clear`, 'ariaLabel': 'Clear X', title: 'Clear', 
+      this.clearX = newEl('a', { className: `${bcn}__clear`, 'ariaLabel': 'Clear X', title: 'Clear',
         onclick: (e) => this.update(e, '', 'focus'), onkeydown: (e) => this.update(e, '', 'focus'),
         innerHTML: this.config.clearPrompt || 'x', tabIndex: '0', hidden: value === '' });
       this.element = newEl('div', { className, 'ariaLabel': `${this.input.id || this.input.name}_${bcn}_ui` });

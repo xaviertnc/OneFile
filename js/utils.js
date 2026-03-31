@@ -6,21 +6,21 @@
 
   /**
    * Utils Class - 01 Jun 2023
-   * 
+   *
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * 
+   *
    * @version 2.1 - FT - 08 Jan 2025
    *   - Add percent() method
-   * 
+   *
    * @version 2.2 - FT - 18 Jan 2025
    *   - Rename capitalizeFirstChar() to ucFirst()
    *   - Improve generateUid(). Prevent UIDs that can be seen as numbers.
    *
-   * @version 2.3 - UPD - 19 Feb 2025 
+   * @version 2.3 - UPD - 19 Feb 2025
    *   - Update the default currency() separator to ','.
-   * 
+   *
    * @version 2.4 - FT - 29 Mar 2026
-   *   - Add fullName() for building display names from row data* 
+   *   - Add fullName() for building display names from row data*
    */
 
   class Utils {
@@ -44,7 +44,7 @@
     static removeClassFrom(el, className) {
       Array.from(el.querySelectorAll('.' + className)).forEach(found => found.classList.remove(className));
     }
-  
+
     static ucFirst(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
 
     static titleCase(str) { return str.split(/[ _-]+/).map(word => Utils.ucFirst(word)).join(' '); }
@@ -88,8 +88,8 @@
       if (obj === null || typeof obj !== 'object') return obj;
       if (Array.isArray(obj)) return obj.map(Utils.clone);
       return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, Utils.clone(value)]));
-    } 
- 
+    }
+
   }
 
   F1.lib = F1.lib || {};

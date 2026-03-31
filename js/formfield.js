@@ -6,9 +6,9 @@
 
   /**
    * F1 Form Field Base - 14 Nov 2023
-   * 
+   *
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * 
+   *
    * @version 2.4 - FT - 18 Jan 2025
    *   - Add isRequired()
    *   - Add getValidations().
@@ -17,7 +17,7 @@
    *   - Update validateCustom(). Refactor and compact.
    *   - Update getValue() to handle option groups.
    *   - Comment out old getFieldElement() and getValue() methods.
-   * 
+   *
    * @version 3.0 - FT - 19 Feb 2025
    *   - Add optional init() method to constructor. VERY IMPORTANT
    *   - Add fieldElement param to constructor to allow for custom field elements
@@ -25,7 +25,7 @@
    *   - Change this.type === 'radio' to this.type === 'F1RadioField' in setValue().
    *   - Remove old code.
    *   - Add debug logs.
-   * 
+   *
    * @version 3.1 - FT - 25 Feb 2025
    *   - Move getFieldElement() logic to the Form.getFieldElement() method.
    */
@@ -151,7 +151,7 @@
       if (typeof value == 'undefined') value = this.defaultValue;
       this.setValue(value, 'init');
     }
-    
+
     clear() {
       this.clearValidationUi();
       this.setValue('', 'init');
@@ -163,4 +163,4 @@
 
   F1.lib.FormField = FormField;
 
-})(window.F1 = window.F1 || {});  
+})(window.F1 = window.F1 || {});

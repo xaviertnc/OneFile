@@ -1,0 +1,147 @@
+/**
+ * vendors/F1/css/checklist.css
+ *
+ * F1 Checklist Styles - 31 Mar 2026
+ *
+ * Purpose: Styles for the F1 Checklist control.
+ *
+ * @package F1
+ *
+ * @author C. Moller <xavier.tnc@gmail.com>
+ *
+ * @version 1.0 - INIT - 31 Mar 2026 - Initial commit
+ * @version 1.1 - FIX - 31 Mar 2026 - Fix border-radius, make extras opt-in
+ * @version 1.2 - FIX - 31 Mar 2026 - No scroll by default; opt-in via max-height/rows
+ * @version 1.3 - FT - 31 Mar 2026 - Add compact/super-compact modes, inherit font-size
+ */
+:root {
+  --cl-border: #cdcdcd;
+  --cl-bg: white;
+  --cl-hover: #f0f4ff;
+  --cl-checked: #e8f0fe;
+  --cl-primary: #007bff;
+  --cl-muted: #666;
+}
+
+.checklist {
+  background: var(--cl-bg);
+  font: inherit;
+}
+.checklist--framed {
+  border: 1px solid var(--cl-border);
+  overflow: hidden;
+}
+
+.checklist__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5em 0.75em;
+  border-bottom: 1px solid var(--cl-border);
+  background: #fafafa;
+}
+
+.checklist__toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  cursor: pointer;
+  font-size: 0.85em;
+  color: var(--cl-muted);
+  margin: 0;
+}
+
+.checklist__counter {
+  font-size: 0.8em;
+  color: var(--cl-muted);
+  white-space: nowrap;
+}
+
+.checklist__search {
+  display: block;
+  width: 100%;
+  padding: 0.5em 0.75em;
+  border: none;
+  border-bottom: 1px solid var(--cl-border);
+  font: inherit;
+  font-size: 0.85em;
+  outline: none;
+  box-sizing: border-box;
+}
+.checklist__search:focus {
+  background: #fffef5;
+}
+
+.checklist__items {
+  padding: 0.25em 0;
+}
+.checklist__items[style*="max-height"] {
+  overflow-y: auto;
+}
+
+.checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.4em 0.75em;
+  cursor: pointer;
+  transition: background 0.1s;
+  margin: 0;
+  font-size: 1em;
+  color: #222;
+}
+.checklist__item:hover {
+  background: var(--cl-hover);
+}
+.checklist__item:has(input:checked) {
+  background: var(--cl-checked);
+  border-left: 2px solid var(--cl-primary);
+  padding-left: calc(0.75em - 2px);
+}
+
+.checklist__item input[type="checkbox"],
+.checklist__toggle {
+  accent-color: var(--cl-primary);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.checklist__item[hidden] {
+  display: none;
+}
+
+/* Compact */
+.checklist--compact .checklist__item {
+  padding: 0.2em 0.6em;
+  font-size: 0.88em;
+}
+.checklist--compact .checklist__item:has(input:checked) {
+  padding-left: calc(0.6em - 2px);
+}
+.checklist--compact .checklist__header { padding: 0.35em 0.6em; }
+.checklist--compact .checklist__search { padding: 0.35em 0.6em; }
+
+/* Super-compact */
+.checklist--xcompact .checklist__item {
+  padding: 0.1em 0.5em;
+  font-size: 0.8em;
+  gap: 0.35em;
+}
+.checklist--xcompact .checklist__item:has(input:checked) {
+  padding-left: calc(0.5em - 2px);
+}
+.checklist--xcompact .checklist__item input[type="checkbox"],
+.checklist--xcompact .checklist__toggle {
+  width: 13px;
+  height: 13px;
+}
+.checklist--xcompact .checklist__header { padding: 0.25em 0.5em; }
+.checklist--xcompact .checklist__search { padding: 0.25em 0.5em; }
+
+.is-invalid .checklist {
+  border-color: #dc3545;
+}
+.is-valid .checklist {
+  border-color: #28a745;
+}

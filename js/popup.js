@@ -6,9 +6,9 @@
 
   /**
    * F1 Popup - 01 Jun 2023
-   * 
+   *
    * @author  C. Moller <xavier.tnc@gmail.com>
-   * 
+   *
    * @version 2.3.1 - DEV - 02 Jun 2024
    *   - Add popup types comment.
    *   - Update and improve Popup documentation. i.e. popup.md
@@ -67,12 +67,12 @@
     }
 
 
-    newEl(tag, attrs = {}) { const el = document.createElement(tag); 
+    newEl(tag, attrs = {}) { const el = document.createElement(tag);
      Object.entries(attrs).forEach(([key, value]) => el[key] = value); return el; }
 
 
     getAriaRole(popupType) {
-      var roles = { 'modal': 'modal', 'dropdown': 'listbox', 'alert': 'alert', 
+      var roles = { 'modal': 'modal', 'dropdown': 'listbox', 'alert': 'alert',
         'toast': 'status', 'notification': 'status', 'tooltip': 'tooltip' };
       return roles?.[popupType] || 'dialog';
     }
@@ -93,18 +93,18 @@
       // Popup ARIA attributes
       const ariaAttributes = ['aria-modal', 'tabindex', 'role'];
       const ariaValues = [config.modal, -1, this.getAriaRole(config.type)];
-      ariaAttributes.forEach((attr, index) => popup.setAttribute(attr, ariaValues[index]));      
+      ariaAttributes.forEach((attr, index) => popup.setAttribute(attr, ariaValues[index]));
       this.popup = popup;
 
       /** Popup Header **/
       let headerClass = `${bcn}__header`;
       if (config.title) {
-        const popupTitle = this.newEl('div', {id: id + '-title', 
+        const popupTitle = this.newEl('div', {id: id + '-title',
           className: `${bcn}__title`, innerHTML: config.title});
         this.title = popupTitle;
       } else headerClass += ` ${bcn}__header--no-title`;
       if (config.closeX) {
-        const closeX = this.newEl('button', {type: 'button', 
+        const closeX = this.newEl('button', {type: 'button',
           className: `${bcn}__close`, innerHTML: config.closeX === true ? '&times;' : config.closeX });
         closeX.addEventListener('click', (e) => this.close({event: e, src: 'closeX'}));
         this.closeX = closeX; }
@@ -126,7 +126,7 @@
       if (!config.buttons.length) footerClass += ` ${bcn}__footer--no-buttons`;
       const popupFooter = this.newEl('div', { className: footerClass });
       config.buttons.forEach(btn => {
-        const button = this.newEl('button', {type: 'button', innerHTML: btn.text,  
+        const button = this.newEl('button', {type: 'button', innerHTML: btn.text,
            className: `${bcn}__button ${btn.className}`});
         button.addEventListener('click', btn.onClick || (event => this.close({event, src: 'button'})));
         popupFooter.appendChild(button); });
