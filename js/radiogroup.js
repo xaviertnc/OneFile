@@ -20,6 +20,7 @@
    * @version 1.2 - FT - 31 Mar 2026 - Add xcompact size, data-cols grid columns, data-auto-width
  * @version 1.3 - FT - 31 Mar 2026 - Add data-indent support
  * @version 1.4 - UPD - 31 Mar 2026 - Bump default grid col min to 10em, add data-col-min
+ * @version 1.5 - FIX - 31 Mar 2026 - Set defaultValue on radio inputs to prevent false dirty detection
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -63,7 +64,7 @@
 
       this.items = Array.from( this.select.options ).filter( o => o.value ).map(( opt, i ) => {
         const item = this.newEl( 'label', { className: `${c}__item` } );
-        const radio = this.newEl( 'input', { type: 'radio', name, value: opt.value } );
+        const radio = this.newEl( 'input', { type: 'radio', name, value: opt.value, defaultValue: opt.value } );
         if ( style === 'buttons' ) {
           const span = this.newEl( 'span' );
           span.textContent = opt.title || opt.text;

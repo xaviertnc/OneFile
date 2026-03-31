@@ -21,6 +21,7 @@
    * @version 1.3 - FT - 31 Mar 2026 - Add compact/xcompact size modes via data-size
  * @version 1.4 - UPD - 31 Mar 2026 - Generalize size class from data-size attribute
  * @version 1.5 - FT - 31 Mar 2026 - Add data-indent support
+ * @version 1.6 - FIX - 31 Mar 2026 - Set defaultValue on checkbox inputs to prevent false dirty detection
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -77,7 +78,7 @@
 
       this.items = Array.from( this.select.options ).map( opt => {
         const label = this.newEl( 'label', { className: `${c}__item` } );
-        const cb = this.newEl( 'input', { type: 'checkbox', value: opt.value, checked: opt.selected } );
+        const cb = this.newEl( 'input', { type: 'checkbox', value: opt.value, defaultValue: opt.value, checked: opt.selected } );
         label.append( cb, document.createTextNode( ' ' + ( opt.title || opt.text ) ) );
         label.dataset.value = opt.value;
         this.itemsWrap.append( label );
