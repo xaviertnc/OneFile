@@ -12,23 +12,10 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
+   * Last 3 version commits:
+   * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
    * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
    * @version 4.1 - FIX - 31 Mar 2026 - Hide empty dt-left; show on addControlLeft()
-   * @version 4.0 - UPD - 31 Mar 2026 - Normalize controls spacing: gap 6px, margin 0 on dt-left/dt-right
-   * @version 3.9 - UPD - 01 Apr 2026 - Move page-size control from top to bottom bar (all screen sizes)
- * @version 3.8 - FT - 29 Mar 2026 - Clear filters button in filter drawer header
-   * @version 3.7 - FT - 29 Mar 2026 - Bottom page-size select for mobile
-   * @version 3.6 - UPD - 29 Mar 2026 - Clearer info text + visible pagination button affordances
-   *   - Auto min-width on table from column widths + minFlexWidth; prevents flex column collapse
-   *
-   * @version 2.7 - FT - 29 Mar 2026
-   *   - Add widthLg column option: wider column widths on desktop+ (>compactBreakpoint)
-   *
-   * @version 2.6 - FT - 29 Mar 2026
-   *   - Auto table-layout:fixed when columns have widths; trunc CSS overrides for fixed layout
-   *
-   * @version 2.1 - FIX - 11 Jan 2026
-   *   - Fix addControlRight/Center logic, fix empty defaultState sort
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -695,6 +682,7 @@
       this._renderRows();
       this._renderFooter();
       this._updateMinWidth();
+      if ( this.columnConfig ) this._updateColConfigBtn();
     } // _reRenderTable
 
 
@@ -767,12 +755,42 @@
     } // _initFilterPanel
 
 
+    _intrinsicColVisible( ci ) {
+      const col = this.columns[ ci ];
+      if ( !col ) return false;
+      if ( this._responsiveHidden.has( ci ) ) return false;
+      if ( this._compact && col.hideCompact ) return false;
+      return true;
+    } // _intrinsicColVisible
+
+
+    _isColConfigCustom() {
+      const n = this.columns.length;
+      if ( this._colOrder.length !== n ) return true;
+      for ( let i = 0; i < n; i++ ) if ( this._colOrder[ i ] !== i ) return true;
+      for ( const [ ci, v ] of this._colVisibility ) {
+        if ( v !== this._intrinsicColVisible( ci ) ) return true;
+      }
+      return false;
+    } // _isColConfigCustom
+
+
+    _updateColConfigBtn() {
+      if ( !this._colConfigBtn ) return;
+      const custom = this._isColConfigCustom();
+      this._colConfigBtn.title = custom ? 'Configure columns (custom layout)' : 'Configure columns';
+      const badge = this._colConfigBtn.querySelector( '.dt-col-config-badge' );
+      if ( badge ) badge.classList.toggle( 'active', custom );
+    } // _updateColConfigBtn
+
+
     _initColumnConfig() {
       const Utils = F1.lib?.Utils;
       if ( !Utils ) return;
       const wrap = Utils.newEl( 'div', 'dt-col-config-wrap' );
       const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline', { type: 'button', title: 'Configure columns' } );
-      btn.innerHTML = '<i class="fa fa-columns"></i>';
+      btn.innerHTML = '<i class="fa fa-columns"></i><span class="dt-col-config-badge"></span>';
+      this._colConfigBtn = btn;
       const panel = Utils.newEl( 'div', 'dt-col-config' );
       const cfgHeader = Utils.newEl( 'div', 'dt-drawer-header' );
       cfgHeader.innerHTML = '<span class="dt-drawer-title">Columns</span>';
@@ -799,6 +817,7 @@
       document.body.appendChild( backdrop );
       this._colConfigPanel = panel;
       this._renderColConfig();
+      this._updateColConfigBtn();
     } // _initColumnConfig
 
 
@@ -959,6 +978,9 @@
 @keyframes dt-spin{to{transform:rotate(360deg)}}
 @media(max-width:640px){.dt-controls{flex-direction:column;align-items:stretch}.dt-left,.dt-right{justify-content:center}.dt-bottom{flex-direction:column;align-items:stretch;gap:2px}.dt-bottom-left{justify-content:space-between;width:100%;padding:0 0 4px}.dt-info{padding:0}.dt-pagesize-bottom{padding:0;margin-right:8px}.dt-pagination{justify-content:center;flex-wrap:nowrap;gap:0}.dt-pagination .dt-btn{padding:8px 10px;min-width:34px;font-size:13px;text-align:center}.dt-pagination .dt-dots{padding:8px 2px}.dt-pg-full{display:none}.dt-pg-short{display:inline;font-size:18px;font-weight:700;line-height:1}}
 .dt-col-config-wrap{position:relative;display:inline-block}
+.dt-col-config-wrap>button{position:relative}
+.dt-col-config-badge{display:none}
+.dt-col-config-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
 .dt-col-config{position:absolute;right:0;top:100%;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:100;min-width:220px;max-height:400px;overflow-y:auto;padding:4px 0;display:none}
 .dt-col-config.open{display:block}
 .dt-col-config-item{display:flex;align-items:center;padding:2px 8px}
