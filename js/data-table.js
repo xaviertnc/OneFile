@@ -1000,7 +1000,7 @@
 .dt-export-btn{order:99;margin-left:12px}
 .dt-drawer-header{display:none}
 .dt-filter-clear{display:none}
-.dt-filter-wrap{position:relative;display:inline-flex;align-items:center}
+.dt-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:4px}
 .dt-filter-btn{display:none;position:relative}
 .dt-filter-panel{display:contents}
 .dt-filter-badge{display:none}
