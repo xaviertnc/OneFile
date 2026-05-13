@@ -13,6 +13,7 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last 3 version commits:
+   * @version 4.4 - FIX - 06 May 2026 - Reset btn: compare sortDir with same empty→desc fallback as constructor
    * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
    * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
    * @version 4.1 - FIX - 31 Mar 2026 - Hide empty dt-left; show on addControlLeft()
@@ -625,16 +626,22 @@
     } // _resetState
 
 
+    _effectiveSortDir( dir ) {
+      return ( dir !== undefined && dir !== null && dir !== '' ) ? dir : 'desc';
+    } // _effectiveSortDir
+
+
     _updateResetBtn() {
       if ( !this.resetButton && !this._filterPanelWrap ) return;
-      const d = this.defaultState;
+      const d = this.defaultState || {};
       const filtersNonDefault = Object.keys( this.customFilters ).some( k => {
         const f = this.customFilters[ k ];
         return ( f.element ? f.element.value : f.default || '' ) !== ( f.default || '' );
       } );
       if ( this.resetButton ) {
         const nonDefault = this.pageSize !== d.pageSize || this.currentPage !== d.currentPage ||
-          ( this.sortColField || d.sortColField ) !== d.sortColField || this.sortDir !== d.sortDir ||
+          ( this.sortColField || d.sortColField ) !== d.sortColField ||
+          this._effectiveSortDir( this.sortDir ) !== this._effectiveSortDir( d.sortDir ) ||
           this.searchTerm !== d.searchTerm || filtersNonDefault;
         this.resetButton.classList.toggle( 'hidden', !nonDefault );
       }

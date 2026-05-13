@@ -2,13 +2,13 @@
 
 /**
  * F1 - Logger Class - 23 Jun 2022
- * 
+ *
  * @author  C. Moller <xavier.tnc@gmail.com>
- * 
+ *
  * @version 2.3 - FT - 27 Dec 2024
  *   - Add Logger::todayString()
  *   - Add Logger::nowString()
- * 
+ *
  * @version 2.4 - FT - 16 Jun 2025
  *   - Add Logger::write()
  */
