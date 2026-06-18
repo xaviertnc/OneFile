@@ -13,6 +13,7 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last 3 version commits:
+   * @version 4.6 - FT - 18 Jun 2026 - Column config: Reset defaults + Toggle All on/off
    * @version 4.5 - FT - 17 Jun 2026 - Export: send visible columns (in display order) as `columns` param
    * @version 4.4 - FIX - 06 May 2026 - Reset btn: compare sortDir with same empty→desc fallback as constructor
    * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
@@ -783,12 +784,37 @@
     } // _isColConfigCustom
 
 
+    _configurableColIndices() {
+      return this._colOrder.filter( ci => {
+        const col = this.columns[ ci ];
+        return col && col.configurable !== false && col.title;
+      } );
+    } // _configurableColIndices
+
+
+    _colConfigVisible( ci ) {
+      const uv = this._colVisibility.get( ci );
+      return uv === false ? false : ( uv === true || !this._responsiveHidden.has( ci ) );
+    } // _colConfigVisible
+
+
+    _updateColConfigActions() {
+      if ( !this._colConfigAllCb ) return;
+      const indices = this._configurableColIndices();
+      const vis = indices.filter( ci => this._colConfigVisible( ci ) );
+      this._colConfigAllCb.checked = vis.length === indices.length && indices.length > 0;
+      this._colConfigAllCb.indeterminate = vis.length > 0 && vis.length < indices.length;
+      if ( this._colConfigResetBtn ) this._colConfigResetBtn.classList.toggle( 'hidden', !this._isColConfigCustom() );
+    } // _updateColConfigActions
+
+
     _updateColConfigBtn() {
       if ( !this._colConfigBtn ) return;
       const custom = this._isColConfigCustom();
       this._colConfigBtn.title = custom ? 'Configure columns (custom layout)' : 'Configure columns';
       const badge = this._colConfigBtn.querySelector( '.dt-col-config-badge' );
       if ( badge ) badge.classList.toggle( 'active', custom );
+      this._updateColConfigActions();
     } // _updateColConfigBtn
 
 
@@ -805,7 +831,25 @@
       const cfgClose = Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
       cfgClose.innerHTML = '&times;';
       cfgHeader.appendChild( cfgClose );
-      panel.appendChild( cfgHeader );
+      const cfgActions = Utils.newEl( 'div', 'dt-col-config-actions' );
+      const allLbl = document.createElement( 'label' );
+      allLbl.className = 'dt-col-config-all';
+      const allCb = document.createElement( 'input' );
+      allCb.type = 'checkbox';
+      allLbl.append( allCb, document.createTextNode( ' All' ) );
+      this._colConfigAllCb = allCb;
+      allCb.onchange = () => {
+        this._configurableColIndices().forEach( ci => this._colVisibility.set( ci, allCb.checked ) );
+        this._saveColConfig();
+        this._renderColConfig();
+        this._reRenderTable();
+      };
+      const resetBtn = Utils.newEl( 'button', 'dt-col-config-reset hidden', { type: 'button' } );
+      resetBtn.textContent = 'Reset';
+      resetBtn.onclick = () => this._resetColConfig();
+      this._colConfigResetBtn = resetBtn;
+      cfgActions.append( allLbl, resetBtn );
+      panel.append( cfgHeader, cfgActions );
       const backdrop = Utils.newEl( 'div', 'dt-col-config-backdrop' );
       wrap.append( btn, panel );
       this._colConfigWrap = wrap;
@@ -833,13 +877,14 @@
       const panel = this._colConfigPanel;
       if ( !panel ) return;
       const hdr = panel.querySelector( '.dt-drawer-header' );
+      const actions = panel.querySelector( '.dt-col-config-actions' );
       panel.innerHTML = '';
       if ( hdr ) panel.appendChild( hdr );
+      if ( actions ) panel.appendChild( actions );
       this._colOrder.forEach( ( ci, pos ) => {
         const col = this.columns[ ci ];
         if ( !col || col.configurable === false || !col.title ) return;
-        const uv = this._colVisibility.get( ci );
-        const isVis = uv === false ? false : ( uv === true || !this._responsiveHidden.has( ci ) );
+        const isVis = this._colConfigVisible( ci );
         const item = document.createElement( 'div' );
         item.className = 'dt-col-config-item';
         const lbl = document.createElement( 'label' );
@@ -860,10 +905,23 @@
           this._colVisibility.set( ci, cb.checked );
           this._saveColConfig();
           this._reRenderTable();
+          this._updateColConfigActions();
         };
         panel.appendChild( item );
       } );
+      this._updateColConfigActions();
     } // _renderColConfig
+
+
+    _resetColConfig() {
+      this._colOrder = this.columns.map( ( _, i ) => i );
+      this._colVisibility.clear();
+      if ( this.stateKey ) {
+        try { localStorage.removeItem( this.stateKey + '-cols' ); } catch { /* ignore */ }
+      }
+      this._renderColConfig();
+      this._reRenderTable();
+    } // _resetColConfig
 
 
     _moveCol( from, to ) {
@@ -992,6 +1050,10 @@
 .dt-col-config-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
 .dt-col-config{position:absolute;right:0;top:100%;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:100;min-width:220px;max-height:400px;overflow-y:auto;padding:4px 0;display:none}
 .dt-col-config.open{display:block}
+.dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:1}
+.dt-col-config-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#555;margin:0}
+.dt-col-config-reset{border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
+.dt-col-config-reset.hidden{display:none}
 .dt-col-config-item{display:flex;align-items:center;padding:2px 8px}
 .dt-col-config-item label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;white-space:nowrap;flex:1}
 .dt-col-config-move{display:flex;gap:1px}
