@@ -13,6 +13,7 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last 3 version commits:
+   * @version 4.5 - FT - 17 Jun 2026 - Export: send visible columns (in display order) as `columns` param
    * @version 4.4 - FIX - 06 May 2026 - Reset btn: compare sortDir with same empty→desc fallback as constructor
    * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
    * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
@@ -917,7 +918,8 @@
       form.method = 'POST'; form.action = this.exportUrl;
       form.target = 'dt-export-frame'; form.style.display = 'none';
       const params = { action: 'export_csv', search: this.searchTerm || '',
-        sortCol: this.sortColField || '', sortDir: ( this.sortDir || 'desc' ).toUpperCase(), ...this.ajaxParams() };
+        sortCol: this.sortColField || '', sortDir: ( this.sortDir || 'desc' ).toUpperCase(),
+        columns: this._vis().map( v => v.col.field ).filter( Boolean ).join( ',' ), ...this.ajaxParams() };
       Object.entries( params ).forEach( ( [ k, v ] ) => {
         const inp = document.createElement( 'input' );
         inp.type = 'hidden'; inp.name = k; inp.value = v;
