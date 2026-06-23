@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last 3 version commits:
+   * @version 4.7 - FIX - 23 Jun 2026 - Restore saved pageSize on the visible (bottom) page-size select too
    * @version 4.6 - FT - 18 Jun 2026 - Column config: Reset defaults + Toggle All on/off
    * @version 4.5 - FT - 17 Jun 2026 - Export: send visible columns (in display order) as `columns` param
-   * @version 4.4 - FIX - 06 May 2026 - Reset btn: compare sortDir with same empty→desc fallback as constructor
    * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
    * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
    * @version 4.1 - FIX - 31 Mar 2026 - Hide empty dt-left; show on addControlLeft()
@@ -528,7 +528,11 @@
         if ( v !== null ) state[ k ] = v;
       } );
 
-      if ( state.pageSize ) { this.pageSize = state.pageSize; this.pageSizeSelect.value = state.pageSize; }
+      if ( state.pageSize ) {
+        this.pageSize = state.pageSize;
+        this.pageSizeSelect.value = state.pageSize;
+        if ( this._pageSizeBottom ) this._pageSizeBottom.value = state.pageSize;
+      }
       if ( state.currentPage ) this.currentPage = state.currentPage;
       if ( state.sortColField ) {
         const idx = this.columns.findIndex( c => c.field === state.sortColField );
