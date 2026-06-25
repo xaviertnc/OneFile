@@ -13,8 +13,13 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last 3 version commits:
+   * @version 5.3 - FT - 25 Jun 2026 - Column config popup: round close (x) button next to Reset action
+   * @version 5.2 - FIX - 25 Jun 2026 - Grow col fills space only when it is the sole flex column (avoids jumbling)
+   * @version 5.1 - FIX - 25 Jun 2026 - Full-width table; widthFixed + grow column opts (reverts dt-fit shrink)
+   * @version 5.0 - FIX - 25 Jun 2026 - Fit table to column widths when all visible columns are fixed (hidden-column layout)
+   * @version 4.9 - FIX - 24 Jun 2026 - Sort tip on arrows only; column name hint on label; keep sort direction visible on hover
+   * @version 4.8 - FT - 24 Jun 2026 - 3-state sort (asc/desc/none); Shift/Ctrl+click multi-column sort
    * @version 4.7 - FIX - 23 Jun 2026 - Restore saved pageSize on the visible (bottom) page-size select too
-   * @version 4.6 - FT - 18 Jun 2026 - Column config: Reset defaults + Toggle All on/off
    * @version 4.5 - FT - 17 Jun 2026 - Export: send visible columns (in display order) as `columns` param
    * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
    * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
@@ -50,10 +55,9 @@
       this.filteredData = [];
       this.filteredIndices = [];
       this.sortCol = null;
-      // Use explicit sortCol, else defaultState, else 'date' for AJAX
-      const defSort = opts.defaultState?.sortColField;
-      this.sortColField = opts.sortCol ?? ( defSort !== undefined ? defSort : ( this.isAjax ? 'date' : null ) );
-      this.sortDir = opts.sortDir || opts.defaultState?.sortDir || 'desc';
+      this.sortColField = null;
+      this.sortDir = 'asc';
+      this.sortStack = [];
       this.searchTerm = '';
       this.currentPage = 1;
       this.totalPages = 1;
@@ -63,11 +67,7 @@
       this.isLoading = false;
       this.searchDebounceTimer = null;
 
-      // Find initial sort column index
-      if ( this.sortColField ) {
-        this.sortCol = this.columns.findIndex( c => c.field === this.sortColField );
-        if ( this.sortCol === -1 ) this.sortCol = null;
-      }
+      this._initSortStack( opts );
 
       // Compact headers
       this.compactBreakpoint = opts.compactBreakpoint || 1920;
@@ -190,24 +190,88 @@
     } // _init
 
 
+    _initSortStack( opts ) {
+      const ds = opts.defaultState;
+      if ( ds?.sortStack?.length ) this.sortStack = ds.sortStack.map( s => ({ field: s.field, dir: s.dir || 'asc' }) );
+      else {
+        const field = opts.sortCol ?? ds?.sortColField ?? ( this.isAjax ? 'date' : null );
+        const dir = opts.sortDir || ds?.sortDir || 'desc';
+        this.sortStack = field ? [{ field, dir }] : [];
+      }
+      this._syncLegacySort();
+    } // _initSortStack
+
+
+    _defaultSortStack() {
+      const d = this.defaultState || {};
+      if ( d.sortStack?.length ) return d.sortStack.map( s => ({ field: s.field, dir: s.dir || 'asc' }) );
+      if ( d.sortColField ) return [{ field: d.sortColField, dir: d.sortDir || 'asc' }];
+      return [];
+    } // _defaultSortStack
+
+
+    _syncLegacySort() {
+      const primary = this.sortStack[ 0 ];
+      if ( primary ) {
+        this.sortColField = primary.field;
+        this.sortDir = primary.dir || 'asc';
+        this.sortCol = this.columns.findIndex( c => c.field === primary.field );
+        if ( this.sortCol === -1 ) this.sortCol = null;
+      } else {
+        this.sortColField = null;
+        this.sortDir = 'asc';
+        this.sortCol = null;
+      }
+    } // _syncLegacySort
+
+
+    _applyStateSort( state ) {
+      if ( state.sortStack ) this.sortStack = state.sortStack.map( s => ({ field: s.field, dir: s.dir || 'asc' }) );
+      else if ( state.sortColField ) this.sortStack = [{ field: state.sortColField, dir: state.sortDir || 'asc' }];
+      else this.sortStack = [];
+      this._syncLegacySort();
+    } // _applyStateSort
+
+
+    _soleGrowVisible() {
+      return !this._vis().some( v => {
+        if ( v.col.grow ) return false;
+        const w = ( !this._compact && v.col.widthLg ) ? v.col.widthLg : v.col.width;
+        return !w;
+      } );
+    } // _soleGrowVisible
+
+
     _colW( col ) {
       const w = ( !this._compact && col.widthLg ) ? col.widthLg : col.width;
-      return w ? ` style="width:${w};max-width:${w}"` : '';
+      if ( col.grow ) {
+        const min = w ? `min-width:${w};` : '';
+        return this._soleGrowVisible()
+          ? ` style="${min}width:99%"` : ( min ? ` style="${min}"` : '' );
+      }
+      if ( w ) return ` style="width:${w};max-width:${w}"`;
+      return '';
     } // _colW
 
 
     _renderHeader() {
+      const sortTip = 'Click: asc/desc/none · Shift/Ctrl+click: multi-sort';
       let html = '<tr>';
       this._vis().forEach( ( { col, i } ) => {
         const sortable = col.sortable !== false;
         const cls = [ sortable ? 'sortable' : '', col.className || '' ].filter( Boolean ).join( ' ' );
-        const arrows = sortable ? '<span class="sort-arrows"><span class="up">▲</span><span class="dn">▼</span></span>' : '';
-        const label = ( this._compact && col.titleShort ) ? col.titleShort : ( col.title || '' );
-        html += `<th class="${cls}" data-col="${i}" title="${col.title || ''}"${this._colW( col )}>${label}${arrows}</th>`;
+        const showShort = this._compact && col.titleShort;
+        const label = showShort ? col.titleShort : ( col.title || '' );
+        const labelTip = showShort && col.title ? ` title="${this._esc( col.title )}"` : '';
+        const labelHtml = `<span class="th-label"${labelTip}>${this._esc( label )}</span>`;
+        const arrows = sortable
+          ? `<span class="sort-arrows" title="${sortTip}"><span class="up">▲</span><span class="dn">▼</span></span>`
+          : '';
+        html += `<th class="${cls}" data-col="${i}"${this._colW( col )}>${labelHtml}${arrows}</th>`;
       } );
       this.headerEl.innerHTML = html + '</tr>';
       this.headerEl.querySelectorAll( 'th.sortable' ).forEach( th => {
-        th.onclick = () => this._onSort( +th.dataset.col );
+        th.onclick = ( e ) => this._onSort( +th.dataset.col, e );
       } );
       this._updateSortIndicators();
     } // _renderHeader
@@ -218,9 +282,13 @@
       this.headerEl.querySelectorAll( 'th' ).forEach( ( th, idx ) => {
         const entry = vis[ idx ];
         if ( !entry ) return;
-        const arrows = th.querySelector( '.sort-arrows' );
-        const label = ( this._compact && entry.col.titleShort ) ? entry.col.titleShort : ( entry.col.title || '' );
-        th.innerHTML = this._esc( label ) + ( arrows ? arrows.outerHTML : '' );
+        const col = entry.col;
+        const showShort = this._compact && col.titleShort;
+        const labelEl = th.querySelector( '.th-label' );
+        if ( !labelEl ) return;
+        labelEl.textContent = showShort ? col.titleShort : ( col.title || '' );
+        if ( showShort && col.title ) labelEl.title = col.title;
+        else labelEl.removeAttribute( 'title' );
       } );
     } // _syncHeaderTitles
 
@@ -269,28 +337,16 @@
 
 
     _applySort() {
-      if ( this.sortCol === null ) return;
-      const col = this.columns[ this.sortCol ];
-      if ( !col?.field ) return;
+      if ( !this.sortStack.length ) return;
 
-      const field = col.field, dir = this.sortDir === 'asc' ? 1 : -1;
-      const isCurr = col.type === 'currency', isDate = col.type === 'date';
       const indices = this.filteredData.map( ( _, i ) => i );
-
       indices.sort( ( ai, bi ) => {
-        let a = this.filteredData[ ai ][ field ], b = this.filteredData[ bi ][ field ];
-        if ( a == null ) return 1;
-        if ( b == null ) return -1;
-        if ( isCurr ) {
-          a = parseFloat( String( a ).replace( /[^0-9.\-]/g, '' ) ) || 0;
-          b = parseFloat( String( b ).replace( /[^0-9.\-]/g, '' ) ) || 0;
-          return ( a - b ) * dir;
+        const aRow = this.filteredData[ ai ], bRow = this.filteredData[ bi ];
+        for ( const { field, dir } of this.sortStack ) {
+          const cmp = this._compareField( aRow, bRow, field );
+          if ( cmp !== 0 ) return cmp * ( dir === 'asc' ? 1 : -1 );
         }
-        if ( isDate ) return ( ( new Date( a ).getTime() || 0 ) - ( new Date( b ).getTime() || 0 ) ) * dir;
-        const na = parseFloat( a ), nb = parseFloat( b );
-        if ( !isNaN( na ) && !isNaN( nb ) ) return ( na - nb ) * dir;
-        a = String( a ).toLowerCase(); b = String( b ).toLowerCase();
-        return a < b ? -dir : a > b ? dir : 0;
+        return 0;
       } );
 
       this.filteredData = indices.map( i => this.filteredData[ i ] );
@@ -299,19 +355,65 @@
     } // _applySort
 
 
-    _updateSortIndicators() {
-      this.headerEl.querySelectorAll( 'th' ).forEach( th => th.classList.remove( 'sort-asc', 'sort-desc' ) );
-      if ( this.sortCol !== null ) {
-        const th = this.headerEl.querySelector( `th[data-col="${this.sortCol}"]` );
-        if ( th ) th.classList.add( this.sortDir === 'asc' ? 'sort-asc' : 'sort-desc' );
+    _compareField( aRow, bRow, field ) {
+      const col = this.columns.find( c => c.field === field );
+      if ( !col?.field ) return 0;
+      let a = aRow[ field ], b = bRow[ field ];
+      if ( a == null ) return 1;
+      if ( b == null ) return -1;
+      if ( col.type === 'currency' ) {
+        a = parseFloat( String( a ).replace( /[^0-9.\-]/g, '' ) ) || 0;
+        b = parseFloat( String( b ).replace( /[^0-9.\-]/g, '' ) ) || 0;
+        return a - b;
       }
+      if ( col.type === 'date' ) return ( new Date( a ).getTime() || 0 ) - ( new Date( b ).getTime() || 0 );
+      const na = parseFloat( a ), nb = parseFloat( b );
+      if ( !isNaN( na ) && !isNaN( nb ) ) return na - nb;
+      a = String( a ).toLowerCase(); b = String( b ).toLowerCase();
+      return a < b ? -1 : a > b ? 1 : 0;
+    } // _compareField
+
+
+    _updateSortIndicators() {
+      this.headerEl.querySelectorAll( 'th' ).forEach( th => {
+        th.classList.remove( 'sort-asc', 'sort-desc' );
+        th.querySelector( '.sort-pri' )?.remove();
+      } );
+      this.sortStack.forEach( ( s, n ) => {
+        const i = this.columns.findIndex( c => c.field === s.field );
+        if ( i === -1 ) return;
+        const th = this.headerEl.querySelector( `th[data-col="${i}"]` );
+        if ( !th ) return;
+        th.classList.add( s.dir === 'asc' ? 'sort-asc' : 'sort-desc' );
+        if ( this.sortStack.length > 1 ) {
+          const badge = document.createElement( 'span' );
+          badge.className = 'sort-pri';
+          badge.textContent = n + 1;
+          th.appendChild( badge );
+        }
+      } );
     } // _updateSortIndicators
 
 
-    _onSort( i ) {
-      this.sortDir = this.sortCol === i ? ( this.sortDir === 'asc' ? 'desc' : 'asc' ) : 'asc';
-      this.sortCol = i;
-      this.sortColField = this.columns[ i ]?.field || null;
+    _onSort( i, e ) {
+      const col = this.columns[ i ];
+      if ( !col?.field || col.sortable === false ) return;
+      const field = col.field;
+      const multi = e && ( e.ctrlKey || e.metaKey || e.shiftKey );
+      const idx = this.sortStack.findIndex( s => s.field === field );
+
+      if ( multi ) {
+        if ( idx === -1 ) this.sortStack.push( { field, dir: 'asc' } );
+        else if ( this.sortStack[ idx ].dir === 'asc' ) this.sortStack[ idx ].dir = 'desc';
+        else this.sortStack.splice( idx, 1 );
+      } else if ( idx === -1 || this.sortStack.length !== 1 ) {
+        this.sortStack = [{ field, dir: 'asc' }];
+      } else if ( this.sortStack[ 0 ].dir === 'asc' ) {
+        this.sortStack[ 0 ].dir = 'desc';
+      } else {
+        this.sortStack = [];
+      }
+      this._syncLegacySort();
       if ( this.isAjax ) { this.currentPage = 1; this._fetchData(); }
       else { this._applySort(); this._render(); }
     } // _onSort
@@ -362,8 +464,9 @@
         limit: this.pageSize,
         offset: ( this.currentPage - 1 ) * this.pageSize,
         search: this.searchTerm,
-        sortCol: this.sortColField || 'date',
-        sortDir: this.sortDir.toUpperCase(),
+        sortCol: this.sortColField || '',
+        sortDir: this.sortColField ? ( this.sortDir || 'asc' ).toUpperCase() : '',
+        sortStack: JSON.stringify( this.sortStack ),
         ...this.ajaxParams()
       };
 
@@ -534,10 +637,7 @@
         if ( this._pageSizeBottom ) this._pageSizeBottom.value = state.pageSize;
       }
       if ( state.currentPage ) this.currentPage = state.currentPage;
-      if ( state.sortColField ) {
-        const idx = this.columns.findIndex( c => c.field === state.sortColField );
-        if ( idx !== -1 ) { this.sortCol = idx; this.sortColField = state.sortColField; this.sortDir = state.sortDir || 'desc'; }
-      }
+      this._applyStateSort( state );
       if ( state.searchTerm ) { this.searchTerm = state.searchTerm; this.searchInput.value = state.searchTerm; }
       Object.keys( this.customFilters ).forEach( k => {
         const f = this.customFilters[ k ];
@@ -595,7 +695,7 @@
     _saveState() {
       try {
         const s = { pageSize: this.pageSize, currentPage: this.currentPage,
-          sortColField: this.sortColField, sortDir: this.sortDir, searchTerm: this.searchTerm || '' };
+          sortStack: this.sortStack, sortColField: this.sortColField, sortDir: this.sortDir, searchTerm: this.searchTerm || '' };
         Object.keys( this.customFilters ).forEach( k => {
           const f = this.customFilters[ k ]; s[ k ] = f.element ? f.element.value : f.default || '';
         } );
@@ -608,8 +708,6 @@
       localStorage.removeItem( this.stateKey );
       this.pageSize = this.defaultState.pageSize;
       this.currentPage = 1;
-      this.sortColField = this.defaultState.sortColField;
-      this.sortDir = this.defaultState.sortDir;
       this.searchTerm = '';
       this.pageSizeSelect.value = this.defaultState.pageSize;
       if ( this._pageSizeBottom ) this._pageSizeBottom.value = this.defaultState.pageSize;
@@ -621,10 +719,8 @@
         if ( f.urlParam !== false ) url.searchParams.set( k, f.default || '' );
       } );
       history.replaceState( null, '', url );
-      const idx = this.columns.findIndex( c => c.field === this.defaultState.sortColField );
-      if ( idx !== -1 ) { this.sortCol = idx; this.sortColField = this.defaultState.sortColField; }
-      else this.sortCol = null;
-      this.sortDir = this.defaultState.sortDir || 'desc';
+      this.sortStack = this._defaultSortStack().map( s => ({ ...s }) );
+      this._syncLegacySort();
       this._updateSortIndicators();
       if ( this.isAjax ) { this.currentPage = 1; this.load(); }
       else this._render();
@@ -637,6 +733,11 @@
     } // _effectiveSortDir
 
 
+    _sortStackEq( a, b ) {
+      return JSON.stringify( a || [] ) === JSON.stringify( b || [] );
+    } // _sortStackEq
+
+
     _updateResetBtn() {
       if ( !this.resetButton && !this._filterPanelWrap ) return;
       const d = this.defaultState || {};
@@ -644,11 +745,10 @@
         const f = this.customFilters[ k ];
         return ( f.element ? f.element.value : f.default || '' ) !== ( f.default || '' );
       } );
+      const sortNonDefault = !this._sortStackEq( this.sortStack, this._defaultSortStack() );
       if ( this.resetButton ) {
         const nonDefault = this.pageSize !== d.pageSize || this.currentPage !== d.currentPage ||
-          ( this.sortColField || d.sortColField ) !== d.sortColField ||
-          this._effectiveSortDir( this.sortDir ) !== this._effectiveSortDir( d.sortDir ) ||
-          this.searchTerm !== d.searchTerm || filtersNonDefault;
+          sortNonDefault || this.searchTerm !== d.searchTerm || filtersNonDefault;
         this.resetButton.classList.toggle( 'hidden', !nonDefault );
       }
       if ( this._filterPanelWrap ) {
@@ -704,7 +804,8 @@
       let sum = 0, flex = 0;
       this._vis().forEach( ( { col } ) => {
         const w = ( !this._compact && col.widthLg ) ? col.widthLg : col.width;
-        w ? sum += parseInt( w ) : flex++;
+        if ( col.grow ) { if ( w ) sum += parseInt( w, 10 ) || 0; return; }
+        w ? sum += parseInt( w, 10 ) || 0 : flex++;
       } );
       this._tbl.style.minWidth = flex ? ( sum + flex * this.minFlexWidth ) + 'px' : '';
     } // _updateMinWidth
@@ -834,7 +935,6 @@
       cfgHeader.innerHTML = '<span class="dt-drawer-title">Columns</span>';
       const cfgClose = Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
       cfgClose.innerHTML = '&times;';
-      cfgHeader.appendChild( cfgClose );
       const cfgActions = Utils.newEl( 'div', 'dt-col-config-actions' );
       const allLbl = document.createElement( 'label' );
       allLbl.className = 'dt-col-config-all';
@@ -852,7 +952,7 @@
       resetBtn.textContent = 'Reset';
       resetBtn.onclick = () => this._resetColConfig();
       this._colConfigResetBtn = resetBtn;
-      cfgActions.append( allLbl, resetBtn );
+      cfgActions.append( allLbl, resetBtn, cfgClose );
       panel.append( cfgHeader, cfgActions );
       const backdrop = Utils.newEl( 'div', 'dt-col-config-backdrop' );
       wrap.append( btn, panel );
@@ -980,7 +1080,8 @@
       form.method = 'POST'; form.action = this.exportUrl;
       form.target = 'dt-export-frame'; form.style.display = 'none';
       const params = { action: 'export_csv', search: this.searchTerm || '',
-        sortCol: this.sortColField || '', sortDir: ( this.sortDir || 'desc' ).toUpperCase(),
+        sortCol: this.sortColField || '', sortDir: ( this.sortDir || 'asc' ).toUpperCase(),
+        sortStack: JSON.stringify( this.sortStack ),
         columns: this._vis().map( v => v.col.field ).filter( Boolean ).join( ',' ), ...this.ajaxParams() };
       Object.entries( params ).forEach( ( [ k, v ] ) => {
         const inp = document.createElement( 'input' );
@@ -1035,10 +1136,13 @@
 .dt-btn.dt-prev,.dt-btn.dt-next{color:#555}
 .dt-dots{padding:6.5px 4px;color:#999;font-size:13px}
 .dt-info-filtered{color:#999;font-size:12px}
-.sort-arrows{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:8px;line-height:.7;font-size:9px}
+.sort-arrows{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:8px;line-height:.7;font-size:9px;cursor:pointer}
 .sort-arrows .up,.sort-arrows .dn{opacity:.2;transition:opacity .2s}
-.dt-table th.sortable:hover .up,.dt-table th.sortable:hover .dn{opacity:.5}
-.dt-table th.sort-asc .up,.dt-table th.sort-desc .dn{opacity:1;color:#fff}
+.dt-table th.sortable:hover .sort-arrows .up,.dt-table th.sortable:hover .sort-arrows .dn{opacity:.5}
+.dt-table th.sort-asc .sort-arrows .up,.dt-table th.sort-desc .sort-arrows .dn{opacity:1;color:#fff}
+.dt-table th.sort-asc:hover .sort-arrows .up,.dt-table th.sort-desc:hover .sort-arrows .dn{opacity:1;color:#fff}
+.dt-table th.sort-asc:hover .sort-arrows .dn,.dt-table th.sort-desc:hover .sort-arrows .up{opacity:.35}
+.sort-pri{font-size:9px;margin-left:4px;opacity:.85;vertical-align:super;font-weight:700}
 .dt-table .left{text-align:left}.dt-table .right{text-align:right}.dt-table .center{text-align:center}
 .dt-table .nowrap{white-space:nowrap}.dt-table .name{min-width:140px}.dt-table .mute{color:#888;font-size:.85em}
 .dt-table .trunc{width:1px;white-space:nowrap;overflow:hidden}.dt-table .trunc-text{display:inline-block;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
@@ -1055,7 +1159,7 @@
 .dt-col-config{position:absolute;right:0;top:100%;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:100;min-width:220px;max-height:400px;overflow-y:auto;padding:4px 0;display:none}
 .dt-col-config.open{display:block}
 .dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:1}
-.dt-col-config-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#555;margin:0}
+.dt-col-config-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#555;margin:0 auto 0 0}
 .dt-col-config-reset{border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
 .dt-col-config-reset.hidden{display:none}
 .dt-col-config-item{display:flex;align-items:center;padding:2px 8px}
@@ -1064,6 +1168,8 @@
 .dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:1px 4px;font-size:9px;color:#888;line-height:1}
 .dt-col-config-move button:hover{color:#333}
 .dt-col-config-backdrop{display:none}
+.dt-col-config-actions .dt-drawer-close{display:flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:10px;padding:0;border:1px solid #ccc;border-radius:50%;background:transparent;color:#888;font-size:15px;line-height:1;cursor:pointer}
+.dt-col-config-actions .dt-drawer-close:hover{color:#333;border-color:#999}
 @media(max-width:640px){
 .dt-col-config{position:fixed;bottom:0;left:0;right:0;top:auto;min-width:0;max-height:60vh;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:12px 16px;z-index:1001}
 .dt-col-config.open{display:block}
