@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last version commits:
-   * @version 5.22 - REF - 25 Jul 2026 - Public DataTable.resolveFilterOptions (app delegates)
-   * @version 5.21 - FIX - 25 Jul 2026 - AF enum options: read <template>.content
-   * @version 5.20 - FT - 25 Jul 2026 - AF enum options: resolve array|selector|select|{value,label}
+   * @version 5.36 - FIX - 25 Jul 2026 - Header tip uses titleTip || title (not abbreviated label)
+   * @version 5.35 - UPD - 25 Jul 2026 - Columns tray: Density under Rows section (after list)
+   * @version 5.34 - FT - 25 Jul 2026 - Row density: comfortable|compact (Columns tray + persist)
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -84,6 +84,9 @@
       this._colVisibility = new Map();
       this._responsiveHidden = new Set();
       this.minFlexWidth = opts.minFlexWidth || 120;
+      // Row density (not breakpoint `_compact` / titleShort)
+      this.density = opts.density === 'compact' ? 'compact' : 'comfortable';
+      this._densityInputs = [];
 
       if ( this.advancedFilters ) {
         this.filterPanel = true;
@@ -100,6 +103,8 @@
       const c = this.container;
       c.innerHTML = '';
       c.classList.add( 'dt-wrap' );
+      if ( this.stateKey ) this._loadDensity();
+      this._applyDensity();
 
       // Controls
       c.innerHTML = `<div class="dt-controls">
@@ -282,7 +287,8 @@
         const cls = [ sortable ? 'sortable' : '', col.className || '' ].filter( Boolean ).join( ' ' );
         const showShort = this._compact && col.titleShort;
         const label = showShort ? col.titleShort : ( col.title || '' );
-        const labelTip = showShort && col.title ? ` title="${this._esc( col.title )}"` : '';
+        const tip = col.titleTip || col.title || '';
+        const labelTip = tip ? ` title="${this._esc( tip )}"` : '';
         const labelHtml = `<span class="th-label"${labelTip}>${this._esc( label )}</span>`;
         const arrows = sortable
           ? `<span class="sort-arrows" title="${sortTip}"><span class="up">▲</span><span class="dn">▼</span></span>`
@@ -307,7 +313,8 @@
         const labelEl = th.querySelector( '.th-label' );
         if ( !labelEl ) return;
         labelEl.textContent = showShort ? col.titleShort : ( col.title || '' );
-        if ( showShort && col.title ) labelEl.title = col.title;
+        const tip = col.titleTip || col.title || '';
+        if ( tip ) labelEl.title = tip;
         else labelEl.removeAttribute( 'title' );
       } );
     } // _syncHeaderTitles
@@ -882,6 +889,36 @@
     } // _saveColConfig
 
 
+    _loadDensity() {
+      if ( !this.stateKey ) return;
+      try {
+        const d = localStorage.getItem( this.stateKey + '-density' );
+        if ( d === 'compact' || d === 'comfortable' ) this.density = d;
+      } catch { /* ignore */ }
+    } // _loadDensity
+
+
+    _saveDensity() {
+      if ( !this.stateKey ) return;
+      try { localStorage.setItem( this.stateKey + '-density', this.density ); } catch { /* ignore */ }
+    } // _saveDensity
+
+
+    _applyDensity() {
+      const c = this.container;
+      if ( !c ) return;
+      c.classList.toggle( 'dt-density-compact', this.density === 'compact' );
+      c.classList.toggle( 'dt-density-comfortable', this.density === 'comfortable' );
+      ( this._densityInputs || [] ).forEach( inp => { inp.checked = inp.value === this.density; } );
+    } // _applyDensity
+
+
+    _setDensity( d ) {
+      this.density = d === 'compact' ? 'compact' : 'comfortable';
+      this._applyDensity();
+      this._saveDensity();
+    } // _setDensity
+
 
     _afOps( type ) {
       const map = {
@@ -1400,7 +1437,29 @@
       resetBtn.onclick = () => this._resetColConfig();
       this._colConfigResetBtn = resetBtn;
       cfgActions.append( allLbl, resetBtn );
+      const rowsSec = Utils.newEl( 'div', 'dt-col-config-rows' );
+      rowsSec.innerHTML = '<div class="dt-col-config-sec-title">Rows</div>';
+      const dens = Utils.newEl( 'div', 'dt-col-config-density' );
+      dens.innerHTML = '<span class="dt-col-config-density-lbl">Density</span>';
+      const densOpts = Utils.newEl( 'div', 'dt-col-config-density-opts' );
+      const densName = 'dt-density-' + ( this.stateKey || 'default' ).replace( /[^\w-]/g, '_' );
+      this._densityInputs = [];
+      [ [ 'comfortable', 'Comfortable' ], [ 'compact', 'Compact' ] ].forEach( ( [ val, label ] ) => {
+        const lbl = document.createElement( 'label' );
+        const inp = document.createElement( 'input' );
+        inp.type = 'radio';
+        inp.name = densName;
+        inp.value = val;
+        inp.checked = this.density === val;
+        inp.onchange = () => { if ( inp.checked ) this._setDensity( val ); };
+        lbl.append( inp, document.createTextNode( ' ' + label ) );
+        densOpts.appendChild( lbl );
+        this._densityInputs.push( inp );
+      } );
+      dens.appendChild( densOpts );
+      rowsSec.appendChild( dens );
       panel.append( cfgHeader, cfgActions );
+      this._colConfigRows = rowsSec;
       const backdrop = Utils.newEl( 'div', 'dt-tray-backdrop dt-col-config-backdrop' );
       wrap.appendChild( btn );
       document.body.append( panel, backdrop );
@@ -1427,6 +1486,7 @@
       if ( !panel ) return;
       const hdr = panel.querySelector( '.dt-drawer-header' );
       const actions = panel.querySelector( '.dt-col-config-actions' );
+      const rowsSec = this._colConfigRows || panel.querySelector( '.dt-col-config-rows' );
       let body = panel.querySelector( '.dt-col-config-body' );
       panel.innerHTML = '';
       if ( hdr ) panel.appendChild( hdr );
@@ -1435,6 +1495,7 @@
       body.className = 'dt-col-config-body';
       body.innerHTML = '';
       panel.appendChild( body );
+      if ( rowsSec ) panel.appendChild( rowsSec );
       this._colOrder.forEach( ( ci, pos ) => {
         const col = this.columns[ ci ];
         if ( !col || col.configurable === false || !col.title ) return;
@@ -1454,7 +1515,15 @@
         dn.type = 'button'; dn.textContent = '▼'; dn.title = 'Move down';
         dn.onclick = e => { e.stopPropagation(); this._moveCol( pos, pos + 1 ); };
         mv.append( up, dn );
-        item.append( lbl, mv );
+        item.dataset.ci = String( ci );
+        const grip = document.createElement( 'span' );
+        grip.className = 'dt-col-config-grip';
+        grip.textContent = '⋮⋮⋮⋮';
+        grip.title = 'Drag to reorder';
+        grip.setAttribute( 'role', 'button' );
+        grip.setAttribute( 'aria-label', 'Drag to reorder' );
+        grip.onpointerdown = e => this._colConfigGripDown( e, item, body );
+        item.append( lbl, mv, grip );
         cb.onchange = () => {
           this._colVisibility.set( ci, cb.checked );
           this._saveColConfig();
@@ -1486,6 +1555,75 @@
       this._renderColConfig();
       this._reRenderTable();
     } // _moveCol
+
+
+    /** Place fromCi before/after toCi (after = drop on lower half). */
+    _moveColTo( fromCi, toCi, after ) {
+      const from = this._colOrder.indexOf( fromCi );
+      const to = this._colOrder.indexOf( toCi );
+      if ( from < 0 || to < 0 ) return;
+      let target = after ? to + 1 : to;
+      if ( from < target ) target -= 1;
+      if ( from === target ) return;
+      const item = this._colOrder.splice( from, 1 )[ 0 ];
+      this._colOrder.splice( target, 0, item );
+      this._saveColConfig();
+      this._renderColConfig();
+      this._reRenderTable();
+    } // _moveColTo
+
+
+    /** Pointer-based column reorder (HTML5 DnD is unreliable in embedded browsers). */
+    _colConfigGripDown( e, item, body ) {
+      if ( e.button !== 0 ) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const fromCi = parseInt( item.dataset.ci, 10 );
+      if ( Number.isNaN( fromCi ) ) return;
+      const grip = e.currentTarget;
+      const clearMarks = () => {
+        body.querySelectorAll( '.drag-before, .drag-after' ).forEach( el => {
+          el.classList.remove( 'drag-before', 'drag-after' );
+        } );
+      };
+      let overEl = null;
+      let after = false;
+      let moved = false;
+      item.classList.add( 'is-dragging' );
+      body.classList.add( 'is-reordering' );
+      try { grip.setPointerCapture?.( e.pointerId ); } catch { /* ignore */ }
+
+      const onMove = ev => {
+        if ( Math.abs( ev.clientY - e.clientY ) + Math.abs( ev.clientX - e.clientX ) > 3 ) moved = true;
+        const el = document.elementFromPoint( ev.clientX, ev.clientY );
+        const row = el?.closest?.( '.dt-col-config-item' ) || null;
+        clearMarks();
+        overEl = null;
+        if ( !row || row === item || !body.contains( row ) ) return;
+        const rect = row.getBoundingClientRect();
+        after = ev.clientY > rect.top + rect.height / 2;
+        row.classList.add( after ? 'drag-after' : 'drag-before' );
+        overEl = row;
+      };
+
+      const onUp = () => {
+        document.removeEventListener( 'pointermove', onMove, true );
+        document.removeEventListener( 'pointerup', onUp, true );
+        document.removeEventListener( 'pointercancel', onUp, true );
+        item.classList.remove( 'is-dragging' );
+        body.classList.remove( 'is-reordering' );
+        clearMarks();
+        try { grip.releasePointerCapture?.( e.pointerId ); } catch { /* ignore */ }
+        if ( !moved || !overEl ) return;
+        const toCi = parseInt( overEl.dataset.ci, 10 );
+        if ( Number.isNaN( toCi ) || toCi === fromCi ) return;
+        this._moveColTo( fromCi, toCi, after );
+      };
+
+      document.addEventListener( 'pointermove', onMove, true );
+      document.addEventListener( 'pointerup', onUp, true );
+      document.addEventListener( 'pointercancel', onUp, true );
+    } // _colConfigGripDown
 
 
     _initResponsive() {
@@ -1572,12 +1710,17 @@
 .dt-scroll{overflow:auto;position:relative}
 .dt-table{width:100%;border-collapse:collapse}
 .dt-table th,.dt-table td{padding:6px 6px;text-align:left;white-space:nowrap}
+.dt-density-compact .dt-table thead th{padding:4px 6px}
+.dt-density-compact .dt-table tbody td{padding:3px 6px}
+.dt-density-compact .dt-table th.sortable{padding-right:1.65em}
+.dt-density-compact .dt-table tfoot th{padding:5px 2px 5px 12px}
 .dt-table th{font-size:13px}.dt-table td{font-size:12px;border-bottom:1px solid #ddd}
 .dt-table thead{background:var(--heading-color,#2c3e50);color:#fff;position:sticky;top:0;z-index:2}
 .dt-table tfoot tr{background:#f5f5f5;position:sticky;bottom:0;z-index:1;font-size:.9em;border-bottom:1px solid grey;box-shadow:0 4px 0 #f5f5f5}
 .dt-table tfoot th{padding:8px 2px 8px 12px;font-weight:600}
-.dt-table th.sortable{cursor:pointer;user-select:none}
+.dt-table th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:1.65em}
 .dt-table th.sortable:hover{background:rgba(255,255,255,.1)}
+.dt-table th .th-label{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dt-table tbody tr:hover{background:#eee;cursor:pointer}
 .dt-table .fa{width:1em;color:var(--primary-color);opacity:.67;vertical-align:middle;line-height:1}
 .dt-bottom{display:flex;justify-content:space-between;align-items:center;}
@@ -1596,13 +1739,13 @@
 .dt-btn.dt-prev,.dt-btn.dt-next{color:#555}
 .dt-dots{padding:6.5px 4px;color:#999;font-size:13px}
 .dt-info-filtered{color:#999;font-size:12px}
-.sort-arrows{display:inline-flex;flex-direction:column;vertical-align:middle;margin-left:8px;line-height:.7;font-size:9px;cursor:pointer}
+.sort-arrows{display:inline-flex;flex-direction:column;position:absolute;right:4px;top:50%;transform:translateY(-50%);margin-left:0;line-height:.7;font-size:9px;cursor:pointer}
 .sort-arrows .up,.sort-arrows .dn{opacity:.2;transition:opacity .2s}
 .dt-table th.sortable:hover .sort-arrows .up,.dt-table th.sortable:hover .sort-arrows .dn{opacity:.5}
 .dt-table th.sort-asc .sort-arrows .up,.dt-table th.sort-desc .sort-arrows .dn{opacity:1;color:#fff}
 .dt-table th.sort-asc:hover .sort-arrows .up,.dt-table th.sort-desc:hover .sort-arrows .dn{opacity:1;color:#fff}
 .dt-table th.sort-asc:hover .sort-arrows .dn,.dt-table th.sort-desc:hover .sort-arrows .up{opacity:.35}
-.sort-pri{font-size:9px;margin-left:4px;opacity:.85;vertical-align:super;font-weight:700}
+.sort-pri{position:absolute;right:1.15em;top:2px;font-size:9px;margin-left:0;opacity:.85;font-weight:700;line-height:1}
 .dt-table .left{text-align:left}.dt-table .right{text-align:right}.dt-table .center{text-align:center}
 .dt-table .nowrap{white-space:nowrap}.dt-table .name{min-width:140px}.dt-table .mute{color:#888;font-size:.85em}
 .dt-table .trunc{width:1px;white-space:nowrap;overflow:hidden}.dt-table .trunc-text{display:inline-block;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
@@ -1623,16 +1766,31 @@
 .dt-col-config.dt-tray{padding:0;border:none;border-radius:0;min-width:0;max-height:none;overflow:hidden}
 .dt-col-config .dt-drawer-header{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0}
 .dt-col-config .dt-drawer-title{font-size:15px;font-weight:600;color:#222;margin-right:auto}
-.dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
-.dt-col-config-body{flex:1;overflow:auto;padding:6px 0 12px;-webkit-overflow-scrolling:touch}
+.dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
+.dt-col-config-body{flex:1;overflow:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch;min-height:0}
+.dt-col-config-rows{flex-shrink:0;border-top:1px solid #eee;background:#fff;padding:10px 14px 12px}
+.dt-col-config-sec-title{font-size:12px;font-weight:600;color:#555;margin:0 0 8px}
+.dt-col-config-density{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dt-col-config-density-lbl{font-size:12px;color:#444}
+.dt-col-config-density-opts{display:flex;align-items:center;gap:12px}
+.dt-col-config-density-opts label{display:inline-flex;align-items:center;gap:4px;margin:0;font-size:12px;color:#444;cursor:pointer;white-space:nowrap}
 .dt-col-config-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#555;margin:0 auto 0 0}
 .dt-col-config-reset{border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
 .dt-col-config-reset.hidden{display:none}
-.dt-col-config-item{display:flex;align-items:center;padding:8px 16px}
-.dt-col-config-item label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.dt-col-config-move{display:flex;gap:1px;flex-shrink:0}
-.dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:4px 8px;font-size:11px;color:#888;line-height:1}
+.dt-col-config-item{display:flex;align-items:center;gap:2px;padding:3px 10px 3px 14px;position:relative;min-height:28px}
+.dt-col-config-item.is-dragging{opacity:.4}
+.dt-col-config-item.drag-before::before,.dt-col-config-item.drag-after::after{content:'';position:absolute;left:12px;right:12px;height:2px;background:var(--primary-color,#337ab7);pointer-events:none;z-index:1}
+.dt-col-config-item.drag-before::before{top:0}
+.dt-col-config-item.drag-after::after{bottom:0}
+.dt-col-config-body.is-reordering{touch-action:none;user-select:none;-webkit-user-select:none}
+.dt-col-config-body.is-reordering .dt-col-config-item{cursor:grabbing}
+.dt-col-config-item label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;line-height:1.2;white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dt-col-config-move{display:flex;gap:0;flex-shrink:0}
+.dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:2px 4px;font-size:10px;color:#888;line-height:1}
 .dt-col-config-move button:hover{color:#333}
+.dt-col-config-grip{display:inline-flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:22px;margin:0;padding:0 4px;border:none;border-radius:3px;background:transparent;cursor:grab;color:#aaa;font-size:14px;line-height:1;letter-spacing:-2px;white-space:nowrap;user-select:none;-webkit-user-select:none;touch-action:none;box-sizing:border-box}
+.dt-col-config-grip:hover{color:#555;background:#f0f0f0}
+.dt-col-config-grip:active{cursor:grabbing}
 .dt-tray .dt-drawer-close{display:inline-flex;align-items:center;gap:6px;margin-left:0;padding:0;border:none;background:transparent;color:#666;font-size:12px;font-weight:600;line-height:1;cursor:pointer}
 .dt-tray .dt-drawer-close-x{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #ccc;border-radius:50%;flex-shrink:0}
 .dt-tray .dt-drawer-close-x svg{display:block}
