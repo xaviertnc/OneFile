@@ -12,18 +12,10 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
-   * Last 3 version commits:
-   * @version 5.3 - FT - 25 Jun 2026 - Column config popup: round close (x) button next to Reset action
-   * @version 5.2 - FIX - 25 Jun 2026 - Grow col fills space only when it is the sole flex column (avoids jumbling)
-   * @version 5.1 - FIX - 25 Jun 2026 - Full-width table; widthFixed + grow column opts (reverts dt-fit shrink)
-   * @version 5.0 - FIX - 25 Jun 2026 - Fit table to column widths when all visible columns are fixed (hidden-column layout)
-   * @version 4.9 - FIX - 24 Jun 2026 - Sort tip on arrows only; column name hint on label; keep sort direction visible on hover
-   * @version 4.8 - FT - 24 Jun 2026 - 3-state sort (asc/desc/none); Shift/Ctrl+click multi-column sort
-   * @version 4.7 - FIX - 23 Jun 2026 - Restore saved pageSize on the visible (bottom) page-size select too
-   * @version 4.5 - FT - 17 Jun 2026 - Export: send visible columns (in display order) as `columns` param
-   * @version 4.3 - FT - 30 Apr 2026 - Column config: red dot indicator when layout/visibility differs from defaults
-   * @version 4.2 - FIX - 31 Mar 2026 - V-align dt-info with page-size; widen dt-bottom-left gap
-   * @version 4.1 - FIX - 31 Mar 2026 - Hide empty dt-left; show on addControlLeft()
+   * Last version commits:
+   * @version 5.22 - REF - 25 Jul 2026 - Public DataTable.resolveFilterOptions (app delegates)
+   * @version 5.21 - FIX - 25 Jul 2026 - AF enum options: read <template>.content
+   * @version 5.20 - FT - 25 Jul 2026 - AF enum options: resolve array|selector|select|{value,label}
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -85,10 +77,19 @@
       this.responsive = opts.responsive || false;
       this.responsiveBreakpoints = opts.responsiveBreakpoints || { 2: 1200, 3: 900, 4: 640 };
       this.exportUrl = opts.exportUrl || null;
+      this.advancedFilters = !!opts.advancedFilters;
+      this._af = {};
+      this._afTimer = null;
       this._colOrder = this.columns.map( ( _, i ) => i );
       this._colVisibility = new Map();
       this._responsiveHidden = new Set();
       this.minFlexWidth = opts.minFlexWidth || 120;
+
+      if ( this.advancedFilters ) {
+        this.filterPanel = true;
+        const userParams = this.ajaxParams;
+        this.ajaxParams = () => Object.assign( {}, userParams(), this._afFlatParams() );
+      }
 
       this._init();
       if ( this.stateKey ) this._initState();
@@ -103,7 +104,18 @@
       // Controls
       c.innerHTML = `<div class="dt-controls">
         <div class="dt-left"><label class="dt-pagesize-top">Show <select class="dt-pagesize"></select> entries</label></div>
-        <div class="dt-right"><label>Search: <input type="search" class="dt-search"></label></div>
+        <div class="dt-right">
+          <div class="dt-search-wrap dt-search-label">
+            <span class="dt-search-icon" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="14" height="14" focusable="false">
+                <circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M10 10l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <input type="search" class="dt-search" placeholder="Search\u2026" aria-label="Search">
+            <button type="button" class="dt-search-clear hidden" aria-label="Clear search" title="Clear search">&times;</button>
+          </div>
+        </div>
       </div>`;
       this.controlsLeft = c.querySelector( '.dt-left' );
       this.controlsRight = c.querySelector( '.dt-right' );
@@ -120,8 +132,15 @@
 
       // Search
       this.searchInput = c.querySelector( '.dt-search' );
-      this.searchInput.placeholder = 'Search\u2026';
-      this.searchInput.oninput = () => this._onSearch();
+      this.searchClearBtn = c.querySelector( '.dt-search-clear' );
+      this.searchInput.oninput = () => { this._onSearch(); this._syncSearchClear(); };
+      this.searchClearBtn.onclick = e => {
+        e.preventDefault();
+        this.searchInput.value = '';
+        this._onSearch();
+        this._syncSearchClear();
+        this.searchInput.focus();
+      };
 
       // Table
       const scroll = document.createElement( 'div' );
@@ -184,6 +203,7 @@
       this._updateMinWidth();
       this.tbody.onclick = e => this._onRowClick( e );
       if ( this.filterPanel ) this._initFilterPanel();
+      if ( this.advancedFilters ) this._initAdvancedFilters();
       if ( this.columnConfig ) this._initColumnConfig();
       if ( this.responsive ) this._initResponsive();
       if ( this.exportUrl ) this._initExport();
@@ -318,21 +338,17 @@
 
     _applyFilter() {
       const term = this.searchTerm.toLowerCase().trim();
-      if ( !term ) {
-        this.filteredData = [ ...this.allData ];
-        this.filteredIndices = this.allData.map( ( _, i ) => i );
-      } else {
-        this.filteredData = [];
-        this.filteredIndices = [];
-        this.allData.forEach( ( row, idx ) => {
-          if ( this.columns.some( c => String( c.field ? row[ c.field ] : '' ).toLowerCase().includes( term ) ) ) {
-            this.filteredData.push( row );
-            this.filteredIndices.push( idx );
-          }
-        } );
-      }
-      this.currentPage = 1;
-      this._updatePagination();
+      this.filteredData = [];
+      this.filteredIndices = [];
+      this.allData.forEach( ( row, i ) => {
+        if ( term ) {
+          const hay = Object.values( row ).join( ' ' ).toLowerCase();
+          if ( !hay.includes( term ) ) return;
+        }
+        if ( this.advancedFilters && !this._rowMatchesAf( row ) ) return;
+        this.filteredData.push( row );
+        this.filteredIndices.push( i );
+      } );
     } // _applyFilter
 
 
@@ -428,6 +444,12 @@
         this._applyFilter(); this._applySort(); this._render();
       }
     } // _onSearch
+
+
+    _syncSearchClear() {
+      if ( !this.searchClearBtn ) return;
+      this.searchClearBtn.classList.toggle( 'hidden', !( this.searchInput?.value ) );
+    } // _syncSearchClear
 
 
     _onPageSizeChange() {
@@ -593,9 +615,14 @@
       const filtered = this.isAjax ? this.recordsFiltered : this.filteredData.length;
       const start = filtered === 0 ? 0 : ( this.currentPage - 1 ) * this.pageSize + 1;
       const end = Math.min( this.currentPage * this.pageSize, filtered );
-      let txt = filtered === 0 ? 'No entries found'
-        : `Showing: <b>${start.toLocaleString()}</b> &ndash; <b>${end.toLocaleString()}</b> &nbsp;of&nbsp; <b>${filtered.toLocaleString()}</b>`;
-      if ( filtered !== total && total > 0 ) txt += ` <span class="dt-info-filtered">(${total.toLocaleString()} total)</span>`;
+      let txt = filtered === 0
+        ? 'No entries found'
+        : '<span class="dt-info-label">Showing:</span><span class="dt-info-vals">'
+          + `<b>${start.toLocaleString()}</b> &ndash; `
+          + `<b>${end.toLocaleString()}</b> of <b>${filtered.toLocaleString()}</b>`
+          + ( filtered !== total && total > 0
+            ? ` <span class="dt-info-filtered">(${total.toLocaleString()} total)</span>` : '' )
+          + '</span>';
       this.infoEl.innerHTML = txt;
       if ( this._exportBtn ) this._exportBtn.title = `Export ${filtered.toLocaleString()} entries to CSV`;
     } // _renderInfo
@@ -639,10 +666,15 @@
       if ( state.currentPage ) this.currentPage = state.currentPage;
       this._applyStateSort( state );
       if ( state.searchTerm ) { this.searchTerm = state.searchTerm; this.searchInput.value = state.searchTerm; }
+      this._syncSearchClear();
       Object.keys( this.customFilters ).forEach( k => {
         const f = this.customFilters[ k ];
         if ( f.element && state[ k ] !== undefined ) f.element.value = state[ k ];
       } );
+      if ( this.advancedFilters && state.af && typeof state.af === 'object' ) {
+        this._af = state.af;
+        this._afFillUi();
+      }
 
       setTimeout( () => this._updateSortIndicators(), 50 );
 
@@ -699,6 +731,7 @@
         Object.keys( this.customFilters ).forEach( k => {
           const f = this.customFilters[ k ]; s[ k ] = f.element ? f.element.value : f.default || '';
         } );
+        if ( this.advancedFilters ) s.af = this._af;
         localStorage.setItem( this.stateKey, JSON.stringify( s ) );
       } catch ( e ) { console.error( 'State save error:', e ); }
     } // _saveState
@@ -712,6 +745,7 @@
       this.pageSizeSelect.value = this.defaultState.pageSize;
       if ( this._pageSizeBottom ) this._pageSizeBottom.value = this.defaultState.pageSize;
       this.searchInput.value = '';
+      this._syncSearchClear();
       const url = new URL( location.href );
       Object.keys( this.customFilters ).forEach( k => {
         const f = this.customFilters[ k ];
@@ -719,6 +753,10 @@
         if ( f.urlParam !== false ) url.searchParams.set( k, f.default || '' );
       } );
       history.replaceState( null, '', url );
+      if ( this.advancedFilters ) {
+        this._af = {};
+        this._afFillUi();
+      }
       this.sortStack = this._defaultSortStack().map( s => ({ ...s }) );
       this._syncLegacySort();
       this._updateSortIndicators();
@@ -738,38 +776,50 @@
     } // _sortStackEq
 
 
-    _updateResetBtn() {
-      if ( !this.resetButton && !this._filterPanelWrap ) return;
-      const d = this.defaultState || {};
-      const filtersNonDefault = Object.keys( this.customFilters ).some( k => {
+    _afActive() {
+      return !!( this.advancedFilters && Object.keys( this._af || {} ).some( k => this._af[ k ]?.op ) );
+    } // _afActive
+
+
+    _quickFiltersActive() {
+      return Object.keys( this.customFilters ).some( k => {
         const f = this.customFilters[ k ];
         return ( f.element ? f.element.value : f.default || '' ) !== ( f.default || '' );
       } );
+    } // _quickFiltersActive
+
+
+    _updateResetBtn() {
+      if ( !this.resetButton && !this._filterPanelWrap ) return;
+      const d = this.defaultState || {};
+      const afActive = this._afActive();
+      const filtersNonDefault = this._quickFiltersActive() || afActive;
       const sortNonDefault = !this._sortStackEq( this.sortStack, this._defaultSortStack() );
       if ( this.resetButton ) {
         const nonDefault = this.pageSize !== d.pageSize || this.currentPage !== d.currentPage ||
           sortNonDefault || this.searchTerm !== d.searchTerm || filtersNonDefault;
         this.resetButton.classList.toggle( 'hidden', !nonDefault );
       }
+      // Filter-btn badge + tray Reset track advanced filters only (quick filters have their own UI).
       if ( this._filterPanelWrap ) {
         const badge = this._filterPanelWrap.querySelector( '.dt-filter-badge' );
-        if ( badge ) badge.classList.toggle( 'active', filtersNonDefault );
+        if ( badge ) badge.classList.toggle( 'active', afActive );
       }
-      if ( this._filterClearBtn ) this._filterClearBtn.classList.toggle( 'hidden', !filtersNonDefault );
+      if ( this._filterClearBtn ) {
+        this._filterClearBtn.classList.toggle( 'hidden', !afActive );
+        this._filterPanel?.querySelector( '.dt-drawer-sep' )?.classList.toggle( 'hidden', !afActive );
+      }
     } // _updateResetBtn
 
 
     _resetFilters() {
-      const url = new URL( location.href );
-      Object.keys( this.customFilters ).forEach( k => {
-        const f = this.customFilters[ k ];
-        if ( f.element ) f.element.value = f.default || '';
-        if ( f.urlParam !== false ) url.searchParams.set( k, f.default || '' );
-      } );
-      history.replaceState( null, '', url );
+      if ( this.advancedFilters ) {
+        this._af = {};
+        this._afFillUi();
+      }
       this.currentPage = 1;
       if ( this.isAjax ) this.load();
-      else this._render();
+      else { this._applyFilter(); this._applySort(); this._render(); }
       this._saveState();
       this._updateResetBtn();
     } // _resetFilters
@@ -832,27 +882,425 @@
     } // _saveColConfig
 
 
+
+    _afOps( type ) {
+      const map = {
+        number: [ 'EQ', 'NE', 'GT', 'GE', 'LT', 'LE', 'BETWEEN', 'IN', 'NOT_IN', 'EMPTY', 'NOT_EMPTY' ],
+        date: [ 'EQ', 'NE', 'GT', 'GE', 'LT', 'LE', 'BETWEEN', 'EMPTY', 'NOT_EMPTY' ],
+        enum: [ 'IN', 'NOT_IN', 'EQ', 'NE', 'EMPTY', 'NOT_EMPTY' ],
+        text: [ 'CONTAINS', 'STARTS', 'EQ', 'NE', 'IN', 'NOT_IN', 'EMPTY', 'NOT_EMPTY' ],
+        boolean: [ 'EQ', 'NE', 'EMPTY', 'NOT_EMPTY' ]
+      };
+      return map[ type ] || map.text;
+    } // _afOps
+
+
+    _afOpLabel( op ) {
+      return ( {
+        EQ: '=', NE: '≠', GT: '>', GE: '≥', LT: '<', LE: '≤',
+        BETWEEN: 'between', IN: 'in', NOT_IN: 'not in',
+        CONTAINS: 'contains', STARTS: 'starts with',
+        EMPTY: 'is empty', NOT_EMPTY: 'not empty'
+      } )[ op ] || op;
+    } // _afOpLabel
+
+
+    /**
+     * Normalize enum/filter options → [{ value, label }].
+     * Accepts: array | CSS selector | HTMLSelectElement | Element | strings | {value,label}.
+     * Public so app chrome can reuse without duplicating (do not fork in app helpers).
+     */
+    static resolveFilterOptions( raw ) {
+      if ( raw == null || raw === '' ) return [];
+      const skip = v => v === '' || v === 'All';
+      const fromNodes = nodes => {
+        const out = [];
+        Array.from( nodes || [] ).forEach( o => {
+          const value = o.hasAttribute( 'value' ) ? o.value : ( o.textContent || '' ).trim();
+          const label = ( o.dataset?.label || o.textContent || '' ).trim() || value;
+          if ( skip( value ) || skip( label ) ) return;
+          out.push( { value: String( value ), label } );
+        } );
+        return out;
+      };
+      const optionNodes = el => {
+        if ( !el ) return [];
+        // <template> children live in .content, not the light DOM
+        const root = el.content || el;
+        return root.querySelectorAll ? root.querySelectorAll( 'option' ) : [];
+      };
+      if ( typeof raw === 'string' ) {
+        return fromNodes( optionNodes( document.querySelector( raw ) ) );
+      }
+      if ( typeof HTMLSelectElement !== 'undefined' && raw instanceof HTMLSelectElement ) {
+        return fromNodes( raw.options );
+      }
+      if ( raw && typeof raw === 'object' && raw.nodeType === 1 ) {
+        return fromNodes( optionNodes( raw ) );
+      }
+      if ( !Array.isArray( raw ) ) return [];
+      return raw.map( o => {
+        if ( o && typeof o === 'object' ) {
+          const value = o.value != null ? String( o.value ) : '';
+          const label = o.label != null ? String( o.label ) : value;
+          return { value, label };
+        }
+        const s = String( o ?? '' );
+        return { value: s, label: s };
+      } ).filter( o => !skip( o.value ) && !skip( o.label ) );
+    } // resolveFilterOptions
+
+
+    _resolveFilterOptions( col ) {
+      return DataTable.resolveFilterOptions( col?.filter?.options );
+    } // _resolveFilterOptions
+
+
+    _afFlatParams() {
+      const out = {};
+      Object.entries( this._af || {} ).forEach( ( [ field, spec ] ) => {
+        if ( !spec || !spec.op ) return;
+        out[ 'af[' + field + '][op]' ] = spec.op;
+        if ( spec.v !== undefined && spec.v !== '' ) out[ 'af[' + field + '][v]' ] = spec.v;
+        if ( spec.v2 !== undefined && spec.v2 !== '' ) out[ 'af[' + field + '][v2]' ] = spec.v2;
+        if ( spec.set !== undefined && spec.set !== '' ) {
+          out[ 'af[' + field + '][set]' ] = Array.isArray( spec.set ) ? spec.set.join( ',' ) : spec.set;
+        }
+      } );
+      return out;
+    } // _afFlatParams
+
+
+    _initAdvancedFilters() {
+      const Utils = F1.lib?.Utils;
+      if ( !Utils || !this._filterPanelWrap ) return;
+      this._filterPanelWrap.classList.add( 'dt-af' );
+      this.addControlRight( this._filterPanelWrap );
+      const body = Utils.newEl( 'div', 'dt-af-body' );
+      this.columns.forEach( col => {
+        if ( !col.filter || !col.field ) return;
+        body.appendChild( this._afBuildRow( col ) );
+      } );
+      this._filterPanel.appendChild( body );
+      this._afBody = body;
+    } // _initAdvancedFilters
+
+
+    _afBuildRow( col ) {
+      const Utils = F1.lib.Utils;
+      const type = col.filter.type || 'text';
+      const ops = col.filter.ops || this._afOps( type );
+      const enumOpts = type === 'enum' ? this._resolveFilterOptions( col ) : [];
+      const row = Utils.newEl( 'div', 'dt-af-row' );
+      row.dataset.field = col.field;
+      row.dataset.type = type;
+
+      const title = col.title || col.field;
+      const meta = Utils.newEl( 'div', 'dt-af-meta' );
+      const label = Utils.newEl( 'div', 'dt-af-label' );
+      label.textContent = title;
+      label.title = title;
+      const typeEl = Utils.newEl( 'span', 'dt-af-type' );
+      typeEl.textContent = type;
+      typeEl.title = 'Filter type: ' + type;
+      meta.append( label, typeEl );
+
+      const opSel = Utils.newEl( 'select', 'form-control dt-filter-sm dt-af-op' );
+      opSel.innerHTML = '<option value="">—</option>' + ops.map( o =>
+        '<option value="' + o + '">' + this._afOpLabel( o ) + '</option>' ).join( '' );
+
+      const vals = Utils.newEl( 'div', 'dt-af-vals' );
+      const clearBtn = Utils.newEl( 'button', 'dt-af-clear hidden', {
+        type: 'button', title: 'Clear this filter'
+      } );
+      clearBtn.innerHTML = '<svg viewBox="0 0 12 12" width="10" height="10" focusable="false">'
+        + '<path d="M1.5 1.5l9 9M10.5 1.5l-9 9" fill="none" stroke="currentColor" '
+        + 'stroke-width="1.6" stroke-linecap="round"/></svg>';
+      row.append( meta, opSel, vals, clearBtn );
+
+      const fillEnumSelect = ( sel, multi ) => {
+        sel.multiple = !!multi;
+        if ( multi ) sel.size = Math.min( 6, Math.max( 3, enumOpts.length || 3 ) );
+        enumOpts.forEach( o => {
+          const opt = document.createElement( 'option' );
+          opt.value = o.value;
+          opt.textContent = o.label;
+          sel.appendChild( opt );
+        } );
+      };
+
+      const syncClear = () => clearBtn.classList.toggle( 'hidden', !opSel.value );
+
+      const syncVals = () => {
+        const op = opSel.value;
+        vals.innerHTML = '';
+        if ( !op || op === 'EMPTY' || op === 'NOT_EMPTY' ) return;
+        if ( op === 'BETWEEN' ) {
+          const a = Utils.newEl( 'input', 'form-control dt-filter-sm dt-af-v' );
+          const b = Utils.newEl( 'input', 'form-control dt-filter-sm dt-af-v2' );
+          a.type = b.type = type === 'date' ? 'date' : ( type === 'number' ? 'number' : 'text' );
+          a.placeholder = 'From'; b.placeholder = 'To';
+          a.oninput = b.oninput = () => this._afSchedule();
+          vals.append( a, b );
+          return;
+        }
+        if ( op === 'IN' || op === 'NOT_IN' ) {
+          if ( type === 'enum' && enumOpts.length ) {
+            const sel = Utils.newEl( 'select', 'form-control dt-filter-sm dt-af-set' );
+            fillEnumSelect( sel, true );
+            sel.onchange = () => this._afSchedule();
+            vals.appendChild( sel );
+          } else {
+            const ta = Utils.newEl( 'textarea', 'form-control dt-af-set' );
+            ta.rows = 2; ta.placeholder = 'Values (comma / newline)';
+            ta.oninput = () => this._afSchedule();
+            vals.appendChild( ta );
+          }
+          return;
+        }
+        if ( type === 'boolean' ) {
+          const sel = Utils.newEl( 'select', 'form-control dt-filter-sm dt-af-v' );
+          sel.innerHTML = '<option value="1">Yes</option><option value="0">No</option>';
+          sel.onchange = () => this._afSchedule();
+          vals.appendChild( sel );
+          return;
+        }
+        if ( type === 'enum' && enumOpts.length && ( op === 'EQ' || op === 'NE' ) ) {
+          const sel = Utils.newEl( 'select', 'form-control dt-filter-sm dt-af-v' );
+          fillEnumSelect( sel, false );
+          sel.onchange = () => this._afSchedule();
+          vals.appendChild( sel );
+          return;
+        }
+        const inp = Utils.newEl( 'input', 'form-control dt-filter-sm dt-af-v' );
+        inp.type = type === 'date' ? 'date' : ( type === 'number' ? 'number' : 'text' );
+        if ( col.filter.unit ) inp.placeholder = col.filter.unit;
+        inp.oninput = () => this._afSchedule();
+        vals.appendChild( inp );
+      };
+
+      clearBtn.onclick = e => {
+        e.stopPropagation();
+        opSel.value = '';
+        syncVals();
+        syncClear();
+        this._afSchedule();
+      };
+      opSel.onchange = () => { syncVals(); syncClear(); this._afSchedule(); };
+      row._afSyncVals = () => { syncVals(); syncClear(); };
+      return row;
+    } // _afBuildRow
+
+
+    _afSchedule() {
+      clearTimeout( this._afTimer );
+      this._afTimer = setTimeout( () => this._afApply(), 300 );
+    } // _afSchedule
+
+
+    _afCollect() {
+      const next = {};
+      if ( !this._afBody ) { this._af = next; return; }
+      this._afBody.querySelectorAll( '.dt-af-row' ).forEach( row => {
+        const field = row.dataset.field;
+        const op = row.querySelector( '.dt-af-op' )?.value || '';
+        if ( !op ) return;
+        const spec = { op };
+        if ( op === 'EMPTY' || op === 'NOT_EMPTY' ) { next[ field ] = spec; return; }
+        if ( op === 'BETWEEN' ) {
+          const v = row.querySelector( '.dt-af-v' )?.value ?? '';
+          const v2 = row.querySelector( '.dt-af-v2' )?.value ?? '';
+          if ( v === '' || v2 === '' ) return;
+          spec.v = v; spec.v2 = v2; next[ field ] = spec; return;
+        }
+        if ( op === 'IN' || op === 'NOT_IN' ) {
+          const sel = row.querySelector( 'select.dt-af-set' );
+          const ta = row.querySelector( 'textarea.dt-af-set' );
+          let set = '';
+          if ( sel ) set = Array.from( sel.selectedOptions ).map( o => o.value ).join( ',' );
+          else if ( ta ) set = ta.value;
+          if ( !set || !String( set ).trim() ) return;
+          spec.set = set; next[ field ] = spec; return;
+        }
+        const v = row.querySelector( '.dt-af-v' )?.value ?? '';
+        if ( v === '' ) return;
+        spec.v = v; next[ field ] = spec;
+      } );
+      this._af = next;
+    } // _afCollect
+
+
+    _afFillUi() {
+      if ( !this._afBody ) return;
+      this._afBody.querySelectorAll( '.dt-af-row' ).forEach( row => {
+        const field = row.dataset.field;
+        const spec = this._af[ field ] || {};
+        const opSel = row.querySelector( '.dt-af-op' );
+        if ( !opSel ) return;
+        opSel.value = spec.op || '';
+        if ( row._afSyncVals ) row._afSyncVals();
+        if ( !spec.op ) return;
+        if ( spec.op === 'BETWEEN' ) {
+          const a = row.querySelector( '.dt-af-v' ), b = row.querySelector( '.dt-af-v2' );
+          if ( a ) a.value = spec.v || '';
+          if ( b ) b.value = spec.v2 || '';
+          return;
+        }
+        if ( spec.op === 'IN' || spec.op === 'NOT_IN' ) {
+          const sel = row.querySelector( 'select.dt-af-set' );
+          const ta = row.querySelector( 'textarea.dt-af-set' );
+          const parts = String( spec.set || '' ).split( /[\n,]+/ ).map( s => s.trim() ).filter( Boolean );
+          if ( sel ) Array.from( sel.options ).forEach( o => { o.selected = parts.includes( o.value ); } );
+          if ( ta ) ta.value = parts.join( ', ' );
+          return;
+        }
+        const inp = row.querySelector( '.dt-af-v' );
+        if ( inp ) inp.value = spec.v || '';
+      } );
+    } // _afFillUi
+
+
+    _afApply() {
+      this._afCollect();
+      this.currentPage = 1;
+      if ( this.isAjax ) this.load();
+      else { this._applyFilter(); this._applySort(); this._render(); }
+      if ( this.stateKey ) this._saveState();
+      this._updateResetBtn();
+    } // _afApply
+
+
+    _rowMatchesAf( row ) {
+      for ( const col of this.columns ) {
+        if ( !col.filter || !col.field ) continue;
+        const spec = this._af[ col.field ];
+        if ( !spec || !spec.op ) continue;
+        if ( !this._matchAf( row[ col.field ], col.filter.type || 'text', spec ) ) return false;
+      }
+      return true;
+    } // _rowMatchesAf
+
+
+    _matchAf( raw, type, spec ) {
+      const op = spec.op;
+      const empty = raw == null || raw === '';
+      if ( op === 'EMPTY' ) return empty;
+      if ( op === 'NOT_EMPTY' ) return !empty;
+
+      if ( type === 'boolean' ) {
+        const truthy = !( raw == null || raw === '' || raw === 0 || raw === '0' || raw === false );
+        const want = spec.v === '1' || spec.v === 1 || spec.v === true || spec.v === 'true'
+          || String( spec.v ).toLowerCase() === 'yes';
+        if ( op === 'EQ' ) return truthy === want;
+        if ( op === 'NE' ) return truthy !== want;
+        return true;
+      }
+
+      const parseSet = s => String( s || '' ).split( /[\n,]+/ ).map( x => x.trim() ).filter( Boolean );
+
+      if ( op === 'IN' || op === 'NOT_IN' ) {
+        const set = parseSet( spec.set );
+        if ( !set.length ) return true;
+        const hit = set.some( v => String( raw ) === v || ( type === 'number' && Number( raw ) === Number( v ) ) );
+        return op === 'IN' ? hit : !hit;
+      }
+
+      if ( type === 'number' ) {
+        const n = Number( raw ), a = Number( spec.v ), b = Number( spec.v2 );
+        if ( op === 'BETWEEN' ) return !isNaN( n ) && n >= a && n <= b;
+        if ( isNaN( n ) || isNaN( a ) ) return false;
+        if ( op === 'EQ' ) return n === a;
+        if ( op === 'NE' ) return n !== a;
+        if ( op === 'GT' ) return n > a;
+        if ( op === 'GE' ) return n >= a;
+        if ( op === 'LT' ) return n < a;
+        if ( op === 'LE' ) return n <= a;
+        return true;
+      }
+
+      if ( type === 'date' ) {
+        const t = Date.parse( raw ), a = Date.parse( spec.v ), b = Date.parse( spec.v2 );
+        if ( op === 'BETWEEN' ) return !isNaN( t ) && t >= a && t <= b;
+        if ( isNaN( t ) || isNaN( a ) ) return false;
+        if ( op === 'EQ' ) return String( raw ).slice( 0, 10 ) === String( spec.v ).slice( 0, 10 );
+        if ( op === 'NE' ) return String( raw ).slice( 0, 10 ) !== String( spec.v ).slice( 0, 10 );
+        if ( op === 'GT' ) return t > a;
+        if ( op === 'GE' ) return t >= a;
+        if ( op === 'LT' ) return t < a;
+        if ( op === 'LE' ) return t <= a;
+        return true;
+      }
+
+      const s = String( raw ?? '' ), v = String( spec.v ?? '' );
+      if ( op === 'CONTAINS' ) return s.toLowerCase().includes( v.toLowerCase() );
+      if ( op === 'STARTS' ) return s.toLowerCase().startsWith( v.toLowerCase() );
+      if ( op === 'EQ' ) return s === v;
+      if ( op === 'NE' ) return s !== v;
+      return true;
+    } // _matchAf
+
+
+    _closeDtTrays( except ) {
+      if ( except !== 'filter' && this._filterPanel ) {
+        this._filterPanel.classList.remove( 'open' );
+        this._filterBackdrop?.classList.remove( 'open' );
+      }
+      if ( except !== 'cols' && this._colConfigPanel ) {
+        this._colConfigPanel.classList.remove( 'open' );
+        this._colConfigBackdrop?.classList.remove( 'open' );
+      }
+    } // _closeDtTrays
+
+
+    _trayCloseBtn() {
+      const btn = F1.lib.Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
+      btn.innerHTML = '<span class="dt-drawer-close-lbl">Close</span>'
+        + '<span class="dt-drawer-close-x" aria-hidden="true">'
+        + '<svg viewBox="0 0 12 12" width="12" height="12" focusable="false">'
+        + '<path d="M1.5 1.5l9 9M10.5 1.5l-9 9" fill="none" stroke="currentColor" '
+        + 'stroke-width="1.6" stroke-linecap="round"/></svg></span>';
+      return btn;
+    } // _trayCloseBtn
+
+
     _initFilterPanel() {
       const Utils = F1.lib?.Utils;
       if ( !Utils ) return;
       const wrap = Utils.newEl( 'div', 'dt-filter-wrap' );
       const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline dt-filter-btn', { type: 'button', title: 'Filters' } );
       btn.innerHTML = '<i class="fa fa-filter"></i><span class="dt-filter-badge"></span>';
-      const panel = Utils.newEl( 'div', 'dt-filter-panel' );
+      const tray = !!this.advancedFilters;
+      const panel = Utils.newEl( 'div', tray ? 'dt-filter-panel dt-tray' : 'dt-filter-panel' );
       const header = Utils.newEl( 'div', 'dt-drawer-header' );
       header.innerHTML = '<span class="dt-drawer-title">Filters</span>';
+      const sep = Utils.newEl( 'span', 'dt-drawer-sep hidden' );
+      sep.setAttribute( 'aria-hidden', 'true' );
       const clearBtn = Utils.newEl( 'button', 'dt-filter-clear hidden', { type: 'button' } );
-      clearBtn.textContent = 'Reset All';
+      clearBtn.textContent = 'Reset';
       clearBtn.onclick = () => this._resetFilters();
       this._filterClearBtn = clearBtn;
-      const closeBtn = Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
-      closeBtn.innerHTML = '&times;';
-      header.append( clearBtn, closeBtn );
+      const closeBtn = this._trayCloseBtn();
+      header.append( sep, clearBtn, closeBtn );
       panel.appendChild( header );
-      const backdrop = Utils.newEl( 'div', 'dt-filter-backdrop' );
-      wrap.append( btn, panel );
+      const backdrop = Utils.newEl( 'div', tray ? 'dt-tray-backdrop dt-filter-backdrop' : 'dt-filter-backdrop' );
       this._filterPanelWrap = wrap;
       this._filterPanel = panel;
+      this._filterBackdrop = backdrop;
+      if ( tray ) {
+        wrap.appendChild( btn );
+        document.body.append( panel, backdrop );
+        const close = () => { panel.classList.remove( 'open' ); backdrop.classList.remove( 'open' ); };
+        const open = () => {
+          this._closeDtTrays( 'filter' );
+          panel.classList.add( 'open' ); backdrop.classList.add( 'open' );
+        };
+        btn.onclick = e => { e.stopPropagation(); panel.classList.contains( 'open' ) ? close() : open(); };
+        closeBtn.onclick = close;
+        backdrop.onclick = close;
+        return;
+      }
+      wrap.append( btn, panel );
+      document.body.appendChild( backdrop );
       const mobile = () => window.matchMedia( '(max-width:640px)' ).matches;
       const close = () => {
         panel.classList.remove( 'open' ); backdrop.classList.remove( 'open' );
@@ -865,7 +1313,6 @@
       btn.onclick = e => { e.stopPropagation(); panel.classList.contains( 'open' ) ? close() : open(); };
       closeBtn.onclick = close;
       backdrop.onclick = close;
-      document.body.appendChild( backdrop );
     } // _initFilterPanel
 
 
@@ -930,11 +1377,11 @@
       const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline', { type: 'button', title: 'Configure columns' } );
       btn.innerHTML = '<i class="fa fa-columns"></i><span class="dt-col-config-badge"></span>';
       this._colConfigBtn = btn;
-      const panel = Utils.newEl( 'div', 'dt-col-config' );
+      const panel = Utils.newEl( 'div', 'dt-col-config dt-tray' );
       const cfgHeader = Utils.newEl( 'div', 'dt-drawer-header' );
       cfgHeader.innerHTML = '<span class="dt-drawer-title">Columns</span>';
-      const cfgClose = Utils.newEl( 'button', 'dt-drawer-close', { type: 'button', title: 'Close' } );
-      cfgClose.innerHTML = '&times;';
+      const cfgClose = this._trayCloseBtn();
+      cfgHeader.appendChild( cfgClose );
       const cfgActions = Utils.newEl( 'div', 'dt-col-config-actions' );
       const allLbl = document.createElement( 'label' );
       allLbl.className = 'dt-col-config-all';
@@ -952,25 +1399,23 @@
       resetBtn.textContent = 'Reset';
       resetBtn.onclick = () => this._resetColConfig();
       this._colConfigResetBtn = resetBtn;
-      cfgActions.append( allLbl, resetBtn, cfgClose );
+      cfgActions.append( allLbl, resetBtn );
       panel.append( cfgHeader, cfgActions );
-      const backdrop = Utils.newEl( 'div', 'dt-col-config-backdrop' );
-      wrap.append( btn, panel );
+      const backdrop = Utils.newEl( 'div', 'dt-tray-backdrop dt-col-config-backdrop' );
+      wrap.appendChild( btn );
+      document.body.append( panel, backdrop );
       this._colConfigWrap = wrap;
-      const mobile = () => window.matchMedia( '(max-width:640px)' ).matches;
+      this._colConfigBackdrop = backdrop;
       const close = () => {
         panel.classList.remove( 'open' ); backdrop.classList.remove( 'open' );
-        if ( panel.parentElement === document.body ) wrap.appendChild( panel );
       };
       const openCfg = () => {
-        if ( mobile() ) document.body.appendChild( panel );
+        this._closeDtTrays( 'cols' );
         panel.classList.add( 'open' ); backdrop.classList.add( 'open' );
       };
       btn.onclick = e => { e.stopPropagation(); panel.classList.contains( 'open' ) ? close() : openCfg(); };
       cfgClose.onclick = close;
-      document.addEventListener( 'click', e => { if ( !wrap.contains( e.target ) && !panel.contains( e.target ) ) close(); } );
       backdrop.onclick = close;
-      document.body.appendChild( backdrop );
       this._colConfigPanel = panel;
       this._renderColConfig();
       this._updateColConfigBtn();
@@ -982,9 +1427,14 @@
       if ( !panel ) return;
       const hdr = panel.querySelector( '.dt-drawer-header' );
       const actions = panel.querySelector( '.dt-col-config-actions' );
+      let body = panel.querySelector( '.dt-col-config-body' );
       panel.innerHTML = '';
       if ( hdr ) panel.appendChild( hdr );
       if ( actions ) panel.appendChild( actions );
+      if ( !body ) body = document.createElement( 'div' );
+      body.className = 'dt-col-config-body';
+      body.innerHTML = '';
+      panel.appendChild( body );
       this._colOrder.forEach( ( ci, pos ) => {
         const col = this.columns[ ci ];
         if ( !col || col.configurable === false || !col.title ) return;
@@ -1011,7 +1461,7 @@
           this._reRenderTable();
           this._updateColConfigActions();
         };
-        panel.appendChild( item );
+        body.appendChild( item );
       } );
       this._updateColConfigActions();
     } // _renderColConfig
@@ -1106,8 +1556,17 @@
 .dt-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;padding:5px}
 .dt-left,.dt-right{display:flex;gap:8px;align-items:center;margin:0;white-space:nowrap}
 .dt-left{display:none;gap:16px}
-.dt-search,.dt-pagesize{padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent}
-.dt-search{width:100px}
+.dt-pagesize{padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent}
+.dt-search-wrap{position:relative;display:inline-flex;align-items:center;margin:0;flex-shrink:0}
+.dt-search-icon{position:absolute;left:9px;display:inline-flex;align-items:center;justify-content:center;color:#888;pointer-events:none}
+.dt-search-icon svg{display:block}
+.dt-search{width:148px;height:30px;padding:5px 28px 5px 30px;border:1px solid #ccc;border-radius:6px;background:#fff;font-size:13px;line-height:1.2;color:#333}
+.dt-search::placeholder{color:#999}
+.dt-search:focus{outline:none;border-color:var(--primary-color,#337ab7);box-shadow:0 0 0 2px rgba(51,122,183,.15)}
+.dt-search::-webkit-search-decoration,.dt-search::-webkit-search-cancel-button{appearance:none}
+.dt-search-clear{position:absolute;right:3px;display:none;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:50%;background:transparent;color:#888;font-size:16px;line-height:1;cursor:pointer}
+.dt-search-clear:not(.hidden){display:inline-flex}
+.dt-search-clear:hover{color:#333;background:#eee}
 .dt-filter-sm{max-width:120px;padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .clients-filter-group{display:flex;align-items:center;gap:3px;flex-wrap:nowrap}
 .dt-scroll{overflow:auto;position:relative}
@@ -1123,7 +1582,8 @@
 .dt-table .fa{width:1em;color:var(--primary-color);opacity:.67;vertical-align:middle;line-height:1}
 .dt-bottom{display:flex;justify-content:space-between;align-items:center;}
 .dt-bottom-left{display:flex;align-items:center;gap:28px;margin:5.5px}
-.dt-info{font-size:13px;color:#444;padding:0}
+.dt-info{display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:.35em;row-gap:0;font-size:13px;color:#444;padding:0;max-width:100%}
+.dt-info-label,.dt-info-vals{white-space:nowrap}
 .dt-pagesize-top{display:none}
 .dt-pagesize-bottom{display:flex;align-items:center;gap:4px;font-size:13px;color:#444;white-space:nowrap}
 .dt-pagination{display:flex;align-items:center;padding:0;margin:5.5px}
@@ -1156,53 +1616,77 @@
 .dt-col-config-wrap>button{position:relative}
 .dt-col-config-badge{display:none}
 .dt-col-config-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
-.dt-col-config{position:absolute;right:0;top:100%;background:#fff;border:1px solid #ccc;border-radius:4px;box-shadow:0 4px 12px rgba(0,0,0,.15);z-index:100;min-width:220px;max-height:400px;overflow-y:auto;padding:4px 0;display:none}
-.dt-col-config.open{display:block}
-.dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 6px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:1}
+.dt-tray{position:fixed;top:0;right:0;bottom:0;z-index:1001;width:min(420px,100vw);max-width:100vw;background:#fff;box-shadow:-8px 0 28px rgba(0,0,0,.16);display:flex;flex-direction:column;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform .22s ease,visibility 0s linear .22s}
+.dt-tray.open{transform:translateX(0);visibility:visible;pointer-events:auto;transition:transform .22s ease,visibility 0s}
+.dt-tray-backdrop{display:block;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.28);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility 0s linear .22s}
+.dt-tray-backdrop.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s ease,visibility 0s}
+.dt-col-config.dt-tray{padding:0;border:none;border-radius:0;min-width:0;max-height:none;overflow:hidden}
+.dt-col-config .dt-drawer-header{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0}
+.dt-col-config .dt-drawer-title{font-size:15px;font-weight:600;color:#222;margin-right:auto}
+.dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
+.dt-col-config-body{flex:1;overflow:auto;padding:6px 0 12px;-webkit-overflow-scrolling:touch}
 .dt-col-config-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#555;margin:0 auto 0 0}
 .dt-col-config-reset{border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
 .dt-col-config-reset.hidden{display:none}
-.dt-col-config-item{display:flex;align-items:center;padding:2px 8px}
-.dt-col-config-item label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;white-space:nowrap;flex:1}
-.dt-col-config-move{display:flex;gap:1px}
-.dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:1px 4px;font-size:9px;color:#888;line-height:1}
+.dt-col-config-item{display:flex;align-items:center;padding:8px 16px}
+.dt-col-config-item label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dt-col-config-move{display:flex;gap:1px;flex-shrink:0}
+.dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:4px 8px;font-size:11px;color:#888;line-height:1}
 .dt-col-config-move button:hover{color:#333}
-.dt-col-config-backdrop{display:none}
-.dt-col-config-actions .dt-drawer-close{display:flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:10px;padding:0;border:1px solid #ccc;border-radius:50%;background:transparent;color:#888;font-size:15px;line-height:1;cursor:pointer}
-.dt-col-config-actions .dt-drawer-close:hover{color:#333;border-color:#999}
-@media(max-width:640px){
-.dt-col-config{position:fixed;bottom:0;left:0;right:0;top:auto;min-width:0;max-height:60vh;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:12px 16px;z-index:1001}
-.dt-col-config.open{display:block}
-.dt-col-config-item{padding:6px 16px}
-.dt-col-config-item label{font-size:14px;gap:10px}
-.dt-col-config-move button{padding:4px 8px;font-size:12px}
-.dt-col-config-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1000}
-}
+.dt-tray .dt-drawer-close{display:inline-flex;align-items:center;gap:6px;margin-left:0;padding:0;border:none;background:transparent;color:#666;font-size:12px;font-weight:600;line-height:1;cursor:pointer}
+.dt-tray .dt-drawer-close-x{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:1px solid #ccc;border-radius:50%;flex-shrink:0}
+.dt-tray .dt-drawer-close-x svg{display:block}
+.dt-tray .dt-drawer-close-lbl{line-height:1}
+.dt-tray .dt-drawer-close:hover{color:#333}
+.dt-tray .dt-drawer-close:hover .dt-drawer-close-x{border-color:#999}
 .dt-export-btn{order:99;margin-left:12px}
 .dt-drawer-header{display:none}
 .dt-filter-clear{display:none}
 .dt-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:4px}
 .dt-filter-btn{display:none;position:relative}
-.dt-filter-panel{display:contents}
+.dt-filter-panel:not(.dt-tray){display:contents}
 .dt-filter-badge{display:none}
-.dt-filter-backdrop{display:none}
+.dt-filter-backdrop:not(.dt-tray-backdrop){display:none}
 .dt-filter-panel label[data-label]::before{display:none}
+.dt-filter-wrap.dt-af .dt-filter-btn{display:inline-flex}
+.dt-filter-wrap.dt-af .dt-filter-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
+.dt-filter-panel.dt-tray{width:min(480px,100vw);padding:0;overflow:hidden}
+.dt-filter-panel.dt-tray .dt-drawer-header{display:flex;align-items:center;gap:12px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0;margin:0}
+.dt-filter-panel.dt-tray .dt-drawer-title{display:inline-flex;align-items:center;height:28px;font-size:15px;font-weight:600;line-height:1;color:#222}
+.dt-filter-panel.dt-tray .dt-drawer-sep{display:block;width:1px;height:14px;background:#ccc;border-radius:0;flex-shrink:0}
+.dt-filter-panel.dt-tray .dt-drawer-sep.hidden{display:none}
+.dt-filter-panel.dt-tray .dt-filter-clear{display:inline-flex;align-items:center;height:28px;padding:0;border:none;background:transparent;font-size:12px;font-weight:600;line-height:1;color:var(--primary-color,#337ab7);cursor:pointer}
+.dt-filter-panel.dt-tray .dt-filter-clear.hidden{display:none}
+.dt-filter-panel.dt-tray .dt-drawer-close{margin-left:auto}
+.dt-af-body{flex:1;overflow:auto;padding:2px 12px 12px;-webkit-overflow-scrolling:touch}
+.dt-af-row{display:grid;grid-template-columns:minmax(108px,1.05fr) 88px minmax(110px,1.6fr) 24px;column-gap:12px;row-gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid #f2f2f2}
+.dt-af-row:last-child{border-bottom:none}
+.dt-af-meta{min-width:0;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.dt-af-label{font-size:12px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default;max-width:100%}
+.dt-af-type{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:#777;background:#f0f2f5;border-radius:3px;padding:0 4px;line-height:1.5;flex-shrink:0}
+.dt-af-op,.dt-af-vals .form-control{font-size:12px;height:28px;padding:1px 5px}
+.dt-af-vals{display:flex;gap:6px;align-items:center;min-width:0}
+.dt-af-vals .form-control,.dt-af-vals textarea{width:100%;min-width:0}
+.dt-af-vals textarea,.dt-af-vals select[multiple]{font-size:12px;padding:4px 6px;min-height:72px;height:auto}
+.dt-af-vals select[multiple]{padding:2px}
+.dt-af-clear{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid #ccc;border-radius:50%;background:transparent;color:#888;cursor:pointer;flex-shrink:0}
+.dt-af-clear:hover{color:#333;border-color:#999}
+.dt-af-clear.hidden{display:none}
+.dt-af-clear svg{display:block}
 @media(max-width:640px){
-.dt-drawer-header{display:flex;justify-content:space-between;align-items:center;grid-column:1/-1;padding:0 0 4px}
-.dt-drawer-title{font-size:15px;font-weight:600;color:#333}
-.dt-drawer-close{margin-left:auto;border:none;background:transparent;font-size:22px;line-height:1;color:#888;cursor:pointer;padding:0 4px}
-.dt-filter-clear{display:inline-block;margin-left:12px;border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
-.dt-filter-clear.hidden{display:none}
 .dt-col-config-wrap{order:-1}
 .dt-filter-btn{display:inline-flex}
-.dt-filter-panel{display:none;position:fixed;bottom:0;left:0;right:0;z-index:1001;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:16px;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center}
-.dt-filter-panel.open{display:grid}
-.dt-filter-panel .clients-filter-group{display:contents}
-.dt-filter-panel label{display:contents}
-.dt-filter-panel label[data-label]::before{display:block;content:attr(data-label);font-size:13px;font-weight:600;color:#555;white-space:nowrap}
-.dt-filter-panel select{width:100%;padding:8px;font-size:14px;border:1px solid #ccc;border-radius:4px;background:#fff}
-.dt-filter-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--primary-color,#337ab7)}
-.dt-filter-backdrop.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:1000}
+.dt-tray{width:min(100vw,480px)}
+.dt-filter-panel:not(.dt-tray){display:none;position:fixed;bottom:0;left:0;right:0;z-index:1001;background:#fff;border-radius:12px 12px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.15);padding:16px;grid-template-columns:auto 1fr;gap:10px 12px;align-items:center}
+.dt-filter-panel:not(.dt-tray).open{display:grid}
+.dt-filter-panel:not(.dt-tray) .dt-drawer-header{display:flex;justify-content:space-between;align-items:center;grid-column:1/-1;padding:0 0 4px}
+.dt-filter-panel:not(.dt-tray) .clients-filter-group{display:contents}
+.dt-filter-panel:not(.dt-tray) label{display:contents}
+.dt-filter-panel:not(.dt-tray) label[data-label]::before{display:block;content:attr(data-label);font-size:13px;font-weight:600;color:#555;white-space:nowrap}
+.dt-filter-panel:not(.dt-tray) select{width:100%;padding:8px;font-size:14px;border:1px solid #ccc;border-radius:4px;background:#fff}
+.dt-filter-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
+.dt-af-row{grid-template-columns:1fr;gap:6px}
+.dt-af-op{max-width:100%}
 }
 `;
     document.head.appendChild( s );
