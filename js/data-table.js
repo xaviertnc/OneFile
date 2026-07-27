@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last version commits:
+   * @version 5.39 - FIX - 27 Jul 2026 - AF clear-one: update UI/state before reload
+   * @version 5.38 - FIX - 27 Jul 2026 - AF summary chip bar even padding (no extra bottom)
    * @version 5.37 - FT - 27 Jul 2026 - AF active summary chips + count badge (S5.2)
-   * @version 5.36 - FIX - 25 Jul 2026 - Header tip uses titleTip || title (not abbreviated label)
-   * @version 5.35 - UPD - 25 Jul 2026 - Columns tray: Density under Rows section (after list)
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -877,10 +877,11 @@
       delete this._af[ field ];
       this._afFillUi();
       this.currentPage = 1;
+      // Sync quick-filter overrides (Days↔Custom) before ajaxParams are read.
+      this._updateResetBtn();
       if ( this.isAjax ) this.load();
       else { this._applyFilter(); this._applySort(); this._render(); }
       if ( this.stateKey ) this._saveState();
-      this._updateResetBtn();
     } // _afClearField
 
 
@@ -926,10 +927,10 @@
         this._afFillUi();
       }
       this.currentPage = 1;
+      this._updateResetBtn();
       if ( this.isAjax ) this.load();
       else { this._applyFilter(); this._applySort(); this._render(); }
       this._saveState();
-      this._updateResetBtn();
     } // _resetFilters
 
     // --- Column Config, Responsive & Export ---
@@ -1302,10 +1303,10 @@
     _afApply() {
       this._afCollect();
       this.currentPage = 1;
+      this._updateResetBtn();
       if ( this.isAjax ) this.load();
       else { this._applyFilter(); this._applySort(); this._render(); }
       if ( this.stateKey ) this._saveState();
-      this._updateResetBtn();
     } // _afApply
 
 
@@ -1910,7 +1911,7 @@
 .dt-filter-panel label[data-label]::before{display:none}
 .dt-filter-wrap.dt-af .dt-filter-btn{display:inline-flex}
 .dt-filter-wrap.dt-af .dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
-.dt-af-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;padding:0 6px 6px;box-sizing:border-box}
+.dt-af-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;padding:0;box-sizing:border-box}
 .dt-af-summary.hidden{display:none}
 .dt-af-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:2px 4px 2px 8px;border:1px solid #c5d4e0;border-radius:12px;background:#eef5fa;color:#234;font-size:12px;line-height:1.3}
 .dt-af-chip-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
