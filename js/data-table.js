@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
    * Last version commits:
+   * @version 5.37 - FT - 27 Jul 2026 - AF active summary chips + count badge (S5.2)
    * @version 5.36 - FIX - 25 Jul 2026 - Header tip uses titleTip || title (not abbreviated label)
    * @version 5.35 - UPD - 25 Jul 2026 - Columns tray: Density under Rows section (after list)
-   * @version 5.34 - FT - 25 Jul 2026 - Row density: comfortable|compact (Columns tray + persist)
    */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -788,6 +788,102 @@
     } // _afActive
 
 
+    _afSummaryItems() {
+      if ( !this.advancedFilters ) return [];
+      const items = [];
+      this.columns.forEach( col => {
+        if ( !col.filter || !col.field ) return;
+        const spec = this._af[ col.field ];
+        if ( !spec || !spec.op ) return;
+        const title = col.title || col.field;
+        const op = this._afOpLabel( spec.op );
+        let val = '';
+        if ( spec.op === 'EMPTY' || spec.op === 'NOT_EMPTY' ) {
+          val = '';
+        } else if ( spec.op === 'BETWEEN' ) {
+          val = ( spec.v || '' ) + ' – ' + ( spec.v2 || '' );
+        } else if ( spec.op === 'IN' || spec.op === 'NOT_IN' ) {
+          const raw = Array.isArray( spec.set ) ? spec.set
+            : String( spec.set ?? '' ).split( /[\n,]+/ );
+          const opts = this._resolveFilterOptions( col );
+          val = raw.map( v => {
+            const s = String( v ).trim();
+            if ( !s ) return '';
+            const hit = opts.find( o => o.value === s );
+            return hit ? hit.label : s;
+          } ).filter( Boolean ).join( ', ' );
+        } else if ( ( col.filter.type || 'text' ) === 'boolean' ) {
+          const s = String( spec.v ?? '' );
+          val = s === '1' ? 'Yes' : s === '0' ? 'No' : s;
+        } else {
+          val = spec.v != null ? String( spec.v ) : '';
+        }
+        const text = val ? ( title + ' ' + op + ' ' + val ) : ( title + ' ' + op );
+        items.push( { field: col.field, title, text } );
+      } );
+      return items;
+    } // _afSummaryItems
+
+
+    _initAfSummary() {
+      const Utils = F1.lib?.Utils;
+      if ( !Utils || this._afSummaryBar ) return;
+      const bar = Utils.newEl( 'div', 'dt-af-summary hidden' );
+      bar.setAttribute( 'aria-live', 'polite' );
+      this._afSummaryBar = bar;
+    } // _initAfSummary
+
+
+    _renderAfSummary() {
+      if ( !this._afSummaryBar ) return;
+      if ( !this._afSummaryBar.isConnected ) {
+        const controls = this.container.querySelector( '.dt-controls' );
+        if ( controls ) controls.appendChild( this._afSummaryBar );
+      }
+      const items = this._afSummaryItems();
+      this._afSummaryBar.innerHTML = '';
+      this._afSummaryBar.classList.toggle( 'hidden', !items.length );
+      items.forEach( item => {
+        const chip = document.createElement( 'span' );
+        chip.className = 'dt-af-chip';
+        chip.title = item.text;
+        const lbl = document.createElement( 'span' );
+        lbl.className = 'dt-af-chip-lbl';
+        lbl.textContent = item.text;
+        const x = document.createElement( 'button' );
+        x.type = 'button';
+        x.className = 'dt-af-chip-x';
+        x.setAttribute( 'aria-label', 'Clear ' + item.title );
+        x.innerHTML = '&times;';
+        x.onclick = e => {
+          e.preventDefault();
+          e.stopPropagation();
+          this._afClearField( item.field );
+        };
+        chip.append( lbl, x );
+        this._afSummaryBar.appendChild( chip );
+      } );
+      const btn = this._filterPanelWrap?.querySelector( '.dt-filter-btn' );
+      if ( btn ) {
+        btn.title = items.length
+          ? ( 'Filters: ' + items.map( i => i.text ).join( ' · ' ) )
+          : 'Filters';
+      }
+    } // _renderAfSummary
+
+
+    _afClearField( field ) {
+      if ( !field || !this._af ) return;
+      delete this._af[ field ];
+      this._afFillUi();
+      this.currentPage = 1;
+      if ( this.isAjax ) this.load();
+      else { this._applyFilter(); this._applySort(); this._render(); }
+      if ( this.stateKey ) this._saveState();
+      this._updateResetBtn();
+    } // _afClearField
+
+
     _quickFiltersActive() {
       return Object.keys( this.customFilters ).some( k => {
         const f = this.customFilters[ k ];
@@ -810,12 +906,17 @@
       // Filter-btn badge + tray Reset track advanced filters only (quick filters have their own UI).
       if ( this._filterPanelWrap ) {
         const badge = this._filterPanelWrap.querySelector( '.dt-filter-badge' );
-        if ( badge ) badge.classList.toggle( 'active', afActive );
+        if ( badge ) {
+          const n = this._afSummaryItems().length;
+          badge.classList.toggle( 'active', n > 0 );
+          badge.textContent = n > 0 ? String( n ) : '';
+        }
       }
       if ( this._filterClearBtn ) {
         this._filterClearBtn.classList.toggle( 'hidden', !afActive );
         this._filterPanel?.querySelector( '.dt-drawer-sep' )?.classList.toggle( 'hidden', !afActive );
       }
+      this._renderAfSummary();
     } // _updateResetBtn
 
 
@@ -1013,6 +1114,7 @@
       if ( !Utils || !this._filterPanelWrap ) return;
       this._filterPanelWrap.classList.add( 'dt-af' );
       this.addControlRight( this._filterPanelWrap );
+      this._initAfSummary();
       const body = Utils.newEl( 'div', 'dt-af-body' );
       this.columns.forEach( col => {
         if ( !col.filter || !col.field ) return;
@@ -1807,7 +1909,13 @@
 .dt-filter-backdrop:not(.dt-tray-backdrop){display:none}
 .dt-filter-panel label[data-label]::before{display:none}
 .dt-filter-wrap.dt-af .dt-filter-btn{display:inline-flex}
-.dt-filter-wrap.dt-af .dt-filter-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
+.dt-filter-wrap.dt-af .dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
+.dt-af-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;padding:0 6px 6px;box-sizing:border-box}
+.dt-af-summary.hidden{display:none}
+.dt-af-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:2px 4px 2px 8px;border:1px solid #c5d4e0;border-radius:12px;background:#eef5fa;color:#234;font-size:12px;line-height:1.3}
+.dt-af-chip-lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dt-af-chip-x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;padding:0;border:none;border-radius:50%;background:transparent;color:#678;font-size:14px;line-height:1;cursor:pointer;flex-shrink:0}
+.dt-af-chip-x:hover{color:#111;background:rgba(0,0,0,.06)}
 .dt-filter-panel.dt-tray{width:min(480px,100vw);padding:0;overflow:hidden}
 .dt-filter-panel.dt-tray .dt-drawer-header{display:flex;align-items:center;gap:12px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0;margin:0}
 .dt-filter-panel.dt-tray .dt-drawer-title{display:inline-flex;align-items:center;height:28px;font-size:15px;font-weight:600;line-height:1;color:#222}
@@ -1842,7 +1950,7 @@
 .dt-filter-panel:not(.dt-tray) label{display:contents}
 .dt-filter-panel:not(.dt-tray) label[data-label]::before{display:block;content:attr(data-label);font-size:13px;font-weight:600;color:#555;white-space:nowrap}
 .dt-filter-panel:not(.dt-tray) select{width:100%;padding:8px;font-size:14px;border:1px solid #ccc;border-radius:4px;background:#fff}
-.dt-filter-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
+.dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
 .dt-af-row{grid-template-columns:1fr;gap:6px}
 .dt-af-op{max-width:100%}
 }
