@@ -12,11 +12,11 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
-   * Last version commits:
-   * @version 5.39 - FIX - 27 Jul 2026 - AF clear-one: update UI/state before reload
-   * @version 5.38 - FIX - 27 Jul 2026 - AF summary chip bar even padding (no extra bottom)
-   * @version 5.37 - FT - 27 Jul 2026 - AF active summary chips + count badge (S5.2)
-   */
+ * Last version commits:
+ * @version 5.40 - FT - 27 Jul 2026 - CSV: server exportUrl or client filteredData export
+ * @version 5.39 - FIX - 27 Jul 2026 - AF clear-one: update UI/state before reload
+ * @version 5.38 - FIX - 27 Jul 2026 - AF summary chip bar even padding (no extra bottom)
+ */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
 
@@ -77,6 +77,7 @@
       this.responsive = opts.responsive || false;
       this.responsiveBreakpoints = opts.responsiveBreakpoints || { 2: 1200, 3: 900, 4: 640 };
       this.exportUrl = opts.exportUrl || null;
+      this.exportEnabled = opts.export !== false; // false disables; else button always
       this.advancedFilters = !!opts.advancedFilters;
       this._af = {};
       this._afTimer = null;
@@ -211,7 +212,7 @@
       if ( this.advancedFilters ) this._initAdvancedFilters();
       if ( this.columnConfig ) this._initColumnConfig();
       if ( this.responsive ) this._initResponsive();
-      if ( this.exportUrl ) this._initExport();
+      if ( this.exportEnabled ) this._initExport();
     } // _init
 
 
@@ -1758,8 +1759,38 @@
     } // _initExport
 
 
+    _csvEscape( v ) {
+      const s = v == null ? '' : String( v ).replace( /\r\n|\r|\n/g, ' ' );
+      return '"' + s.replace( /"/g, '""' ) + '"';
+    } // _csvEscape
+
+
+    _doClientExport() {
+      const cols = this._vis().map( v => v.col ).filter( c => c.field );
+      if ( !cols.length ) return;
+      const lines = [ cols.map( c => this._csvEscape( c.title || c.field ) ).join( ',' ) ];
+      ( this.filteredData || [] ).forEach( row => {
+        lines.push( cols.map( c => this._csvEscape( row[ c.field ] ) ).join( ',' ) );
+      } );
+      const blob = new Blob( [ lines.join( '\n' ) ], { type: 'text/csv;charset=utf-8' } );
+      const url = URL.createObjectURL( blob );
+      const a = document.createElement( 'a' );
+      a.href = url;
+      a.download = 'export_' + new Date().toISOString().slice( 0, 19 ).replace( /[:T]/g, '-' ) + '.csv';
+      document.body.appendChild( a );
+      a.click();
+      a.remove();
+      URL.revokeObjectURL( url );
+    } // _doClientExport
+
+
     _doExport() {
-      if ( !this.exportUrl ) return;
+      // AJAX lists must export via server (full filtered set). Client mode uses filteredData.
+      if ( this.isAjax && !this.exportUrl ) {
+        console.warn( 'DataTable: ajax list missing exportUrl — cannot export full filtered set' );
+        return;
+      }
+      if ( !this.exportUrl ) { this._doClientExport(); return; }
       let iframe = document.getElementById( 'dt-export-frame' );
       if ( !iframe ) {
         iframe = document.createElement( 'iframe' );
@@ -1775,6 +1806,7 @@
         sortStack: JSON.stringify( this.sortStack ),
         columns: this._vis().map( v => v.col.field ).filter( Boolean ).join( ',' ), ...this.ajaxParams() };
       Object.entries( params ).forEach( ( [ k, v ] ) => {
+        if ( v == null ) return;
         const inp = document.createElement( 'input' );
         inp.type = 'hidden'; inp.name = k; inp.value = v;
         form.appendChild( inp );
