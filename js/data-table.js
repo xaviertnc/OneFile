@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
+ * @version 5.41 - FIX - 28 Jul 2026 - Drop dark grey border under tfoot totals row
  * @version 5.40 - FT - 27 Jul 2026 - CSV: server exportUrl or client filteredData export
  * @version 5.39 - FIX - 27 Jul 2026 - AF clear-one: update UI/state before reload
- * @version 5.38 - FIX - 27 Jul 2026 - AF summary chip bar even padding (no extra bottom)
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -1851,8 +1851,8 @@
 .dt-density-compact .dt-table tfoot th{padding:5px 2px 5px 12px}
 .dt-table th{font-size:13px}.dt-table td{font-size:12px;border-bottom:1px solid #ddd}
 .dt-table thead{background:var(--heading-color,#2c3e50);color:#fff;position:sticky;top:0;z-index:2}
-.dt-table tfoot tr{background:#f5f5f5;position:sticky;bottom:0;z-index:1;font-size:.9em;border-bottom:1px solid grey;box-shadow:0 4px 0 #f5f5f5}
-.dt-table tfoot th{padding:8px 2px 8px 12px;font-weight:600}
+.dt-table tfoot tr{background:#f5f5f5;position:sticky;bottom:0;z-index:1;font-size:.9em;border:none;box-shadow:0 4px 0 #f5f5f5}
+.dt-table tfoot th{padding:8px 2px 8px 12px;font-weight:600;border:none}
 .dt-table th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:1.65em}
 .dt-table th.sortable:hover{background:rgba(255,255,255,.1)}
 .dt-table th .th-label{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
