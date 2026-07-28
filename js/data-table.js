@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
- * @version 5.41 - FIX - 28 Jul 2026 - Drop dark grey border under tfoot totals row
- * @version 5.40 - FT - 27 Jul 2026 - CSV: server exportUrl or client filteredData export
- * @version 5.39 - FIX - 27 Jul 2026 - AF clear-one: update UI/state before reload
+ * @version 5.48 - UPD - 28 Jul 2026 - AF filter btn tip: Custom Filters
+ * @version 5.47 - UPD - 28 Jul 2026 - Col config badge dot 10→9px
+ * @version 5.46 - UPD - 28 Jul 2026 - AF/col badges sit on outer corner; col dot +2px
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -167,6 +167,15 @@
       this.loadingEl.className = 'dt-loading hidden';
       this.loadingEl.innerHTML = '<div class="dt-spinner"></div>';
       scroll.appendChild( this.loadingEl );
+
+      // Empty state (below thead; no h-scroll spacer when tbody is empty)
+      this.emptyEl = document.createElement( 'div' );
+      this.emptyEl.className = 'dt-empty-msg hidden';
+      this.emptyEl.innerHTML = '<svg class="dt-empty-ico" viewBox="0 0 64 64" aria-hidden="true">'
+        + '<path d="M8 24l6-12h36l6 12v28a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V24z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>'
+        + '<path d="M8 24h48M22 36h20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>'
+        + '</svg><span class="dt-empty-lbl">No entries found</span>';
+      scroll.appendChild( this.emptyEl );
       c.appendChild( scroll );
 
       // Bottom bar
@@ -549,6 +558,13 @@
     _renderRows() {
       const start = this.isAjax ? 0 : ( this.currentPage - 1 ) * this.pageSize;
       const end = this.isAjax ? this.filteredData.length : Math.min( start + this.pageSize, this.filteredData.length );
+      const empty = end <= start;
+      this.container.classList.toggle( 'dt-empty', empty );
+      if ( this.emptyEl ) this.emptyEl.classList.toggle( 'hidden', !empty );
+      if ( empty ) {
+        this.tbody.innerHTML = '';
+        return;
+      }
       let html = '';
       for ( let i = start; i < end; i++ ) {
         const row = this.filteredData[ i ], key = row[ this.keyField ] || i;
@@ -589,7 +605,12 @@
     _renderFooter() {
       const hasFooterTotals = Object.keys( this.footerTotals ).length > 0;
       const hasCurrencyCols = this.currencyColumns.length > 0;
-      if ( !hasFooterTotals && !hasCurrencyCols ) { this.footerEl.innerHTML = ''; return; }
+      const filtered = this.isAjax ? this.recordsFiltered : this.filteredData.length;
+      // No totals bar when empty — same look as lists without footerTotals
+      if ( filtered === 0 || ( !hasFooterTotals && !hasCurrencyCols ) ) {
+        this.footerEl.innerHTML = '';
+        return;
+      }
 
       // Format totals with comma thousands and dot decimals (e.g. 1,000,000.00) using shared Utils
       const fmt = n => ( F1.lib && F1.lib.Utils ) ? F1.lib.Utils.currency( n, '', ',', 2, '.' ).replace(/^\s+|\s+$/g, '') : n.toLocaleString( 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 } );
@@ -623,14 +644,12 @@
       const filtered = this.isAjax ? this.recordsFiltered : this.filteredData.length;
       const start = filtered === 0 ? 0 : ( this.currentPage - 1 ) * this.pageSize + 1;
       const end = Math.min( this.currentPage * this.pageSize, filtered );
-      let txt = filtered === 0
-        ? 'No entries found'
-        : '<span class="dt-info-label">Showing:</span><span class="dt-info-vals">'
-          + `<b>${start.toLocaleString()}</b> &ndash; `
-          + `<b>${end.toLocaleString()}</b> of <b>${filtered.toLocaleString()}</b>`
-          + ( filtered !== total && total > 0
-            ? ` <span class="dt-info-filtered">(${total.toLocaleString()} total)</span>` : '' )
-          + '</span>';
+      let txt = '<span class="dt-info-label">Showing:</span><span class="dt-info-vals">'
+        + `<b>${start.toLocaleString()}</b> &ndash; `
+        + `<b>${end.toLocaleString()}</b> of <b>${filtered.toLocaleString()}</b>`
+        + ( filtered !== total && total > 0
+          ? ` <span class="dt-info-filtered">(${total.toLocaleString()} total)</span>` : '' )
+        + '</span>';
       this.infoEl.innerHTML = txt;
       if ( this._exportBtn ) this._exportBtn.title = `Export ${filtered.toLocaleString()} entries to CSV`;
     } // _renderInfo
@@ -1408,7 +1427,7 @@
       const Utils = F1.lib?.Utils;
       if ( !Utils ) return;
       const wrap = Utils.newEl( 'div', 'dt-filter-wrap' );
-      const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline dt-filter-btn', { type: 'button', title: 'Filters' } );
+      const btn = Utils.newEl( 'button', 'btn btn-sm btn-outline dt-filter-btn', { type: 'button', title: 'Custom Filters' } );
       btn.innerHTML = '<i class="fa fa-filter"></i><span class="dt-filter-badge"></span>';
       const tray = !!this.advancedFilters;
       const panel = Utils.newEl( 'div', tray ? 'dt-filter-panel dt-tray' : 'dt-filter-panel' );
@@ -1843,6 +1862,11 @@
 .dt-filter-sm{max-width:120px;padding:5px;border:1px solid #aaa;border-radius:3px;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .clients-filter-group{display:flex;align-items:center;gap:3px;flex-wrap:nowrap}
 .dt-scroll{overflow:auto;position:relative}
+.dt-empty .dt-scroll{overflow-x:hidden}
+.dt-empty-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;min-height:4rem;padding:0.75rem 1rem;color:#9aa3ad;font-size:13px;text-align:center;box-sizing:border-box}
+.dt-empty-msg.hidden{display:none}
+.dt-empty-ico{width:40px;height:40px;opacity:.55;flex-shrink:0}
+.dt-empty-lbl{line-height:1.2}
 .dt-table{width:100%;border-collapse:collapse}
 .dt-table th,.dt-table td{padding:6px 6px;text-align:left;white-space:nowrap}
 .dt-density-compact .dt-table thead th{padding:4px 6px}
@@ -1890,10 +1914,10 @@
 .dt-spinner{width:32px;height:32px;border:3px solid #ddd;border-top-color:var(--primary-color,#337ab7);border-radius:50%;animation:dt-spin .8s linear infinite}
 @keyframes dt-spin{to{transform:rotate(360deg)}}
 @media(max-width:640px){.dt-controls{flex-direction:column;align-items:stretch}.dt-left,.dt-right{justify-content:center}.dt-bottom{flex-direction:column;align-items:stretch;gap:2px}.dt-bottom-left{justify-content:space-between;width:100%;padding:0 0 4px}.dt-info{padding:0}.dt-pagesize-bottom{padding:0;margin-right:8px}.dt-pagination{justify-content:center;flex-wrap:nowrap;gap:0}.dt-pagination .dt-btn{padding:8px 10px;min-width:34px;font-size:13px;text-align:center}.dt-pagination .dt-dots{padding:8px 2px}.dt-pg-full{display:none}.dt-pg-short{display:inline;font-size:18px;font-weight:700;line-height:1}}
-.dt-col-config-wrap{position:relative;display:inline-block}
-.dt-col-config-wrap>button{position:relative}
+.dt-col-config-wrap{position:relative;display:inline-block;overflow:visible}
+.dt-col-config-wrap>button{position:relative;overflow:visible}
 .dt-col-config-badge{display:none}
-.dt-col-config-badge.active{display:block;position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc3545}
+.dt-col-config-badge.active{display:block;position:absolute;top:-5px;right:-5px;width:9px;height:9px;border-radius:50%;background:#dc3545}
 .dt-tray{position:fixed;top:0;right:0;bottom:0;z-index:1001;width:min(420px,100vw);max-width:100vw;background:#fff;box-shadow:-8px 0 28px rgba(0,0,0,.16);display:flex;flex-direction:column;transform:translateX(100%);visibility:hidden;pointer-events:none;transition:transform .22s ease,visibility 0s linear .22s}
 .dt-tray.open{transform:translateX(0);visibility:visible;pointer-events:auto;transition:transform .22s ease,visibility 0s}
 .dt-tray-backdrop{display:block;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.28);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility 0s linear .22s}
@@ -1935,14 +1959,14 @@
 .dt-export-btn{order:99;margin-left:12px}
 .dt-drawer-header{display:none}
 .dt-filter-clear{display:none}
-.dt-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:4px}
-.dt-filter-btn{display:none;position:relative}
+.dt-filter-wrap{position:relative;display:inline-flex;align-items:center;gap:4px;overflow:visible}
+.dt-filter-btn{display:none;position:relative;overflow:visible}
 .dt-filter-panel:not(.dt-tray){display:contents}
 .dt-filter-badge{display:none}
 .dt-filter-backdrop:not(.dt-tray-backdrop){display:none}
 .dt-filter-panel label[data-label]::before{display:none}
 .dt-filter-wrap.dt-af .dt-filter-btn{display:inline-flex}
-.dt-filter-wrap.dt-af .dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
+.dt-filter-wrap.dt-af .dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-7px;right:-7px;min-width:14px;height:14px;padding:0 2px;border-radius:6px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
 .dt-af-summary{display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:100%;padding:0;box-sizing:border-box}
 .dt-af-summary.hidden{display:none}
 .dt-af-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:2px 4px 2px 8px;border:1px solid #c5d4e0;border-radius:12px;background:#eef5fa;color:#234;font-size:12px;line-height:1.3}
@@ -1983,7 +2007,7 @@
 .dt-filter-panel:not(.dt-tray) label{display:contents}
 .dt-filter-panel:not(.dt-tray) label[data-label]::before{display:block;content:attr(data-label);font-size:13px;font-weight:600;color:#555;white-space:nowrap}
 .dt-filter-panel:not(.dt-tray) select{width:100%;padding:8px;font-size:14px;border:1px solid #ccc;border-radius:4px;background:#fff}
-.dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
+.dt-filter-badge.active{display:inline-flex;align-items:center;justify-content:center;position:absolute;top:-7px;right:-7px;min-width:14px;height:14px;padding:0 2px;border-radius:6px;background:#dc3545;color:#fff;font-size:10px;font-weight:700;line-height:1}
 .dt-af-row{grid-template-columns:1fr;gap:6px}
 .dt-af-op{max-width:100%}
 }

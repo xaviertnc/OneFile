@@ -11,17 +11,10 @@
    *
    * @author C. Moller <xavier.tnc@gmail.com>
    *
-   * @version 1.3 - FIX - 31 Mar 2026
-   *   - Guard show/hide when trigger or tooltip node was removed (stale timers)
-   *
-   * @version 1.2 - FIX - 11 Jan 2026
-   *   - Fix positioning for Popover API, fix arrow CSS
-   *
-   * @version 1.1 - UPD - 11 Jan 2026
-   *   - Convert to F1 library pattern
-   *
-   * @version 1.0 - INIT - 11 Jan 2026
-   *   - Initial version
+   * Last version commits:
+   * @version 1.4 - FIX - 28 Jul 2026 - Keep tips when nodes move (list toolbar remount)
+   * @version 1.3 - FIX - 31 Mar 2026 - Guard show/hide when trigger removed (stale timers)
+   * @version 1.2 - FIX - 11 Jan 2026 - Fix positioning for Popover API, fix arrow CSS
    */
 
   const supportsPopover = 'showPopover' in HTMLElement.prototype;
@@ -181,12 +174,25 @@
   } // cleanupAll
 
 
+  function tipSource( element ) {
+    return element.getAttribute( 'data-tippy-content' )
+      || element.getAttribute( 'data-tooltip' )
+      || element.getAttribute( 'title' )
+      || element.getAttribute( 'data-original-title' );
+  } // tipSource
+
+
+  function hasTipSource( element ) {
+    return !!( element.getAttribute && tipSource( element ) );
+  } // hasTipSource
+
+
   function initElement( element ) {
     if ( tooltips.has( element ) ) return; // Already initialized
 
     const title = element.getAttribute( 'title' );
     const dataContent = element.getAttribute( 'data-tippy-content' ) || element.getAttribute( 'data-tooltip' );
-    const content = dataContent || title;
+    const content = tipSource( element );
     if ( !content ) return;
 
     const isHTML = element.hasAttribute( 'data-tooltip-html' ) || element.hasAttribute( 'data-tippy-content' );
@@ -195,6 +201,8 @@
     if ( title && !dataContent ) {
       element.removeAttribute( 'title' );
       element.setAttribute( 'data-original-title', title );
+    } else if ( !element.getAttribute( 'data-original-title' ) && content && !dataContent ) {
+      element.setAttribute( 'data-original-title', content );
     }
 
     let showTimer, hideTimer;
@@ -223,36 +231,33 @@
   } // initElement
 
 
-  function init() {
-    // Auto-init elements with title or data-tooltip attributes
-    document.querySelectorAll( '[title], [data-tooltip], [data-tippy-content]' ).forEach( initElement );
+  let observer = null;
 
-    // Watch for dynamically added/removed elements
-    if ( window.MutationObserver ) {
-      const observer = new MutationObserver( mutations => {
+  function init() {
+    // Auto-init elements with title / tip attributes (incl. remount survivors)
+    document.querySelectorAll( '[title], [data-tooltip], [data-tippy-content], [data-original-title]' )
+      .forEach( initElement );
+
+    // Watch for dynamically added/removed elements (one observer only)
+    if ( window.MutationObserver && !observer ) {
+      observer = new MutationObserver( mutations => {
         mutations.forEach( mutation => {
-          // Handle added nodes
           mutation.addedNodes.forEach( node => {
-            if ( node.nodeType === 1 ) {
-              if ( node.hasAttribute( 'title' ) || node.hasAttribute( 'data-tooltip' ) || node.hasAttribute( 'data-tippy-content' ) ) {
-                initElement( node );
-              }
-              node.querySelectorAll?.( '[title], [data-tooltip], [data-tippy-content]' ).forEach( initElement );
-            }
+            if ( node.nodeType !== 1 ) return;
+            if ( hasTipSource( node ) ) initElement( node );
+            node.querySelectorAll?.( '[title], [data-tooltip], [data-tippy-content], [data-original-title]' )
+              .forEach( initElement );
           } );
-          // Handle removed nodes
+          // appendChild moves fire remove+add; only destroy tips that left the document
           mutation.removedNodes.forEach( node => {
-            if ( node.nodeType === 1 ) {
-              if ( tooltips.has( node ) ) {
-                cleanupTooltip( node );
+            if ( node.nodeType !== 1 ) return;
+            if ( document.contains( node ) ) return;
+            if ( tooltips.has( node ) ) cleanupTooltip( node );
+            node.querySelectorAll?.( '*' ).forEach( descendant => {
+              if ( tooltips.has( descendant ) && !document.contains( descendant ) ) {
+                cleanupTooltip( descendant );
               }
-              // Also clean up any descendant elements with tooltips
-              node.querySelectorAll?.( '*' ).forEach( descendant => {
-                if ( tooltips.has( descendant ) ) {
-                  cleanupTooltip( descendant );
-                }
-              } );
-            }
+            } );
           } );
         } );
       } );
