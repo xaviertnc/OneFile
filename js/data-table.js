@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
+ * @version 5.53 - UPD - 11 Aug 2026 - Columns tray rows more compact
+ * @version 5.52 - FT - 11 Aug 2026 - Column `hidden: true` for default-off Columns tray cols
  * @version 5.51 - UPD - 28 Jul 2026 - Soften col details expander chrome
- * @version 5.50 - UPD - 28 Jul 2026 - Col details expander more discoverable
- * @version 5.49 - FT - 28 Jul 2026 - Col width resize (header edge + Columns tray)
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -1070,7 +1070,8 @@
         if ( !col ) continue;
         const uv = this._colVisibility.get( i );
         if ( uv === false ) continue;
-        if ( uv === undefined && ( this._responsiveHidden.has( i ) || ( this._compact && col.hideCompact ) ) ) continue;
+        if ( uv === undefined && ( col.hidden || this._responsiveHidden.has( i ) ||
+          ( this._compact && col.hideCompact ) ) ) continue;
         result.push( { col, i } );
       }
       return result;
@@ -1607,6 +1608,7 @@
     _intrinsicColVisible( ci ) {
       const col = this.columns[ ci ];
       if ( !col ) return false;
+      if ( col.hidden ) return false;
       if ( this._responsiveHidden.has( ci ) ) return false;
       if ( this._compact && col.hideCompact ) return false;
       return true;
@@ -1635,7 +1637,11 @@
 
     _colConfigVisible( ci ) {
       const uv = this._colVisibility.get( ci );
-      return uv === false ? false : ( uv === true || !this._responsiveHidden.has( ci ) );
+      if ( uv === false ) return false;
+      if ( uv === true ) return true;
+      const col = this.columns[ ci ];
+      if ( col?.hidden ) return false;
+      return !this._responsiveHidden.has( ci );
     } // _colConfigVisible
 
 
@@ -2161,7 +2167,7 @@
 .dt-col-config .dt-drawer-header{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0}
 .dt-col-config .dt-drawer-title{font-size:15px;font-weight:600;color:#222;margin-right:auto}
 .dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
-.dt-col-config-body{flex:1;overflow:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch;min-height:0}
+.dt-col-config-body{flex:1;overflow:auto;padding:0 0 4px;-webkit-overflow-scrolling:touch;min-height:0}
 .dt-col-config-rows{flex-shrink:0;border-top:1px solid #eee;background:#fff;padding:10px 14px 12px}
 .dt-col-config-sec-title{font-size:12px;font-weight:600;color:#555;margin:0 0 8px}
 .dt-col-config-density{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -2171,21 +2177,21 @@
 .dt-col-config-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:600;color:#555;margin:0 auto 0 0}
 .dt-col-config-reset{border:none;background:transparent;font-size:12px;color:var(--primary-color,#337ab7);cursor:pointer;padding:2px 0}
 .dt-col-config-reset.hidden{display:none}
-.dt-col-config-item{display:flex;flex-direction:column;padding:3px 10px 3px 8px;position:relative;min-height:28px}
-.dt-col-config-main{display:flex;align-items:center;gap:2px;min-height:28px}
+.dt-col-config-item{display:flex;flex-direction:column;padding:0 8px;position:relative;min-height:22px}
+.dt-col-config-main{display:flex;align-items:center;gap:2px;min-height:22px}
 .dt-col-config-item.is-dragging{opacity:.4}
 .dt-col-config-item.drag-before::before,.dt-col-config-item.drag-after::after{content:'';position:absolute;left:12px;right:12px;height:2px;background:var(--primary-color,#337ab7);pointer-events:none;z-index:1}
 .dt-col-config-item.drag-before::before{top:0}
 .dt-col-config-item.drag-after::after{bottom:0}
 .dt-col-config-body.is-reordering{touch-action:none;user-select:none;-webkit-user-select:none}
 .dt-col-config-body.is-reordering .dt-col-config-item{cursor:grabbing}
-.dt-col-config-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 1px 0 0;padding:0;border:none;border-radius:3px;background:transparent;color:#777;font-size:12px;line-height:1;cursor:pointer}
+.dt-col-config-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin:0 1px 0 0;padding:0;border:none;border-radius:3px;background:transparent;color:#777;font-size:11px;line-height:1;cursor:pointer}
 .dt-col-config-chev .fa{width:1em;opacity:.85;color:inherit}
 .dt-col-config-chev:hover{color:#333;background:#eee}
 .dt-col-config-chev:hover .fa{opacity:1}
 .dt-col-config-item.is-open .dt-col-config-chev{color:var(--primary-color,#337ab7);background:rgba(51,122,183,.1)}
 .dt-col-config-item.is-open .dt-col-config-chev .fa{opacity:1;color:inherit}
-.dt-col-config-main>label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;line-height:1.2;white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dt-col-config-main>label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;line-height:1.15;white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .dt-col-config-details{display:none;flex-direction:column;gap:6px;padding:4px 8px 8px 30px}
 .dt-col-config-item.is-open .dt-col-config-details{display:flex}
 .dt-col-config-wrow{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:#444;white-space:nowrap}
@@ -2195,7 +2201,7 @@
 .dt-col-config-move{display:flex;gap:0;flex-shrink:0}
 .dt-col-config-move button{border:none;background:transparent;cursor:pointer;padding:2px 4px;font-size:10px;color:#888;line-height:1}
 .dt-col-config-move button:hover{color:#333}
-.dt-col-config-grip{display:inline-flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:22px;margin:0;padding:0 4px;border:none;border-radius:3px;background:transparent;cursor:grab;color:#aaa;font-size:14px;line-height:1;letter-spacing:-2px;white-space:nowrap;user-select:none;-webkit-user-select:none;touch-action:none;box-sizing:border-box}
+.dt-col-config-grip{display:inline-flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:20px;margin:0;padding:0 2px;border:none;border-radius:3px;background:transparent;cursor:grab;color:#aaa;font-size:12px;line-height:1;letter-spacing:-2px;white-space:nowrap;user-select:none;-webkit-user-select:none;touch-action:none;box-sizing:border-box}
 .dt-col-config-grip:hover{color:#555;background:#f0f0f0}
 .dt-col-config-grip:active{cursor:grabbing}
 .dt-tray .dt-drawer-close{display:inline-flex;align-items:center;gap:6px;margin-left:0;padding:0;border:none;background:transparent;color:#666;font-size:12px;font-weight:600;line-height:1;cursor:pointer}
