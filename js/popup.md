@@ -2,8 +2,13 @@
 
 ## Overview
 
-The F1 Popup is a versatile and customizable popup solution.  
-It supports various configurations and can be used for modals, notifications, tooltips, and more.  
+The F1 Popup is the popup **engine** (modals, toasts, custom markup).  
+For confirm / validate / auth / form use **[F1 Dialog](dialog.md)** (`F1.lib.Dialog`).
+Do not open a raw `Popup` + `theme` for Yes/Cancel.
+
+Non-toast popups get a 24px SVG close and the `.fu-dialog` class. Toast is excluded.
+Chrome tokens are shared with `dialog.css` (`--dialog-*`).
+
 F1 Popup automatically handles proper stacking order of popups and backdrops.
 Popup elements are hidden by default and can be shown using the `show()` method.
 
@@ -256,9 +261,13 @@ formPopup.show();
 ## Popup Types
 
 ### Alert
+
+Prefer `F1.lib.Dialog.validate` / `Dialog.alert` (see [dialog.md](dialog.md)).
+Raw Popup `type: 'alert'` is a role hint only — you still wire buttons yourself.
+
 ```javascript
 var alertPopup = new F1.lib.Popup({
-  theme: 'danger',
+  theme: 'error',
   type: 'alert',
   backdrop: 'dim',
   title: 'Alert!',

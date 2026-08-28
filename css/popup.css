@@ -5,23 +5,23 @@
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
+ * @version 2.1.0 - UPD - 28 Aug 2026 - Shared dialog tokens on header/close
  * @version 2.0.0 - 28 Dec 2023
  *   - Add support for new popup.js v2
- *   - Add animation classes
  */
 
 :root {
   --popup-gap: 0.67rem;
   --popup-padding: 0.8rem;
   --popup-background: #fff;
-  --popup-border-radius: 0.25rem;
-  --popup-header-background: transparent;
-  --popup-title-font-size: 1.25rem;
-  --popup-header-color: #333;
-  --popup-color--info: blue;
-  --popup-color--error: crimson;
-  --popup-color--warning: darkorange;
-  --popup-color--success: seagreen;
+  --popup-border-radius: var(--dialog-radius, 8px);
+  --popup-header-background: var(--dialog-wash, #fafbfc);
+  --popup-title-font-size: 1.2rem;
+  --popup-header-color: var(--dialog-ink, #333);
+  --popup-color--info: var(--dialog-line-info, #3b82f6);
+  --popup-color--error: var(--dialog-band-danger, #b91c1c);
+  --popup-color--warning: var(--dialog-line-warning, #f59e0b);
+  --popup-color--success: var(--dialog-line-success, #059669);
 }
 
 .popup__backdrop {

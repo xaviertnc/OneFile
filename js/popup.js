@@ -9,14 +9,18 @@
    *
    * @author  C. Moller <xavier.tnc@gmail.com>
    *
-   * @version 2.3.1 - DEV - 02 Jun 2024
-   *   - Add popup types comment.
-   *   - Update and improve Popup documentation. i.e. popup.md
+ * @version 2.4.0 - UPD - 28 Aug 2026 - SVG close on non-toast; .fu-dialog class
+ * @version 2.3.1 - DEV - 02 Jun 2024
+ *   - Add popup types comment.
    *
    * TODO:
    *  - Finish support for animation: none, fade, slide
    *  - Add support for draggable: true, false
    */
+
+  const CLOSE_SVG = '<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"'
+    + ' aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
 
@@ -88,7 +92,8 @@
       const themeClass = config.theme ? ` ${bcn}__${config.theme}` : '';
       const sizeClass = config.size ? ` ${bcn}--${config.size}` : '';
       const positionClass = config.position ? ` ${bcn}--${config.position}` : '';
-      const popupClass = bcn + typeClass + themeClass + positionClass + sizeClass;
+      const popupClass = bcn + typeClass + themeClass + positionClass + sizeClass
+        + (config.type === 'toast' ? '' : ' fu-dialog');
       const popup = this.newEl('div', {id, className: popupClass});
       // Popup ARIA attributes
       const ariaAttributes = ['aria-modal', 'tabindex', 'role'];
@@ -104,8 +109,12 @@
         this.title = popupTitle;
       } else headerClass += ` ${bcn}__header--no-title`;
       if (config.closeX) {
+        const closeHtml = config.closeX === true
+          ? ( config.type === 'toast' ? '&times;' : CLOSE_SVG )
+          : config.closeX;
         const closeX = this.newEl('button', {type: 'button',
-          className: `${bcn}__close`, innerHTML: config.closeX === true ? '&times;' : config.closeX });
+          className: `${bcn}__close`, innerHTML: closeHtml });
+        closeX.setAttribute('aria-label', 'Close');
         closeX.addEventListener('click', (e) => this.close({event: e, src: 'closeX'}));
         this.closeX = closeX; }
       const popupHeader = this.newEl('div', { className: headerClass });
