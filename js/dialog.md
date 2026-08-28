@@ -106,7 +106,7 @@ Host `:root` may set `--primary-50` … `--primary-700`, `--primary-color`, `--b
 | `--dialog-title-size` | Header title (F1 default `15px`) |
 | `--dialog-body-size` | Message + footer buttons (F1 default `13px`) |
 | `--dialog-chrome-pad` | Header / footer pad (F1 default `6px`) |
-| `--dialog-body-min-height` | Message floor (S3 `5rem`; F1 default `0`) |
+| `--dialog-body-min-height` | Message floor (hosts `3.67em`; F1 default `0`) |
 
 **S5:** `style.css` then `dialog.css` — F1 compact type wins unless overridden after.  
 **S3:** `dialog.css` then `main.css` — set `1.2rem` / `0.875rem` / `0.67em` plus wash ramps + `--brand-navy`. Do not add a second dialog stylesheet.
