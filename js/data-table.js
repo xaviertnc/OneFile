@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
+ * @version 5.55 - UPD - 07 Sep 2026 - Columns tray: grip left, width-config (sliders) right
  * @version 5.54 - FIX - 07 Sep 2026 - AF value controls fill vals column (drop dt-filter-sm 120px cap)
  * @version 5.53 - UPD - 11 Aug 2026 - Columns tray rows more compact
- * @version 5.52 - FT - 11 Aug 2026 - Column `hidden: true` for default-off Columns tray cols
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -1798,7 +1798,7 @@
         grip.setAttribute( 'role', 'button' );
         grip.setAttribute( 'aria-label', 'Drag to reorder' );
         grip.onpointerdown = e => this._colConfigGripDown( e, item, body );
-        main.append( chev, lbl, mv, grip );
+        main.append( grip, lbl, mv, chev );
         const details = document.createElement( 'div' );
         details.className = 'dt-col-config-details';
         const dual = this._hasLg( col, ci );
@@ -2185,14 +2185,14 @@
 .dt-col-config-item.drag-after::after{bottom:0}
 .dt-col-config-body.is-reordering{touch-action:none;user-select:none;-webkit-user-select:none}
 .dt-col-config-body.is-reordering .dt-col-config-item{cursor:grabbing}
-.dt-col-config-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin:0 1px 0 0;padding:0;border:none;border-radius:3px;background:transparent;color:#777;font-size:11px;line-height:1;cursor:pointer}
+.dt-col-config-chev{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin:0 0 0 1px;padding:0;border:none;border-radius:3px;background:transparent;color:#777;font-size:11px;line-height:1;cursor:pointer}
 .dt-col-config-chev .fa{width:1em;opacity:.85;color:inherit}
 .dt-col-config-chev:hover{color:#333;background:#eee}
 .dt-col-config-chev:hover .fa{opacity:1}
 .dt-col-config-item.is-open .dt-col-config-chev{color:var(--primary-color,#337ab7);background:rgba(51,122,183,.1)}
 .dt-col-config-item.is-open .dt-col-config-chev .fa{opacity:1;color:inherit}
 .dt-col-config-main>label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;line-height:1.15;white-space:nowrap;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.dt-col-config-details{display:none;flex-direction:column;gap:6px;padding:4px 8px 8px 30px}
+.dt-col-config-details{display:none;flex-direction:column;gap:6px;padding:4px 8px 8px 40px}
 .dt-col-config-item.is-open .dt-col-config-details{display:flex}
 .dt-col-config-wrow{display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:#444;white-space:nowrap}
 .dt-col-config-wrow>span{min-width:52px;color:#555}
