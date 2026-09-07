@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
+ * @version 5.54 - FIX - 07 Sep 2026 - AF value controls fill vals column (drop dt-filter-sm 120px cap)
  * @version 5.53 - UPD - 11 Aug 2026 - Columns tray rows more compact
  * @version 5.52 - FT - 11 Aug 2026 - Column `hidden: true` for default-off Columns tray cols
- * @version 5.51 - UPD - 28 Jul 2026 - Soften col details expander chrome
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -2244,6 +2244,7 @@
 .dt-af-op,.dt-af-vals .form-control{font-size:12px;height:28px;padding:1px 5px}
 .dt-af-vals{display:flex;gap:6px;align-items:center;min-width:0}
 .dt-af-vals .form-control,.dt-af-vals textarea{width:100%;min-width:0}
+.dt-af-vals .dt-filter-sm{max-width:none}
 .dt-af-vals textarea,.dt-af-vals select[multiple]{font-size:12px;padding:4px 6px;min-height:72px;height:auto}
 .dt-af-vals select[multiple]{padding:2px}
 .dt-af-clear{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:1px solid #ccc;border-radius:50%;background:transparent;color:#888;cursor:pointer;flex-shrink:0}
