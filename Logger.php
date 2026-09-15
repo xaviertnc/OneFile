@@ -11,6 +11,10 @@
  *
  * @version 2.4 - FT - 16 Jun 2025
  *   - Add Logger::write()
+ *
+ * @version 2.5 - FIX - 15 Sep 2026
+ *   - setPath(): mkdir 02777 under umask(0); write(): chmod 0666 on a new file — Apache, cron,
+ *     CLI and root-created dated log dirs stay shared-writable regardless of the creator's umask
  */
 
 class Logger {
@@ -32,7 +36,9 @@ class Logger {
 
 
   public function write( string $message ) {
+    $new = ! is_file( $this->file );
     file_put_contents( $this->file, $message, FILE_APPEND | LOCK_EX );
+    if ( $new ) chmod( $this->file, 0666 );
   }
 
 
@@ -56,7 +62,7 @@ class Logger {
 
 
   public function setPath( $path, $mkdir = true ) {
-    if ( $mkdir and ( ! is_dir( $path ) ) ) { mkdir( $path, 0777, true ); }
+    if ( $mkdir and ! is_dir( $path ) ) { $umask = umask( 0 ); mkdir( $path, 02777, true ); umask( $umask ); }
     $this->path = $path;
   }
 
