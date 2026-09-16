@@ -15,6 +15,10 @@
  * @version 2.5 - FIX - 15 Sep 2026
  *   - setPath(): mkdir 02777 under umask(0); write(): chmod 0666 on a new file — Apache, cron,
  *     CLI and root-created dated log dirs stay shared-writable regardless of the creator's umask
+ *
+ * @version 2.5.1 - FIX - 16 Sep 2026
+ *   - setPath(): mkdir 0777 not 02777 — an explicit setgid bit is EPERM for a caller outside the
+ *     parent's group (kernel 6.x); the setgid parent already propagates it
  */
 
 class Logger {
@@ -62,7 +66,7 @@ class Logger {
 
 
   public function setPath( $path, $mkdir = true ) {
-    if ( $mkdir and ! is_dir( $path ) ) { $umask = umask( 0 ); mkdir( $path, 02777, true ); umask( $umask ); }
+    if ( $mkdir and ! is_dir( $path ) ) { $umask = umask( 0 ); mkdir( $path, 0777, true ); umask( $umask ); }
     $this->path = $path;
   }
 
