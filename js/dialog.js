@@ -10,6 +10,7 @@
  * @package F1
  * @author Senpai
  *
+ * @version 1.1 - FT - 14 Sep 2026 - Rich message accepts a DOM `node` between facts and note
  * @version 1.0 - INIT - 28 Aug 2026 - Port S5 modal-dialogs; add form/prompt
  */
 
@@ -160,6 +161,7 @@
       } );
       content.appendChild( dl );
     }
+    if ( message.node ) content.appendChild( message.node );
     if ( message.note ) {
       const note = document.createElement( 'p' );
       note.className = 'ui-dialog-note';

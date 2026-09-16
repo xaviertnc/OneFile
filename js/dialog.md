@@ -37,11 +37,12 @@ Type is a **header band**. Theme is **CSS tokens only** — no JS colour object.
 
 Resolves `true` / `false`. Commit label is **Confirm** (or `okText` if you pass an options object).
 
-`message` is a string **or** `{ name, lead, facts, note }`:
+`message` is a string **or** `{ name, lead, facts, node, note }`:
 
 - `name` — sits under the title
 - `lead` — opening sentence
 - `facts` — `[ [ label, value ], … ]` two-column list
+- `node` — a DOM element appended after facts (tables, inputs); read its state after resolve
 - `note` — muted closer
 
 ```javascript
