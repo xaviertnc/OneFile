@@ -17,6 +17,9 @@
    * 
    * @version 3.4 - DEV - 06 Mar 2025
    *   - Truncate the error message to 100 characters on line 90.
+   *
+   * @version 3.5 - FIX - 30 Sep 2026
+   *   - Follow a JSON {redirect} and stop, before treating the response as an error.
    * 
    * Method: fetch
    *  GET data from, or POST data to, a specified url via async HTTP.
@@ -87,14 +90,27 @@
       if (fetchOptions.method !== 'GET' && fetchOptions.method !== 'HEAD') fetchOptions.body = body;
       try {
         const response = await fetch(url, fetchOptions);
-        if (!response.ok) {
-          const text = await response.text(); 
-          const MAX_TEXT_LENGTH = 100;
-          const truncatedText = text.length > MAX_TEXT_LENGTH ? text.slice(0, MAX_TEXT_LENGTH) + '...' : text;
-          throw new Error(`HTTP ${response.status}: ${truncatedText}`);
+        if (responseType === 'json' || !response.ok) {
+          const text = await response.text();
+          let data = null;
+          try { data = JSON.parse(text); }
+          catch (e) { if (response.ok) throw e; }
+          if (data && typeof data.redirect === 'string' && data.redirect) {
+            const target = new URL(data.redirect, document.baseURI);
+            if (target.origin === location.origin) {
+              if (F1.app && F1.app.redirect) F1.app.redirect(target.href);
+              else window.location.assign(target.href);
+              return new Promise(function() {});
+            }
+          }
+          if (!response.ok) {
+            const MAX_TEXT_LENGTH = 100;
+            const truncatedText = text.length > MAX_TEXT_LENGTH ? text.slice(0, MAX_TEXT_LENGTH) + '...' : text;
+            throw new Error(`HTTP ${response.status}: ${truncatedText}`);
+          }
+          return data;
         }
-        if (responseType === 'json') return await response.json();
-        if ( responseType === 'html' || responseType === 'text' ) return await response.text();
+        if (responseType === 'html' || responseType === 'text') return await response.text();
         return response;
       } catch (err) {
         if (err instanceof TypeError) err.message = `Network error or CORS issue: ${err.message}`;
