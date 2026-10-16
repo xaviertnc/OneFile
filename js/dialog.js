@@ -10,6 +10,7 @@
  * @package F1
  * @author Senpai
  *
+ * @version 1.2 - UPD - 16 Oct 2026 - A form field type other than textarea is used on the input
  * @version 1.1 - FT - 14 Sep 2026 - Rich message accepts a DOM `node` between facts and note
  * @version 1.0 - INIT - 28 Aug 2026 - Port S5 modal-dialogs; add form/prompt
  */
@@ -370,7 +371,7 @@
         const el = document.createElement( f.type === 'textarea' ? 'textarea' : 'input' );
         el.name = f.name;
         if ( f.type === 'textarea' ) el.rows = f.rows || 4;
-        else { el.type = 'text'; el.autocomplete = 'off'; }
+        else { el.type = f.type || 'text'; el.autocomplete = 'off'; }
         if ( f.maxlength ) el.maxLength = f.maxlength;
         if ( f.placeholder ) el.placeholder = f.placeholder;
         el.value = f.value == null ? '' : f.value;

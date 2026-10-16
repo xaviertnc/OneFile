@@ -8,9 +8,9 @@
  * @package F1
  * @author Senpai
  *
+ * @version 1.6 - UPD - 16 Oct 2026 - Date fields keep the calendar control; form sits off the footer
  * @version 1.5 - UPD - 28 Aug 2026 - Body min-height + vertical center via --dialog-body-min-height
  * @version 1.4 - FIX - 28 Aug 2026 - Neutral footer hairline; even chrome pad; quieter note
- * @version 1.3 - FIX - 28 Aug 2026 - F1 type default is S5 compact; S3 overrides rem scale
  */
 
 :root {
@@ -429,7 +429,7 @@
   gap: 1rem;
   width: 100%;
   min-width: 0;
-  margin: 12px 0 0;
+  margin: 12px 0 16px;
   padding: 0;
   background: transparent;
 }
@@ -491,6 +491,11 @@
   box-shadow: none;
   appearance: none;
   -webkit-appearance: none;
+}
+
+.fu-create-form input:not( [type="radio"] ):not( [type="checkbox"] )[type="date"] {
+  appearance: auto;
+  -webkit-appearance: auto;
 }
 
 .fu-create-form textarea {
