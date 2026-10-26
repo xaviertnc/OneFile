@@ -17,12 +17,6 @@
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
- * @version 2.4.0 - DEV - 19 Jan 2025
- *   Breaking changes:
- *     - Rename getSession() to getSessionData()
- *     - Remove GenerateOTP()
- *     - Add comments
- * 
   * @version 2.5.0 - FT - 19 Feb 2025
  *   - Add JS to the default login form HTML to store the last URL in sessionStorage.
  *   - Bind the "onsubmit" event in JS instead of adding the code in the FORM tag.
@@ -30,7 +24,9 @@
  * @version 2.6.0 - FT - 07 Mar 2025
  *   - Add getUserPermissions() method.
  *   - Add denyIfPermissionsNot() method.
- *    
+ *
+ * @version 2.6.1 - UPD - 26 Oct 2026
+ *   - $_COOKIE and $_SESSION dumps log at debug level 4.
  */
 
 class Security
@@ -170,7 +166,7 @@ class Security
 
 
   public function getTokenFromCookie() {
-    debug_log( json_encode( $_COOKIE ), 'Security::getTokenFromCookie(), $_COOKIE: ', 3 );
+    debug_log( json_encode( $_COOKIE ), 'Security::getTokenFromCookie(), $_COOKIE: ', 4 );
     return $_COOKIE['token'] ?? '';
   }
 
@@ -198,7 +194,7 @@ class Security
     debug_log( json_encode( $asUser ), $logPrefix . 'user: ', 3, $logType );
     if ( ! $asUser ) return false;
     $sessionData = $this->getSessionData();
-    debug_log( json_encode( $sessionData ), $logPrefix . '$_SESSION: ', 3, $logType );
+    debug_log( json_encode( $sessionData ), $logPrefix . '$_SESSION: ', 4, $logType );
     // If there is no session user, set the provided user as the session user
     $this->user = $sessionData['user'] ?? $asUser;
     $this->writeToSession( 'user', $this->user );
