@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
+ * @version 5.62 - UPD - 29 Oct 2026 - Named layouts auto-save; Create, Duplicate, and Rename
  * @version 5.55 - UPD - 07 Sep 2026 - Columns tray: grip left, width-config (sliders) right
  * @version 5.54 - FIX - 07 Sep 2026 - AF value controls fill vals column (drop dt-filter-sm 120px cap)
- * @version 5.53 - UPD - 11 Aug 2026 - Columns tray rows more compact
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -60,6 +60,7 @@
       this.searchDebounceTimer = null;
 
       this._initSortStack( opts );
+      this._defaultSort = this.sortStack.map( s => ( { field: s.field, dir: s.dir || 'asc' } ) );
 
       // Compact headers
       this.compactBreakpoint = opts.compactBreakpoint || 1920;
@@ -88,7 +89,10 @@
       this.minFlexWidth = opts.minFlexWidth || 120;
       // Row density (not breakpoint `_compact` / titleShort)
       this.density = opts.density === 'compact' ? 'compact' : 'comfortable';
+      this._defaultDensity = this.density;
       this._densityInputs = [];
+      this._views = [];
+      this._applyingView = false;
 
       if ( this.advancedFilters ) {
         this.filterPanel = true;
@@ -833,6 +837,7 @@
       Object.keys( this.customFilters ).forEach( k => {
         const f = this.customFilters[ k ];
         if ( f.element ) f.element.onchange = () => {
+          if ( this._applyingView ) return;
           if ( f.urlParam !== false ) { const u = new URL( location.href ); u.searchParams.set( k, f.element.value ); history.replaceState( null, '', u ); }
           this.currentPage = 1;
           if ( this.isAjax ) this.load();
@@ -850,6 +855,7 @@
         this.addControlRight( this.resetButton );
         setTimeout( () => this._updateResetBtn(), 200 );
       }
+      this._syncLayoutSelect();
     } // _initState
 
 
@@ -868,6 +874,8 @@
         } );
         if ( this.advancedFilters ) s.af = this._af;
         localStorage.setItem( this.stateKey, JSON.stringify( s ) );
+        this._markLayoutDirty();
+        this._syncLayoutSelect();
       } catch ( e ) { console.error( 'State save error:', e ); }
     } // _saveState
 
@@ -898,6 +906,8 @@
       if ( this.isAjax ) { this.currentPage = 1; this.load(); }
       else this._render();
       this._updateResetBtn();
+      this._markLayoutDirty();
+      this._syncLayoutSelect();
     } // _resetState
 
 
@@ -1136,6 +1146,8 @@
         const payload = { order: this._colOrder, vis };
         if ( Object.keys( widths ).length ) payload.widths = widths;
         localStorage.setItem( this.stateKey + '-cols', JSON.stringify( payload ) );
+        this._markLayoutDirty();
+        this._syncLayoutSelect();
       } catch { /* ignore */ }
     } // _saveColConfig
 
@@ -1168,6 +1180,8 @@
       this.density = d === 'compact' ? 'compact' : 'comfortable';
       this._applyDensity();
       this._saveDensity();
+      this._markLayoutDirty();
+      this._syncLayoutSelect();
     } // _setDensity
 
 
@@ -1665,6 +1679,359 @@
     } // _updateColConfigBtn
 
 
+    _viewsKey() {
+      return this.stateKey ? this.stateKey + '-views' : null;
+    } // _viewsKey
+
+
+    _loadViews() {
+      this._views = [];
+      const key = this._viewsKey();
+      if ( !key ) return;
+      try {
+        const raw = localStorage.getItem( key );
+        if ( !raw ) return;
+        const cfg = JSON.parse( raw );
+        if ( !Array.isArray( cfg.views ) ) return;
+        this._views = cfg.views.filter( v => v && v.id && v.name );
+      } catch { /* ignore */ }
+    } // _loadViews
+
+
+    _saveViews() {
+      const key = this._viewsKey();
+      if ( !key ) return;
+      try { localStorage.setItem( key, JSON.stringify( { views: this._views } ) ); } catch { /* ignore */ }
+    } // _saveViews
+
+
+    _userColVisible( ci ) {
+      const uv = this._colVisibility.get( ci );
+      if ( uv === false ) return false;
+      if ( uv === true ) return true;
+      return !( this.columns[ ci ] && this.columns[ ci ].hidden );
+    } // _userColVisible
+
+
+    _layoutNorm( s ) {
+      s = s || {};
+      const vis = {};
+      Object.keys( s.vis || {} ).sort().forEach( k => { vis[ k ] = !!s.vis[ k ]; } );
+      const widths = {};
+      Object.keys( s.widths || {} ).sort().forEach( k => {
+        const v = s.widths[ k ] || {};
+        const o = {};
+        if ( v.width ) o.width = v.width;
+        if ( v.widthLg ) o.widthLg = v.widthLg;
+        if ( o.width || o.widthLg ) widths[ k ] = o;
+      } );
+      const filters = {};
+      Object.keys( s.filters || {} ).sort().forEach( k => {
+        filters[ k ] = s.filters[ k ] == null ? '' : String( s.filters[ k ] );
+      } );
+      return {
+        order: ( s.order || [] ).slice(),
+        vis,
+        widths,
+        density: s.density === 'compact' ? 'compact' : 'comfortable',
+        sort: ( s.sort || [] ).map( x => ( { field: x.field, dir: x.dir || 'asc' } ) ),
+        filters
+      };
+    } // _layoutNorm
+
+
+    _layoutSame( a, b ) {
+      if ( !a || !b ) return false;
+      return JSON.stringify( this._layoutNorm( a ) ) === JSON.stringify( this._layoutNorm( b ) );
+    } // _layoutSame
+
+
+    _layoutSnapshot() {
+      const vis = {};
+      this.columns.forEach( ( _, i ) => { vis[ i ] = this._userColVisible( i ); } );
+      const widths = {};
+      this._colWidthOverrides.forEach( ( v, k ) => {
+        const o = {};
+        if ( v.width ) o.width = v.width;
+        if ( v.widthLg ) o.widthLg = v.widthLg;
+        if ( o.width || o.widthLg ) widths[ k ] = o;
+      } );
+      const filters = {};
+      Object.keys( this.customFilters ).forEach( k => {
+        const f = this.customFilters[ k ];
+        filters[ k ] = f.element ? f.element.value : ( f.default || '' );
+      } );
+      return {
+        order: this._colOrder.slice(),
+        vis,
+        widths,
+        density: this.density,
+        sort: this.sortStack.map( s => ( { field: s.field, dir: s.dir || 'asc' } ) ),
+        filters
+      };
+    } // _layoutSnapshot
+
+
+    _defaultLayoutSnapshot() {
+      const vis = {};
+      this.columns.forEach( ( col, i ) => { vis[ i ] = !( col && col.hidden ); } );
+      const filters = {};
+      Object.keys( this.customFilters ).forEach( k => {
+        const f = this.customFilters[ k ];
+        filters[ k ] = f.default || '';
+      } );
+      return {
+        order: this.columns.map( ( _, i ) => i ),
+        vis,
+        widths: {},
+        density: this._defaultDensity || 'comfortable',
+        sort: ( this._defaultSort || [] ).map( s => ( { field: s.field, dir: s.dir || 'asc' } ) ),
+        filters
+      };
+    } // _defaultLayoutSnapshot
+
+
+    _namedViews() {
+      return ( this._views || [] ).filter( v => v && v.id && v.id !== 'custom' );
+    } // _namedViews
+
+
+    _markLayoutDirty() {
+      if ( this._applyingView || !this.stateKey ) return;
+      this._layoutDirty = true;
+    } // _markLayoutDirty
+
+
+    _writeCustom( snap ) {
+      const idx = this._views.findIndex( v => v.id === 'custom' );
+      if ( idx >= 0 && this._layoutSame( this._views[ idx ], snap ) ) return;
+      const row = Object.assign( { id: 'custom', name: 'Custom' }, snap );
+      if ( idx >= 0 ) this._views[ idx ] = row;
+      else this._views.unshift( row );
+      this._saveViews();
+    } // _writeCustom
+
+
+    _autosaveLayout() {
+      if ( !this.stateKey || !this._layoutSelect ) return;
+      const snap = this._layoutSnapshot();
+      const sel = this._layoutSelect.value;
+      if ( sel && sel !== 'custom' ) {
+        const idx = this._views.findIndex( v => v.id === sel );
+        if ( idx < 0 ) return;
+        if ( this._layoutSame( this._views[ idx ], snap ) ) return;
+        const cur = this._views[ idx ];
+        this._views[ idx ] = Object.assign( { id: cur.id, name: cur.name }, snap );
+        this._saveViews();
+        return;
+      }
+      if ( this._layoutSame( snap, this._defaultLayoutSnapshot() ) ) return;
+      this._writeCustom( snap );
+    } // _autosaveLayout
+
+
+    _matchLayoutId() {
+      const live = this._layoutSnapshot();
+      const sel = this._layoutSelect ? this._layoutSelect.value : '';
+      const named = this._namedViews();
+      if ( sel && sel !== 'custom' ) {
+        const current = named.find( v => v.id === sel );
+        if ( current && this._layoutSame( live, current ) ) return sel;
+      }
+      if ( this._layoutSame( live, this._defaultLayoutSnapshot() ) ) return '';
+      if ( sel === 'custom' ) {
+        const custom = ( this._views || [] ).find( v => v.id === 'custom' );
+        if ( custom && this._layoutSame( live, custom ) ) return 'custom';
+      }
+      const hit = named.find( v => this._layoutSame( live, v ) );
+      return hit ? hit.id : 'custom';
+    } // _matchLayoutId
+
+
+    _applyLayout( snap ) {
+      if ( !snap ) return;
+      const norm = this._layoutNorm( snap );
+      this._applyingView = true;
+      try {
+        if ( Array.isArray( norm.order ) && norm.order.length === this.columns.length ) {
+          this._colOrder = norm.order.slice();
+          this._colVisibility.clear();
+          this.columns.forEach( ( col, i ) => {
+            const want = !!norm.vis[ i ];
+            const intrinsic = !( col && col.hidden );
+            if ( want !== intrinsic ) this._colVisibility.set( i, want );
+          } );
+          this._colWidthOverrides.clear();
+          Object.entries( norm.widths ).forEach( ( [ k, v ] ) => {
+            this._colWidthOverrides.set( +k, { ...v } );
+          } );
+        }
+        this.density = norm.density;
+        this._applyDensity();
+        this._saveDensity();
+        this._saveColConfig();
+        this.sortStack = norm.sort.map( s => ( { ...s } ) );
+        this._syncLegacySort();
+        const url = new URL( location.href );
+        Object.keys( this.customFilters ).forEach( k => {
+          const f = this.customFilters[ k ];
+          if ( !( k in norm.filters ) ) return;
+          if ( f.element ) {
+            f.element.value = norm.filters[ k ];
+            f.element.dispatchEvent( new Event( 'change' ) );
+          }
+          if ( f.urlParam !== false ) url.searchParams.set( k, norm.filters[ k ] );
+        } );
+        history.replaceState( null, '', url );
+        this.currentPage = 1;
+        if ( this.isAjax ) {
+          this._reRenderTable();
+          this._updateSortIndicators();
+          this.load();
+        } else {
+          this._applyFilter();
+          this._applySort();
+          this._updatePagination();
+          this._reRenderTable();
+          this._updateSortIndicators();
+          this._renderInfo();
+          this._renderPagination();
+          this._saveState();
+          this._updateResetBtn();
+        }
+        if ( this._colConfigPanel ) this._renderColConfig();
+      } finally {
+        this._applyingView = false;
+      }
+      this._syncLayoutSelect();
+    } // _applyLayout
+
+
+    _fillLayoutSelect() {
+      const sel = this._layoutSelect;
+      if ( !sel ) return;
+      sel.innerHTML = '';
+      const add = ( value, label ) => {
+        const o = document.createElement( 'option' );
+        o.value = value;
+        o.textContent = label;
+        sel.appendChild( o );
+      };
+      add( 'custom', 'Custom' );
+      add( '', 'Default' );
+      this._namedViews().forEach( v => add( v.id, v.name ) );
+    } // _fillLayoutSelect
+
+
+    _syncLayoutSelect() {
+      if ( this._applyingView || !this._layoutSelect ) return;
+      if ( !this._layoutSelect.options.length ) this._fillLayoutSelect();
+      if ( this._layoutDirty ) {
+        this._layoutDirty = false;
+        this._autosaveLayout();
+      } else if ( !this._layoutBooted ) {
+        this._layoutBooted = true;
+        if ( this._matchLayoutId() === 'custom' ) this._writeCustom( this._layoutSnapshot() );
+      }
+      const id = this._matchLayoutId();
+      this._layoutSelect.value = id;
+      if ( this._layoutSelect.value !== id ) this._layoutSelect.value = 'custom';
+      const named = !!( id && id !== 'custom' );
+      if ( this._layoutRenameBtn ) this._layoutRenameBtn.disabled = !named;
+      if ( this._layoutDelBtn ) this._layoutDelBtn.disabled = !named;
+    } // _syncLayoutSelect
+
+
+    async _createLayout( duplicate ) {
+      const Dialog = F1.lib?.Dialog;
+      if ( !Dialog ) return;
+      const sel = this._layoutSelect ? this._layoutSelect.value : '';
+      const current = ( this._views || [] ).find( v => v.id === sel );
+      const title = duplicate ? 'Duplicate layout' : 'Create layout';
+      let preset = '';
+      if ( duplicate && current && current.id !== 'custom' ) {
+        preset = ( current.name + ' copy' ).slice( 0, 40 );
+      }
+      const name = await Dialog.prompt( {
+        title,
+        label: 'Name',
+        value: preset,
+        okText: duplicate ? 'Duplicate' : 'Create',
+        required: true,
+        maxlength: 40
+      } );
+      if ( !name ) return;
+      const reserved = name.toLowerCase() === 'custom' || name.toLowerCase() === 'default';
+      const taken = this._namedViews().some( v => v.name.toLowerCase() === name.toLowerCase() );
+      if ( reserved || taken ) {
+        await Dialog.alert( {
+          title,
+          message: reserved ? 'That name is reserved.' : 'A layout with that name already exists.'
+        } );
+        return;
+      }
+      const savedId = 'v' + Date.now().toString( 36 ) + Math.random().toString( 36 ).slice( 2, 6 );
+      this._views.push( Object.assign( { id: savedId, name }, this._layoutSnapshot() ) );
+      this._saveViews();
+      this._fillLayoutSelect();
+      if ( this._layoutSelect ) this._layoutSelect.value = savedId;
+      this._syncLayoutSelect();
+    } // _createLayout
+
+
+    async _renameLayout() {
+      const Dialog = F1.lib?.Dialog;
+      if ( !Dialog || !this._layoutSelect ) return;
+      const current = this._namedViews().find( v => v.id === this._layoutSelect.value );
+      if ( !current ) return;
+      const name = await Dialog.prompt( {
+        title: 'Rename layout',
+        label: 'Name',
+        value: current.name,
+        okText: 'Rename',
+        required: true,
+        maxlength: 40
+      } );
+      if ( !name || name === current.name ) return;
+      const reserved = name.toLowerCase() === 'custom' || name.toLowerCase() === 'default';
+      const taken = this._namedViews().some( v =>
+        v.id !== current.id && v.name.toLowerCase() === name.toLowerCase()
+      );
+      if ( reserved || taken ) {
+        await Dialog.alert( {
+          title: 'Rename layout',
+          message: reserved ? 'That name is reserved.' : 'A layout with that name already exists.'
+        } );
+        return;
+      }
+      current.name = name;
+      this._saveViews();
+      this._fillLayoutSelect();
+      if ( this._layoutSelect ) this._layoutSelect.value = current.id;
+      this._syncLayoutSelect();
+    } // _renameLayout
+
+
+    async _deleteLayout() {
+      const Dialog = F1.lib?.Dialog;
+      if ( !Dialog || !this._layoutSelect ) return;
+      const current = ( this._views || [] ).find( v => v.id === this._layoutSelect.value );
+      if ( !current ) return;
+      const yes = await Dialog.confirm( {
+        title: 'Delete layout',
+        message: 'Delete layout ' + current.name + '?',
+        danger: true,
+        okText: 'Delete'
+      } );
+      if ( !yes ) return;
+      this._views = this._views.filter( v => v.id !== current.id );
+      this._saveViews();
+      this._fillLayoutSelect();
+      this._markLayoutDirty();
+      this._syncLayoutSelect();
+    } // _deleteLayout
+
+
     _initColumnConfig() {
       const Utils = F1.lib?.Utils;
       if ( !Utils ) return;
@@ -1695,6 +2062,47 @@
       resetBtn.onclick = () => this._resetColConfig();
       this._colConfigResetBtn = resetBtn;
       cfgActions.append( allLbl, resetBtn );
+      let layouts = null;
+      if ( this.stateKey ) {
+        this._loadViews();
+        layouts = Utils.newEl( 'div', 'dt-col-config-layouts' );
+        const layoutsTitle = Utils.newEl( 'div', 'dt-col-config-sec-title' );
+        layoutsTitle.textContent = 'My Layouts';
+        const sel = Utils.newEl( 'select', 'dt-col-config-layout-select' );
+        this._layoutSelect = sel;
+        sel.onchange = () => {
+          const v = sel.value;
+          if ( v === 'custom' ) {
+            const custom = ( this._views || [] ).find( x => x.id === 'custom' );
+            const same = custom && this._layoutSame( this._layoutSnapshot(), custom );
+            if ( custom && !same ) this._applyLayout( custom );
+            else this._syncLayoutSelect();
+            return;
+          }
+          if ( v === '' ) this._applyLayout( this._defaultLayoutSnapshot() );
+          else {
+            const view = ( this._views || [] ).find( x => x.id === v );
+            if ( view ) this._applyLayout( view );
+          }
+        };
+        const acts = Utils.newEl( 'div', 'dt-col-config-layout-acts' );
+        const mkAct = ( label, fn ) => {
+          const b = Utils.newEl( 'button', 'dt-col-config-reset', { type: 'button' } );
+          b.textContent = label;
+          b.onclick = fn;
+          return b;
+        };
+        acts.append(
+          mkAct( 'Create', () => this._createLayout( false ) ),
+          mkAct( 'Duplicate', () => this._createLayout( true ) ),
+          this._layoutRenameBtn = mkAct( 'Rename', () => this._renameLayout() ),
+          this._layoutDelBtn = mkAct( 'Delete', () => this._deleteLayout() )
+        );
+        layouts.append( layoutsTitle, sel, acts );
+        this._layoutBar = layouts;
+        this._fillLayoutSelect();
+        this._syncLayoutSelect();
+      }
       const rowsSec = Utils.newEl( 'div', 'dt-col-config-rows' );
       rowsSec.innerHTML = '<div class="dt-col-config-sec-title">Rows</div>';
       const dens = Utils.newEl( 'div', 'dt-col-config-density' );
@@ -1716,7 +2124,7 @@
       } );
       dens.appendChild( densOpts );
       rowsSec.appendChild( dens );
-      panel.append( cfgHeader, cfgActions );
+      panel.append( cfgHeader, ...( layouts ? [ layouts ] : [] ), cfgActions );
       this._colConfigRows = rowsSec;
       const backdrop = Utils.newEl( 'div', 'dt-tray-backdrop dt-col-config-backdrop' );
       wrap.appendChild( btn );
@@ -1743,6 +2151,7 @@
       const panel = this._colConfigPanel;
       if ( !panel ) return;
       const hdr = panel.querySelector( '.dt-drawer-header' );
+      const layouts = this._layoutBar || panel.querySelector( '.dt-col-config-layouts' );
       const actions = panel.querySelector( '.dt-col-config-actions' );
       const rowsSec = this._colConfigRows || panel.querySelector( '.dt-col-config-rows' );
       let body = panel.querySelector( '.dt-col-config-body' );
@@ -1750,6 +2159,7 @@
       this._colConfigOpen = openSet;
       panel.innerHTML = '';
       if ( hdr ) panel.appendChild( hdr );
+      if ( layouts ) panel.appendChild( layouts );
       if ( actions ) panel.appendChild( actions );
       if ( !body ) body = document.createElement( 'div' );
       body.className = 'dt-col-config-body';
@@ -1862,6 +2272,8 @@
       }
       this._renderColConfig();
       this._reRenderTable();
+      this._markLayoutDirty();
+      this._syncLayoutSelect();
     } // _resetColConfig
 
 
@@ -2167,6 +2579,12 @@
 .dt-col-config .dt-drawer-header{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0}
 .dt-col-config .dt-drawer-title{font-size:15px;font-weight:600;color:#222;margin-right:auto}
 .dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
+.dt-col-config-layouts{padding:0.5rem 14px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
+.dt-col-config-layout-select{display:block;width:100%;height:28px;margin:0;padding:2px 8px;border:1px solid #ccc;border-radius:4px;font-size:12px;line-height:1.2;background:#fff;color:#222;box-sizing:border-box}
+.dt-col-config-layout-select:focus{outline:none;border-color:var(--primary-color,#337ab7);box-shadow:0 0 0 2px rgba(51,122,183,.15)}
+.dt-col-config-layout-acts{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:0.5rem}
+.dt-col-config-layout-acts .dt-col-config-reset{padding:2px 0}
+.dt-col-config-layout-acts .dt-col-config-reset:disabled{opacity:.4;cursor:default}
 .dt-col-config-body{flex:1;overflow:auto;padding:0 0 4px;-webkit-overflow-scrolling:touch;min-height:0}
 .dt-col-config-rows{flex-shrink:0;border-top:1px solid #eee;background:#fff;padding:10px 14px 12px}
 .dt-col-config-sec-title{font-size:12px;font-weight:600;color:#555;margin:0 0 8px}
