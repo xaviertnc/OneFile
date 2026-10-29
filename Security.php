@@ -17,16 +17,15 @@
  * 
  * @author  C. Moller <xavier.tnc@gmail.com>
  * 
-  * @version 2.5.0 - FT - 19 Feb 2025
- *   - Add JS to the default login form HTML to store the last URL in sessionStorage.
- *   - Bind the "onsubmit" event in JS instead of adding the code in the FORM tag.
- * 
- * @version 2.6.0 - FT - 07 Mar 2025
+  * @version 2.6.0 - FT - 07 Mar 2025
  *   - Add getUserPermissions() method.
  *   - Add denyIfPermissionsNot() method.
  *
  * @version 2.6.1 - UPD - 26 Oct 2026
  *   - $_COOKIE and $_SESSION dumps log at debug level 4.
+ *
+ * @version 2.6.2 - UPD - 29 Oct 2026
+ *   - One session line per request. $_COOKIE and $_SESSION stay at level 4.
  */
 
 class Security
@@ -137,8 +136,6 @@ class Security
 
   public function tokenExpired( array $token ) {
     $timeElapsed = time() - $token['t'];
-    debug_log( $timeElapsed . ', max: ' . self::TOKEN_LIFE_SPAN, 
-      'Security::tokenExpired(), token age: ', 3, 'security' );
     return $timeElapsed > self::TOKEN_LIFE_SPAN;
   }
 
@@ -146,7 +143,6 @@ class Security
   public function validateToken( $token ) {
     $logType = 'security';
     $logPrefix = 'Security::validateToken(), ';
-    debug_log( $logPrefix . 'Says Hi!', '', 2, $logType );
     debug_log( $token, $logPrefix . 'token: ', 5, $logType );
     $formatValid = is_array( $token ) and isset( $token['u'], $token['t'] );
     if ( ! $formatValid ) return debug_log( 'Token Invalid', $logPrefix, 2, $logType );
@@ -166,13 +162,12 @@ class Security
 
 
   public function getTokenFromCookie() {
-    debug_log( json_encode( $_COOKIE ), 'Security::getTokenFromCookie(), $_COOKIE: ', 4 );
+    debug_log( json_encode( $_COOKIE ), 'Security::getTokenFromCookie(), $_COOKIE: ', 4, 'security' );
     return $_COOKIE['token'] ?? '';
   }
 
 
   public function startSessionFromToken( $token = null ) {
-    debug_log( 'Security::startSessionFromToken(), Says Hi!', '', 3, 'security' );
     if ( ! $this->validateToken( $token ) ) return $this->logout();
     $tokenUser = $token['u'];
     $timeElapsed = time() - $token['t'];
@@ -183,25 +178,27 @@ class Security
       $newToken = [ 'u' => $tokenUser, 't' => time() ];
       $this->setTokenCookie( $this->encryptToken( $newToken ) );
     }
-    debug_log( $this->loggedIn ? 'Yes' : 'No', 'Security::startSessionFromToken(), loggedIn: ', 2, 'security' );
-    return $this->loggedIn;    
+    $id = $tokenUser['id'] ?? '';
+    $sessionId = is_array( $this->user ) ? ( $this->user['id'] ?? '' ) : '';
+    $line = ( $tokenUser['username'] ?? '' ) . ' id:' . $id;
+    if ( (string) $sessionId !== (string) $id ) $line .= ' session:' . $sessionId;
+    $line .= ' role:' . ( $tokenUser['role'] ?? '' );
+    $line .= ' ' . ( $this->loggedIn ? 'in' : 'out' );
+    $line .= ' age:' . $timeElapsed . '/' . self::TOKEN_LIFE_SPAN;
+    debug_log( $line, '', 2, 'security' );
+    return $this->loggedIn;
   }
 
 
   public function startUserSession( $asUser ) {
-    $logType = 'security';
-    $logPrefix = 'Security::startUserSession(), ';
-    debug_log( json_encode( $asUser ), $logPrefix . 'user: ', 3, $logType );
     if ( ! $asUser ) return false;
     $sessionData = $this->getSessionData();
-    debug_log( json_encode( $sessionData ), $logPrefix . '$_SESSION: ', 4, $logType );
+    debug_log( json_encode( $sessionData ), 'Security::startUserSession(), $_SESSION: ', 4, 'security' );
     // If there is no session user, set the provided user as the session user
     $this->user = $sessionData['user'] ?? $asUser;
     $this->writeToSession( 'user', $this->user );
     $sessionUserId = $this->user['id'] ?? '';
     $asUserId = $asUser['id'] ?? '';
-    debug_log( $sessionUserId, $logPrefix .'sessionUserId: ', 3, $logType );
-    debug_log( $asUserId, $logPrefix . 'loginAsUserId: ', 3, $logType );
     return $sessionUserId === $asUserId;
   }
 
@@ -222,9 +219,7 @@ class Security
 
   public function denyIfRoleNot( $roles, $message = null ) {
     if ( ! is_array( $roles ) ) $roles = [ $roles ];
-    debug_log( json_encode( $roles ), 'Security::denyIfRoleNot(), allowed roles: ', 3, 'security' );
     $currentRole = $this->getUserRole();
-    debug_log( "Security::denyIfRoleNot(), auth user's role: \"$currentRole\"", '', 3, 'security' );
     if ( ! in_array( $currentRole, $roles ) ) {
       http_response_code( 403 );
       debug_log( "***Access Denied!*** role: \"$currentRole\"", '', 1, 'security' );
@@ -244,8 +239,6 @@ class Security
   public function denyIfPermissionsNot( $permissions, $message = null ) {
     if ( ! is_array( $permissions ) ) $permissions = explode( ',', $permissions );
     $userPermissions = $this->getUserPermissions();
-    debug_log( json_encode( $permissions ), 'Security::denyIfPermissionsNot(), allowed permissions: ', 3, 'security' );
-    debug_log( json_encode( $userPermissions ), 'Security::denyIfPermissionsNot(), user permissions: ', 3, 'security' );
     $hasPermission = count( array_intersect( $permissions, $userPermissions ) ) > 0;
     if ( ! $hasPermission ) {
       http_response_code( 403 );
@@ -300,7 +293,7 @@ class Security
       $token = [ 'u' => $this->user, 't' => time() ];
       $tokenJson = json_encode( $token );
 
-      debug_log( $tokenJson, 'Security::login(), Token: ', 3, 'security' );
+      debug_log( $tokenJson, 'Security::login(), Token: ', 5, 'security' );
 
       $newEncryptedToken = $this->encrypt( $tokenJson );
       $this->setTokenCookie( $newEncryptedToken );
