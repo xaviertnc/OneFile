@@ -13,9 +13,9 @@
    * @author C. Moller <xavier.tnc@gmail.com>
    *
  * Last version commits:
- * @version 5.62 - UPD - 29 Oct 2026 - Named layouts auto-save; Create, Duplicate, and Rename
- * @version 5.55 - UPD - 07 Sep 2026 - Columns tray: grip left, width-config (sliders) right
- * @version 5.54 - FIX - 07 Sep 2026 - AF value controls fill vals column (drop dt-filter-sm 120px cap)
+ * @version 5.69 - UPD - 03 Nov 2026 - Eraser on a named view asks where the reset goes
+ * @version 5.68 - UPD - 03 Nov 2026 - Reset on a named view asks replace or new
+ * @version 5.67 - UPD - 03 Nov 2026 - My Views + New copies the active view
  */
 
   function log(...args) { if (F1.DEBUG > 1) console.log(...args); }
@@ -851,7 +851,7 @@
         this.resetButton = Utils.newEl( 'button', 'btn btn-sm btn-outline btn-clear-state hidden' );
         this.resetButton.title = 'Reset table filters/sort';
         this.resetButton.innerHTML = '<span class="fa fa-eraser"></span>';
-        this.resetButton.onclick = () => this._resetState();
+        this.resetButton.onclick = () => this._confirmResetState();
         this.addControlRight( this.resetButton );
         setTimeout( () => this._updateResetBtn(), 200 );
       }
@@ -880,7 +880,7 @@
     } // _saveState
 
 
-    _resetState() {
+    _resetState( opts ) {
       localStorage.removeItem( this.stateKey );
       this.pageSize = this.defaultState.pageSize;
       this.currentPage = 1;
@@ -906,9 +906,81 @@
       if ( this.isAjax ) { this.currentPage = 1; this.load(); }
       else this._render();
       this._updateResetBtn();
+      if ( opts && opts.saveView === false ) return;
       this._markLayoutDirty();
       this._syncLayoutSelect();
     } // _resetState
+
+
+    _activeNamedView() {
+      const sel = this._layoutSelect ? this._layoutSelect.value : '';
+      if ( !sel || sel === 'custom' ) return null;
+      return this._namedViews().find( v => v.id === sel ) || null;
+    } // _activeNamedView
+
+
+    _clearListExtras() {
+      if ( this.stateKey ) {
+        try { localStorage.removeItem( this.stateKey ); } catch { /* ignore */ }
+      }
+      const d = this.defaultState || {};
+      this.pageSize = d.pageSize;
+      this.currentPage = 1;
+      this.searchTerm = '';
+      if ( this.pageSizeSelect && d.pageSize ) this.pageSizeSelect.value = d.pageSize;
+      if ( this._pageSizeBottom && d.pageSize ) this._pageSizeBottom.value = d.pageSize;
+      if ( this.searchInput ) this.searchInput.value = '';
+      this._syncSearchClear();
+      if ( this.advancedFilters ) {
+        this._af = {};
+        this._afFillUi();
+      }
+    } // _clearListExtras
+
+
+    async _confirmResetState() {
+      const Dialog = F1.lib?.Dialog;
+      const named = this._activeNamedView();
+      if ( !named ) {
+        this._resetState();
+        return;
+      }
+      if ( !Dialog ) return;
+      const choice = await Dialog.form( {
+        title: 'Reset ' + named.name,
+        message: 'Reset filters and sort on ' + named.name
+          + ', switch to Default, or save a new view?',
+        okText: 'This view',
+        altButtons: [
+          { text: 'Default', value: 'default' },
+          { text: 'New view', value: 'new' }
+        ]
+      } );
+      if ( !choice ) return;
+      if ( choice === 'default' ) {
+        this._holdViewSave = true;
+        try {
+          this._clearListExtras();
+          this._applyLayout( this._defaultLayoutSnapshot() );
+        } finally {
+          this._holdViewSave = false;
+        }
+        return;
+      }
+      if ( choice === 'new' ) {
+        const before = this._layoutSnapshot();
+        this._holdViewSave = true;
+        try {
+          this._resetState( { saveView: false } );
+          const saved = await this._createLayout( named.name );
+          if ( !saved ) this._applyLayout( before );
+        } finally {
+          this._holdViewSave = false;
+        }
+        return;
+      }
+      this._resetState();
+    } // _confirmResetState
 
 
     _effectiveSortDir( dir ) {
@@ -1813,6 +1885,7 @@
 
 
     _autosaveLayout() {
+      if ( this._holdViewSave ) return;
       if ( !this.stateKey || !this._layoutSelect ) return;
       const snap = this._layoutSnapshot();
       const sel = this._layoutSelect.value;
@@ -1942,21 +2015,19 @@
     } // _syncLayoutSelect
 
 
-    async _createLayout( duplicate ) {
+    async _createLayout( sourceName ) {
       const Dialog = F1.lib?.Dialog;
       if ( !Dialog ) return;
       const sel = this._layoutSelect ? this._layoutSelect.value : '';
       const current = ( this._views || [] ).find( v => v.id === sel );
-      const title = duplicate ? 'Duplicate layout' : 'Create layout';
-      let preset = '';
-      if ( duplicate && current && current.id !== 'custom' ) {
-        preset = ( current.name + ' copy' ).slice( 0, 40 );
-      }
+      const source = sourceName || ( current ? current.name : 'Default' );
+      const title = 'New view';
+      const preset = ( source + ' copy' ).slice( 0, 40 );
       const name = await Dialog.prompt( {
         title,
         label: 'Name',
         value: preset,
-        okText: duplicate ? 'Duplicate' : 'Create',
+        okText: 'Create',
         required: true,
         maxlength: 40
       } );
@@ -1976,6 +2047,7 @@
       this._fillLayoutSelect();
       if ( this._layoutSelect ) this._layoutSelect.value = savedId;
       this._syncLayoutSelect();
+      return true;
     } // _createLayout
 
 
@@ -2067,7 +2139,7 @@
         this._loadViews();
         layouts = Utils.newEl( 'div', 'dt-col-config-layouts' );
         const layoutsTitle = Utils.newEl( 'div', 'dt-col-config-sec-title' );
-        layoutsTitle.textContent = 'My Layouts';
+        layoutsTitle.textContent = 'My Views';
         const sel = Utils.newEl( 'select', 'dt-col-config-layout-select' );
         this._layoutSelect = sel;
         sel.onchange = () => {
@@ -2086,17 +2158,16 @@
           }
         };
         const acts = Utils.newEl( 'div', 'dt-col-config-layout-acts' );
-        const mkAct = ( label, fn ) => {
-          const b = Utils.newEl( 'button', 'dt-col-config-reset', { type: 'button' } );
+        const mkAct = ( label, fn, extra ) => {
+          const b = Utils.newEl( 'button', 'dt-col-config-act' + ( extra ? ' ' + extra : '' ), { type: 'button' } );
           b.textContent = label;
           b.onclick = fn;
           return b;
         };
         acts.append(
-          mkAct( 'Create', () => this._createLayout( false ) ),
-          mkAct( 'Duplicate', () => this._createLayout( true ) ),
+          mkAct( '+ New', () => this._createLayout() ),
           this._layoutRenameBtn = mkAct( 'Rename', () => this._renameLayout() ),
-          this._layoutDelBtn = mkAct( 'Delete', () => this._deleteLayout() )
+          this._layoutDelBtn = mkAct( 'Delete', () => this._deleteLayout(), 'is-danger' )
         );
         layouts.append( layoutsTitle, sel, acts );
         this._layoutBar = layouts;
@@ -2263,7 +2334,7 @@
     } // _renderColConfig
 
 
-    _resetColConfig() {
+    _applyColReset() {
       this._colOrder = this.columns.map( ( _, i ) => i );
       this._colVisibility.clear();
       this._colWidthOverrides.clear();
@@ -2272,6 +2343,30 @@
       }
       this._renderColConfig();
       this._reRenderTable();
+    } // _applyColReset
+
+
+    async _resetColConfig() {
+      const Dialog = F1.lib?.Dialog;
+      const named = this._activeNamedView();
+      if ( named ) {
+        if ( !Dialog ) return;
+        const choice = await Dialog.form( {
+          title: 'Reset ' + named.name,
+          message: 'Replace ' + named.name + ', or save the reset as a new view?',
+          okText: 'Replace',
+          altButton: { text: 'New view', value: 'new' }
+        } );
+        if ( !choice ) return;
+        if ( choice === 'new' ) {
+          const before = this._layoutSnapshot();
+          this._applyColReset();
+          const saved = await this._createLayout();
+          if ( !saved ) this._applyLayout( before );
+          return;
+        }
+      }
+      this._applyColReset();
       this._markLayoutDirty();
       this._syncLayoutSelect();
     } // _resetColConfig
@@ -2579,12 +2674,16 @@
 .dt-col-config .dt-drawer-header{display:flex;align-items:center;gap:8px;padding:14px 16px 10px;border-bottom:1px solid #eee;flex-shrink:0}
 .dt-col-config .dt-drawer-title{font-size:15px;font-weight:600;color:#222;margin-right:auto}
 .dt-col-config-actions{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
-.dt-col-config-layouts{padding:0.5rem 14px;border-bottom:1px solid #eee;background:#fff;flex-shrink:0}
+.dt-col-config-layouts{margin:8px 14px;padding:10px 12px 12px;border:1px solid #d5dee8;border-radius:8px;background:#f4f7fb;box-shadow:0 1px 2px rgba(16,42,67,.06);flex-shrink:0}
+.dt-col-config-layouts .dt-col-config-sec-title{color:#222}
 .dt-col-config-layout-select{display:block;width:100%;height:28px;margin:0;padding:2px 8px;border:1px solid #ccc;border-radius:4px;font-size:12px;line-height:1.2;background:#fff;color:#222;box-sizing:border-box}
 .dt-col-config-layout-select:focus{outline:none;border-color:var(--primary-color,#337ab7);box-shadow:0 0 0 2px rgba(51,122,183,.15)}
-.dt-col-config-layout-acts{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:0.5rem}
-.dt-col-config-layout-acts .dt-col-config-reset{padding:2px 0}
-.dt-col-config-layout-acts .dt-col-config-reset:disabled{opacity:.4;cursor:default}
+.dt-col-config-layout-acts{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:6px}
+.dt-col-config-act{height:24px;padding:0 8px;border:1px solid #c5d4ea;border-radius:4px;background:#e8f0fb;font-size:11px;font-weight:600;line-height:1;color:#243140;cursor:pointer}
+.dt-col-config-act:hover:not(:disabled){background:#dbe7f8;border-color:#1d4ed8}
+.dt-col-config-act.is-danger{background:#fdecec;border-color:#f3c0c0}
+.dt-col-config-act.is-danger:hover:not(:disabled){background:#fbdada;border-color:#b42318}
+.dt-col-config-act:disabled{cursor:default;background:#f3f4f6;border-color:#e5e7eb}
 .dt-col-config-body{flex:1;overflow:auto;padding:0 0 4px;-webkit-overflow-scrolling:touch;min-height:0}
 .dt-col-config-rows{flex-shrink:0;border-top:1px solid #eee;background:#fff;padding:10px 14px 12px}
 .dt-col-config-sec-title{font-size:12px;font-weight:600;color:#555;margin:0 0 8px}

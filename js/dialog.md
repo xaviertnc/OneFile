@@ -68,8 +68,8 @@ OK only. `message` is a string or an array of errors. Resolves `true` when dismi
 
 ### `Dialog.form( opts )` / `Dialog.prompt( opts )` / `Dialog.alert( opts )`
 
-Form: optional `fields` (`text` | `textarea`), `altButton`, `okOnly`, `warn`.  
-Resolves a field map, `true` (no fields), `altButton.value`, or `null`.
+Form: optional `fields` (`text` | `textarea`), `altButton` or `altButtons`, `okOnly`, `warn`.  
+Resolves a field map, `true` (no fields), an alternate button's `value`, or `null`.
 
 Prompt: one field; resolves a trimmed string or `null`.
 

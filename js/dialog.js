@@ -10,9 +10,9 @@
  * @package F1
  * @author Senpai
  *
+ * @version 1.3 - UPD - 03 Nov 2026 - A form can offer more than one alternate button
  * @version 1.2 - UPD - 16 Oct 2026 - A form field type other than textarea is used on the input
  * @version 1.1 - FT - 14 Sep 2026 - Rich message accepts a DOM `node` between facts and note
- * @version 1.0 - INIT - 28 Aug 2026 - Port S5 modal-dialogs; add form/prompt
  */
 
 ( function( F1 ) {
@@ -406,14 +406,15 @@
 
       const footer = document.createElement( 'div' );
       footer.className = 'ui-dialog-actions';
-      if ( opts.altButton ) {
+      const alts = opts.altButtons || ( opts.altButton ? [ opts.altButton ] : [] );
+      alts.forEach( function( spec, i ) {
         const alt = document.createElement( 'button' );
         alt.type = 'button';
-        alt.className = ( opts.altButton.danger ? 'btn-danger' : 'btn-secondary' ) + ' btn-alt';
-        alt.textContent = opts.altButton.text;
-        alt.onclick = function() { finish( opts.altButton.value ); };
+        alt.className = ( spec.danger ? 'btn-danger' : 'btn-secondary' ) + ( i ? '' : ' btn-alt' );
+        alt.textContent = spec.text;
+        alt.onclick = function() { finish( spec.value ); };
         footer.appendChild( alt );
-      }
+      } );
       if ( ! opts.okOnly ) {
         const cancel = document.createElement( 'button' );
         cancel.type = 'button';
