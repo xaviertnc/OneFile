@@ -21,6 +21,9 @@
    *
    * @version 2.4 - FT - 29 Mar 2026
    *   - Add fullName() for building display names from row data*
+   *
+   * @version 2.5 - FIX - 09 Nov 2026
+   *   - fullName() returns escaped text. Every caller puts it in HTML.
    */
 
   class Utils {
@@ -75,13 +78,10 @@
     }
 
     static fullName( row, fallbackField = 'name' ) {
-      if ( row.first_name ) {
-        let n = row.first_name;
-        if ( row.middle_name ) n += ' ' + row.middle_name;
-        if ( row.last_name ) n += ' ' + row.last_name;
-        return n;
-      }
-      return row[ fallbackField ] || '';
+      const n = row.first_name
+        ? [ row.first_name, row.middle_name, row.last_name ].filter( Boolean ).join( ' ' )
+        : row[ fallbackField ] || '';
+      return n.replace( /[&<>"]/g, c => ( { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } )[ c ] );
     }
 
     static clone(obj) {
