@@ -17,6 +17,10 @@
    *   - Add removeEventListeners() method.
    *   - Add disable() method.
    *   - Add enable() method.
+   *
+   * @version 1.5 - FIX - 09 Nov 2026
+   *   - Labels keep HTML; dangerous tags and on* handlers show as text.
+   *   - getOptionsHtml() reads select.value once (n² to n).
    */
 
   function log(...args) { if (F1.DEBUG > 2) console.log(...args); }
@@ -58,8 +62,12 @@
 
     updateOptions() { this.optsList.innerHTML = this.getOptionsHtml(); this.options = Array.from(this.optsList.children); }
 
-    getOptionsHtml() { return Array.from(this.select.options).map(opt => `<li data-value="${opt.value}" role="option" ${
-      opt.value == this.select.value ? 'aria-selected="true"' : ''} tabindex="0">${opt.title || opt.text}</li>` ).join(''); }
+    label(opt) { const l = opt.title || opt.text; return !l.includes('<') ? l : l.replace(
+      /<(?=\/?(iframe|frame|script|style|object|embed|img|svg|link|meta|base|form|input|textarea|video|audio)\b)/gi, '&lt;')
+      .replace(/\son\w+\s*=/gi, ' x='); }
+
+    getOptionsHtml() { const v = this.select.value; return Array.from(this.select.options).map(opt => `<li data-value="${
+      opt.value}" role="option" ${opt.value == v ? 'aria-selected="true"' : ''} tabindex="0">${this.label(opt)}</li>` ).join(''); }
 
     handleGlobalClick(e) {
       if (!this.element.contains(e.target)) this.toggleDropdown('closed', 'global');
@@ -160,7 +168,7 @@
       // log('selectOption:', { value, init });
       const selOpt = Array.from(this.select.options).find(option => option.value == value); // == Important!
       this.select.value = value; if (selOpt) selOpt.selected = true; this.clearX.hidden = !this.config.clearPrompt || !value;
-      this.valueDisplay.firstElementChild.innerHTML = selOpt ? selOpt.title || selOpt.text : this.selectPrompt;
+      this.valueDisplay.firstElementChild.innerHTML = selOpt ? this.label(selOpt) : this.selectPrompt;
       this.options.forEach(li => li.setAttribute('aria-selected', li.dataset.value == value));
       if (init) return this.select.defaultValue = value; setTimeout(() =>
         this.select.dispatchEvent(new Event('change', { bubbles: true })));
