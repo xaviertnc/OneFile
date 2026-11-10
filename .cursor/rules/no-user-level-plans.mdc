@@ -1,0 +1,9 @@
+---
+description: Plans live in the closest project workspace .cursor/plans/, never at user level, and are committed with their work.
+alwaysApply: true
+---
+
+# Plans: Closest Workspace, Committed With The Work
+
+- Put every plan in the `.cursor/plans/` of the project it changes. NEVER `~/.cursor/plans/`.
+- Commit the plan in the same commit as the work it plans. A plan for work already committed gets its own `DOC` commit straight away.
